@@ -1,0 +1,52 @@
+project_root/
+│
+├── pipeline/                     <-- All orchestrators, runners, and step modules
+│   ├── __init__.py
+│   ├── runner.py                 <-- Main pipeline engine (can trigger multiple pipelines)
+│   ├── state.py                  <-- Load/save state.json for any pipeline
+│   ├── state_models.py           <-- Pydantic models for state
+│   ├── steps/
+│   │   ├── __init__.py
+│   │   ├── file_ops/             <-- File management steps
+│   │   │   ├── __init__.py
+│   │   │   ├── unzip_files.py
+│   │   │   ├── move_files.py
+│   │   │   ├── rename_files.py
+│   │   │   └── convert_to_pdf.py
+│   │   ├── qc/                   <-- QC validation steps
+│   │   │   ├── __init__.py
+│   │   │   ├── parse_cdf.py
+│   │   │   ├── build_tables.py
+│   │   │   ├── qc_flags.py
+│   │   │   └── check_ratios.py
+│   │   └── ...
+│   └── utils/                    <-- Shared helper functions for steps
+│       ├── __init__.py
+│       ├── file_helpers.py       <-- is_network_drive, parse_dat_file, etc.
+│       └── datetime_utils.py
+│
+├── domain/                       <-- Data models and higher-level logic
+│   ├── __init__.py
+│   ├── chromatogram.py
+│   ├── data_analysis.py
+│   ├── plotting.py
+│   └── database.py
+│
+├── config/
+│   ├── defaults.yaml
+│   ├── lp_config.yaml
+│   └── rb_config.yaml
+│
+├── scripts/                      <-- Entry points for each pipeline
+│   ├── run_file_pipeline.py      <-- Orchestrates file management steps
+│   ├── run_qc_pipeline.py        <-- Orchestrates QC validation steps
+│   └── run_step.py               <-- Optional: run a single step
+│
+├── tests/                        <-- Unit and integration tests
+│   ├── test_file_ops/
+│   └── test_qc/
+│
+└── runs/                         <-- Output folder hierarchy
+    ├── LP/202507/file_ops/state.json
+    ├── LP/202507/qc/state.json
+    └── ...

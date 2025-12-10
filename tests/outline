@@ -1,0 +1,25 @@
+tests/
+│
+├── __init__.py
+├── conftest.py                 <-- pytest fixtures for all tests (e.g., temp dirs, sample files)
+│
+├── test_file_ops/              <-- Tests for file management steps
+│   ├── __init__.py
+│   ├── test_unzip_files.py
+│   ├── test_move_files.py
+│   ├── test_rename_files.py
+│   └── test_convert_to_pdf.py
+│
+├── test_qc/                    <-- Tests for QC steps
+│   ├── __init__.py
+│   ├── test_parse_cdf.py
+│   ├── test_build_tables.py
+│   ├── test_qc_flags.py
+│   └── test_check_ratios.py
+│
+└── test_domain/                <-- Tests for domain classes and logic
+    ├── __init__.py
+    ├── test_chromatogram.py
+    ├── test_data_analysis.py
+    ├── test_plotting.py
+    └── test_database.py
