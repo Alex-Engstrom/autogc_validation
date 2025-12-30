@@ -20,4 +20,6 @@ class FileOpsState(BaseModel):
     last_run: datetime | None = None
     
 class QCState(BaseModel):
+    processed_cdf: List[Path] = []
+    
     
