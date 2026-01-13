@@ -295,24 +295,18 @@ def create_primary_canisters_table(database: str) -> None:
     CREATE TABLE IF NOT EXISTS primary_canisters (
         primary_canister_id TEXT PRIMARY KEY,
         canister_type TEXT NOT NULL,
-        certification_date TEXT NOT NULL,
-        expiration_date TEXT NOT NULL,
         FOREIGN KEY(canister_type) REFERENCES canister_types(canister_type)
     );
     """
     with _connect(database) as conn:
         conn.execute(sql)
         conn.commit()
-def add_primary_canister(database: str, primary_canister_id: str, canister_type: str, certification_date: str, expiration_date: str)-> None:
+def add_primary_canister(database: str, primary_canister_id: str, canister_type: str)-> None:
     """ Add primary canister to primary_canisters_table"""
-    for date_entry in [certification_date, expiration_date]:
-        if not check_date_format(date_entry):
-            logger.exception("Date must use one of the formats: %%Y-%%m-%%d %%H:%%M[:%%S]")
-            raise ValueError("Use %Y-%m-%d %H:%M:%S or %Y-%m-%d %H:%M format")
-    sql = "INSERT OR IGNORE INTO primary_canisters (primary_canister_id, canister_type, certification_date, expiration_date) VALUES (?,?,?,?)"
+    sql = "INSERT OR IGNORE INTO primary_canisters (primary_canister_id, canister_type) VALUES (?,?)"
     try:
         with _connect(database) as conn:
-            conn.execute(sql, (primary_canister_id, canister_type, certification_date, expiration_date))
+            conn.execute(sql, (primary_canister_id, canister_type))
             conn.commit()
             logger.info(f"Added primary_canister: {primary_canister_id}")
     except sqlite3.IntegrityError as e:
