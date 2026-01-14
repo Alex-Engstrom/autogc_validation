@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "VOC data validation pipeline for AutoGC ambient air monitoring"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{name = "Alex Engstrom", email = "aengstrom@utah.gov"}]
+authors = [{name = "name", email = "exhf@domain.com"}]
 
 # Core dependencies - what your project needs to run
 dependencies = [
@@ -18,17 +18,22 @@ dependencies = [
     "python-dotenv>=1.0",
 ]
 
-
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4",          # Testing
     "jupyter>=1.0",         # Notebooks
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+# ----------------------------
+# Editable install configuration
+# ----------------------------
+[tool.setuptools]
+package-dir = {"" = "src"}        # all packages live in src/
+packages = ["autogc_validation"]  # main package
 
+# ----------------------------
 # pytest configuration
+# ----------------------------
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
