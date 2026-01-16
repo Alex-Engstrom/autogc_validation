@@ -27,6 +27,8 @@ class PrimaryCanister(BaseModel):
     canister_type: str
     expiration_date: Optional[str] = None
     
+    __tablename__ = "primary_canisters"
+    
     def validate(self) -> None:
         """Validate primary canister data."""
         if not self.primary_canister_id or not self.primary_canister_id.strip():
@@ -58,6 +60,8 @@ class CanisterConcentration(BaseModel):
     concentration: float
     canister_type: str
     
+    __tablename__ = "primary_canister_concentration"
+    
     def validate(self) -> None:
         """Validate canister concentration."""
         if not self.primary_canister_id:
@@ -69,9 +73,6 @@ class CanisterConcentration(BaseModel):
         if self.concentration < 0:
             raise ValueError(f"concentration cannot be negative, got {self.concentration}")
     
-    def __repr__(self) -> str:
-        return f"CanisterConcentration(canister='{self.primary_canister_id}', aqs={self.aqs_code}, conc={self.concentration})"
-
 
 @dataclass
 class SiteCanister(BaseModel):
@@ -96,6 +97,8 @@ class SiteCanister(BaseModel):
     date_on: str
     date_off: Optional[str] = None
     in_use: int = 0
+    
+    __tablename__ = "site_canisters"
     
     def validate(self) -> None:
         """Validate site canister data."""
@@ -124,5 +127,3 @@ class SiteCanister(BaseModel):
         """Check if canister is currently active."""
         return self.in_use == 1 and self.date_off is None
     
-    def __repr__(self) -> str:
-        return f"SiteCanister(id='{self.site_canister_id}', site={self.site_id}, active={self.is_active})"

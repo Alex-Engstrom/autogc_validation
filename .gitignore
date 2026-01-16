@@ -1,2 +1,5 @@
 notebooks/*.ipynb
 *.ipynb
+*.txt
+__pycache__/
+*.py[cod]

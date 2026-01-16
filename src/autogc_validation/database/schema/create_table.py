@@ -5,7 +5,7 @@ Created on Tue Jan 13 15:34:20 2026
 @author: aengstrom
 """
 from .schemas import SCHEMAS
-from autogc_validation.database.utils.connection import get_connection
+from autogc_validation.database.connection.manager import get_connection
 from autogc_validation.utils.logging_config import get_logger
 
 logger = get_logger(__name__)

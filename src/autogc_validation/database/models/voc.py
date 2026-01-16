@@ -37,11 +37,13 @@ class VOCInfo(BaseModel):
     elution_order: int
     priority: Priority
     
+    __tablename__ = "voc_info"
+    
     def validate(self) -> None:
         """Validate VOC info."""
         if self.aqs_code <= 0:
             raise ValueError(f"aqs_code must be positive, got {self.aqs_code}")
-        if len(self.aqs_code) != 5:
+        if len(str(self.aqs_code)) != 5:
             raise ValueError(f"aqs_code must be 5 digits long, got {self.aqs_code}")
         
         if self.carbon_count <= 0:
@@ -56,8 +58,6 @@ class VOCInfo(BaseModel):
         if self.priority not in (0, 1):
             raise ValueError(f"priority must be 0 or 1, got {self.priority}")
     
-    def __repr__(self) -> str:
-        return f"VOCInfo(aqs_code={self.aqs_code}, compound='{self.compound}')"
 
 
 @dataclass
@@ -70,6 +70,7 @@ class VOCConcentration(BaseModel):
     aqs_code: int
     concentration: float
     unit: ConcentrationUnit
+    
     
     def validate(self) -> None:
         """Validate concentration."""
