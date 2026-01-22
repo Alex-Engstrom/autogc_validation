@@ -6,15 +6,25 @@ Created on Fri Jan 16 16:02:07 2026
 """
 from dataclasses import is_dataclass, fields
 from ..connection.manager import transaction
+from autogc_validation.utils.logging_config import get_logger
+from ..models.registry import MODEL_REGISTRY, MODEL_LIST
 
-def insert(database: str, model)-> None:
-    if not is_dataclass(model):
-        raise TypeError("Expected dataclass object")
+logger = get_logger(__name__)
+
+
+def insert(database: str, obj)-> None:
+
+    if not type(obj) in MODEL_LIST:
+        logger.warning(f"{obj} must be of the type ({' '.join(cls.__name__ for cls in MODEL_LIST)})")    
     
-    columns = [f.name for f in fields(model)]
     
-    values = [getattr(model, f) for f in columns]
-    table = model.__tablename__
+    columns = [f.name for f in fields(obj)]
+    
+    values = [getattr(obj, f) for f in columns]
+    
+    table = getattr(obj, "__tablename__", None)
+    if table is None:
+        raise AttributeError("Dataclass missing __tablename__")
     
     sql = f"""
     INSERT OR IGNORE INTO {table}

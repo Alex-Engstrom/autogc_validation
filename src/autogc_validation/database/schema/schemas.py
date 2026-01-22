@@ -63,7 +63,6 @@ SCHEMAS: dict[str, TableSchema] = {
         CREATE TABLE IF NOT EXISTS primary_canisters (
             primary_canister_id TEXT PRIMARY KEY,
             canister_type TEXT NOT NULL,
-            certification_date TEXT NOT NULL,
             expiration_date TEXT NOT NULL,
             FOREIGN KEY(canister_type) REFERENCES canister_types(canister_type)
         );

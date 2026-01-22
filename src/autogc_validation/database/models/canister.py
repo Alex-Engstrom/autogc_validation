@@ -12,7 +12,16 @@ from typing import Optional, List
 from .base import BaseModel, validate_date_format
 from .voc import VOCConcentration
 
-
+@dataclass 
+class CanisterType(BaseModel):
+    """Table of valid canister types
+    Attributes:
+        canister_type: Type of canister (CVS, RTS, LCS, etc.)"""
+    
+    canister_type: str 
+    
+    __tablename__ = "canister_types"
+    
 @dataclass
 class PrimaryCanister(BaseModel):
     """
@@ -40,8 +49,6 @@ class PrimaryCanister(BaseModel):
         if self.expiration_date:
             validate_date_format(self.expiration_date, "expiration_date")
     
-    def __repr__(self) -> str:
-        return f"PrimaryCanister(id='{self.primary_canister_id}', type='{self.canister_type}')"
 
 
 @dataclass
