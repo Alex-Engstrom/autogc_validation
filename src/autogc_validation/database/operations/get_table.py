@@ -11,7 +11,7 @@ import pandas as pd
 
 logger = get_logger(__name__)
 
-def get_table(database: str, tablename: str, order_by: list[str] = None)-> None:
+def get_table(database: str, tablename: str, order_by: list[str] = None)-> pd.DataFrame:
     if MODEL_REGISTRY.get(tablename):
         obj = MODEL_REGISTRY.get(tablename)
         if order_by:            

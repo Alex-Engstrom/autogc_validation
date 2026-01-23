@@ -7,7 +7,7 @@ Created on Tue Jan 13 14:11:26 2026
 
 """Site-related data models."""
 
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from typing import Optional
 from .base import BaseModel, validate_date_format
 
@@ -33,6 +33,17 @@ class Site(BaseModel):
     date_started: str
     
     __tablename__ = "sites"
+    
+    __table_sql__ = """
+                    CREATE TABLE IF NOT EXISTS sites (
+                        site_id INTEGER PRIMARY KEY,
+                        name_short TEXT UNIQUE,
+                        name_long TEXT UNIQUE,
+                        lat REAL,
+                        long REAL,
+                        date_started TEXT
+                    );
+                    """
     
     def validate(self) -> None:
         """Validate site data."""

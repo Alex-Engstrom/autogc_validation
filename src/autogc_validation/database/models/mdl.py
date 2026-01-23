@@ -4,7 +4,7 @@ Created on Fri Jan 16 15:38:12 2026
 
 @author: aengstrom
 """
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from .base import BaseModel, validate_date_format
 @dataclass
 class MDL(BaseModel):
@@ -23,6 +23,18 @@ class MDL(BaseModel):
     date_applied: str
     
     __tablename__ = "mdls"
+    
+    __table_sql__ = """
+                    CREATE TABLE IF NOT EXISTS mdls (
+                        site_id INTEGER,
+                        date_applied TEXT,
+                        aqs_code INTEGER,
+                        concentration REAL,
+                        PRIMARY KEY (site_id, aqs_code, date_applied),
+                        FOREIGN KEY (site_id) REFERENCES sites(site_id),
+                        FOREIGN KEY (aqs_code) REFERENCES voc_info(aqs_code)
+                    );
+                    """
     
     def validate(self) -> None:
         """Validate MDL data."""

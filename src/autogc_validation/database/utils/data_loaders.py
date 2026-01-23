@@ -6,9 +6,9 @@ Created on Fri Jan 16 14:49:57 2026
 """
 
 from typing import List
-from ..models.voc import VOCInfo
-from ..models.enums import VOCCategory, ColumnType, Priority
-from ..config import VOC_DATA
+from autogc_validation.database.models import VOCInfo
+from autogc_validation.database.enums import VOCCategory, ColumnType, Priority
+from autogc_validation.database.config import VOC_DATA
 
 
 def load_voc_info_from_dict(data: List[dict]) -> List[VOCInfo]:

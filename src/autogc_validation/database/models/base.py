@@ -5,7 +5,8 @@ Created on Tue Jan 13 14:11:12 2026
 @author: aengstrom
 """
 
-from dataclasses import dataclass, asdict, field
+from pydantic.dataclasses import dataclass
+from dataclasses import asdict
 from typing import Optional, Dict, Any
 from datetime import datetime
 

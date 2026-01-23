@@ -7,10 +7,10 @@ Created on Tue Jan 13 14:11:19 2026
 
 """VOC (Volatile Organic Compound) data models."""
 
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from typing import Optional
-from .base import BaseModel
-from .enums import VOCCategory, ColumnType, Priority, ConcentrationUnit
+from autogc_validation.database.models.base import BaseModel
+from autogc_validation.database.enums import VOCCategory, ColumnType, Priority, ConcentrationUnit
 
 
 @dataclass
@@ -39,6 +39,19 @@ class VOCInfo(BaseModel):
     
     __tablename__ = "voc_info"
     
+    __table_sql__ = """
+                    CREATE TABLE IF NOT EXISTS voc_info (
+                        aqs_code INTEGER PRIMARY KEY,
+                        compound TEXT,
+                        category TEXT,
+                        carbon_count INTEGER,
+                        molecular_weight REAL,
+                        column TEXT,
+                        elution_order INTEGER,
+                        priority BOOLEAN
+                    );
+                    """
+    
     def validate(self) -> None:
         """Validate VOC info."""
         if self.aqs_code <= 0:
@@ -58,48 +71,3 @@ class VOCInfo(BaseModel):
         if self.priority not in (0, 1):
             raise ValueError(f"priority must be 0 or 1, got {self.priority}")
     
-
-
-@dataclass
-class VOCConcentration(BaseModel):
-    """
-    Concentration of a specific VOC compound.
-    
-    Used as a building block for canister and measurement data.
-    """
-    aqs_code: int
-    concentration: float
-    unit: ConcentrationUnit
-    
-    
-    def validate(self) -> None:
-        """Validate concentration."""
-        if self.concentration < 0:
-            raise ValueError(f"concentration cannot be negative, got {self.concentration}")
-    
-    def to_ppbv(self, carbon_count: int) -> float:
-        """
-        Convert concentration to ppbv.
-        
-        Args:
-            carbon_count: Number of carbon atoms (needed for ppbC conversions)
-        
-        Returns:
-            Concentration in ppbv
-        """
-        unit = self.unit.lower()
-        
-        if unit == "ppbv":
-            return self.concentration
-        elif unit == "ppmv":
-            return self.concentration * 1000
-        elif unit == "ppbc":
-            if carbon_count <= 0:
-                raise ValueError("carbon_count required for ppbC conversion")
-            return self.concentration / carbon_count
-        elif unit == "ppmc":
-            if carbon_count <= 0:
-                raise ValueError("carbon_count required for ppmC conversion")
-            return (self.concentration / carbon_count) * 1000
-        else:
-            raise ValueError(f"Unknown unit: {unit}")

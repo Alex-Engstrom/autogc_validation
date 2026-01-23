@@ -7,10 +7,9 @@ Created on Fri Jan 16 15:03:24 2026
 
 import logging
 from pathlib import Path
-
-from ..schema.create_table import create_table
-from ..schema.schemas import SCHEMAS
-from ..repositories import voc_info
+from ..models.registry import MODEL_REGISTRY
+from ..operations.create_table import create_table
+from ..operations import voc_info
 from ..utils.data_loaders import load_standard_voc_data
 
 logger = logging.getLogger(__name__)
@@ -43,8 +42,8 @@ def initialize_database(database_path: str, force: bool = False) -> None:
     
     # Create tables
     logger.info("Creating tables...")
-    for schema in SCHEMAS.keys():
-        create_table(database = database_path, key = schema)
+    for tablename in MODEL_REGISTRY.keys():
+        create_table(database = database_path, tablename = tablename)
         
     
     # Load and insert VOC reference data

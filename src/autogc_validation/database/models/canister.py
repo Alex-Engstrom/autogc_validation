@@ -7,20 +7,26 @@ Created on Tue Jan 13 14:11:32 2026
 
 """Canister-related data models."""
 
-from dataclasses import dataclass, field
+from pydantic.dataclasses import dataclass
+from autogc_validation.database.enums import CanisterType
 from typing import Optional, List
-from .base import BaseModel, validate_date_format
-from .voc import VOCConcentration
+from autogc_validation.database.models import BaseModel, validate_date_format
+from autogc_validation.database.enums import ConcentrationUnit
 
 @dataclass 
-class CanisterType(BaseModel):
+class CanisterTypes(BaseModel):
     """Table of valid canister types
     Attributes:
         canister_type: Type of canister (CVS, RTS, LCS, etc.)"""
     
-    canister_type: str 
+    canister_type: CanisterType
     
     __tablename__ = "canister_types"
+    
+    __table_sql__ = """CREATE TABLE IF NOT EXISTS canister_types (
+                            canister_type TEXT PRIMARY KEY
+                        );
+                        """
     
 @dataclass
 class PrimaryCanister(BaseModel):
@@ -38,6 +44,15 @@ class PrimaryCanister(BaseModel):
     
     __tablename__ = "primary_canisters"
     
+    __table_sql__ = """
+                    CREATE TABLE IF NOT EXISTS primary_canisters (
+                        primary_canister_id TEXT PRIMARY KEY,
+                        canister_type TEXT NOT NULL,
+                        expiration_date TEXT NOT NULL,
+                        FOREIGN KEY(canister_type) REFERENCES canister_types(canister_type)
+                    );
+                    """
+                    
     def validate(self) -> None:
         """Validate primary canister data."""
         if not self.primary_canister_id or not self.primary_canister_id.strip():
@@ -65,9 +80,24 @@ class CanisterConcentration(BaseModel):
     primary_canister_id: str
     aqs_code: int
     concentration: float
-    canister_type: str
+    units: ConcentrationUnit
+    canister_type: CanisterType
     
     __tablename__ = "primary_canister_concentration"
+    
+    __table_sql__ = """
+                    CREATE TABLE IF NOT EXISTS primary_canister_concentration (
+                        primary_canister_id TEXT,
+                        aqs_code INTEGER,
+                        concentration REAL,
+                        units TEXT,
+                        canister_type TEXT,
+                        PRIMARY KEY (primary_canister_id, aqs_code),
+                        FOREIGN KEY (primary_canister_id) REFERENCES primary_canisters(primary_canister_id),
+                        FOREIGN KEY (aqs_code) REFERENCES voc_info(aqs_code),
+                        FOREIGN KEY (canister_type) REFERENCES canister_types(canister_type)
+                    );
+                    """
     
     def validate(self) -> None:
         """Validate canister concentration."""
@@ -106,6 +136,21 @@ class SiteCanister(BaseModel):
     in_use: int = 0
     
     __tablename__ = "site_canisters"
+    
+    __table_sql__ = """
+                    CREATE TABLE IF NOT EXISTS site_canisters (
+                        site_canister_id TEXT PRIMARY KEY,
+                        site_id INTEGER NOT NULL,
+                        primary_canister_id TEXT NOT NULL,
+                        dilution_ratio REAL,
+                        blend_date TEXT,
+                        date_on TEXT,
+                        date_off TEXT,                   -- timestamp when returned
+                        in_use INTEGER DEFAULT 0,        -- 0 = not in use, 1 = in use        
+                        FOREIGN KEY (site_id) REFERENCES sites(site_id),
+                        FOREIGN KEY (primary_canister_id) REFERENCES primary_canisters(primary_canister_id)
+                    );
+                    """
     
     def validate(self) -> None:
         """Validate site canister data."""
