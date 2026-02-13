@@ -8,7 +8,7 @@ Created on Fri Jan 16 15:03:24 2026
 import logging
 from pathlib import Path
 from autogc_validation.database.models import MODEL_REGISTRY
-from autogc_validation.database.operations import create_table, voc_info
+from autogc_validation.database.operations import create_table, insert
 from autogc_validation.database.utils.data_loaders import load_standard_voc_data
 
 logger = logging.getLogger(__name__)
@@ -51,8 +51,8 @@ def initialize_database(database_path: str, force: bool = False) -> None:
     logger.info(f"Loaded {len(voc_data)} VOC compounds")
     
     logger.info("Inserting VOC data into database...")
-    count = voc_info.bulk_insert(str(db_path), voc_data)
-    logger.info(f"Inserted {count} VOC records")
+    inserted = sum(1 for voc in voc_data if insert(str(db_path), voc))
+    logger.info(f"Inserted {inserted}/{len(voc_data)} VOC records")
     
     logger.info("Database initialization complete!")
 
