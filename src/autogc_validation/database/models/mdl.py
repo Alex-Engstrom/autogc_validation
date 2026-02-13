@@ -36,7 +36,7 @@ class MDL(BaseModel):
                         concentration REAL,
                         date_on TEXT,
                         date_off TEXT,
-                        PRIMARY KEY (site_id, aqs_code, date_on, date_off),
+                        PRIMARY KEY (site_id, aqs_code, date_on),
                         FOREIGN KEY (site_id) REFERENCES sites(site_id),
                         FOREIGN KEY (aqs_code) REFERENCES voc_info(aqs_code)
                     );

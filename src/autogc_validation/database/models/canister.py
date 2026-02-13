@@ -9,7 +9,7 @@ Created on Tue Jan 13 14:11:32 2026
 """Canister-related data models."""
 
 from pydantic.dataclasses import dataclass
-from pydantic import field_validator, model_validator
+from pydantic import field_validator
 from autogc_validation.database.enums import CanisterType, ConcentrationUnit
 from typing import Optional
 from autogc_validation.database.models.base import BaseModel
