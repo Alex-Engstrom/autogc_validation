@@ -7,7 +7,7 @@ Created on Tue Jan 13 14:11:12 2026
 
 from pydantic.dataclasses import dataclass
 from dataclasses import asdict
-from typing import Optional, Dict, Any, ClassVar
+from typing import Dict, Any, ClassVar
 from datetime import datetime
 
 

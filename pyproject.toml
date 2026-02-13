@@ -14,8 +14,7 @@ authors = [{name = "name", email = "exhf@domain.com"}]
 dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
-    "scipy>=1.10",
-    "python-dotenv>=1.0",
+    "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -27,9 +26,8 @@ dev = [
 # ----------------------------
 # Editable install configuration
 # ----------------------------
-[tool.setuptools]
-package-dir = {"" = "src"}        # all packages live in src/
-packages = ["autogc_validation"]  # main package
+[tool.setuptools.packages.find]
+where = ["src"]
 
 # ----------------------------
 # pytest configuration
