@@ -42,7 +42,7 @@ def initialize_database(database_path: str, force: bool = False) -> None:
     # Create tables
     logger.info("Creating tables...")
     for tablename in MODEL_REGISTRY.keys():
-        create_table(database = database_path, tablename = tablename)
+        create_table(database=str(db_path), tablename=tablename)
         
     
     # Load and insert VOC reference data

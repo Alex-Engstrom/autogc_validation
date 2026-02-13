@@ -6,9 +6,9 @@ Created on Thu Feb 13 2026
 """
 from autogc_validation.database.conn import transaction, connection
 from autogc_validation.database.models.base import BaseModel
-from autogc_validation.utils.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def retire_site_canister(database: str, site_canister_id: str, date_off: str) -> bool:

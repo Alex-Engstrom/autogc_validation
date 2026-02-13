@@ -6,8 +6,8 @@ Created on Fri Jan 23 13:53:01 2026
 """
 import sqlite3
 from contextlib import contextmanager
-from autogc_validation.utils.logging_config import get_logger
-logger = get_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 def get_connection(database: str):
     """Internal helper to create configured connection."""

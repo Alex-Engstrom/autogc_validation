@@ -8,10 +8,10 @@ from dataclasses import fields
 from typing import Optional
 from autogc_validation.database.models import MODEL_REGISTRY
 from autogc_validation.database.conn import connection
-from autogc_validation.utils.logging_config import get_logger
+import logging
 import pandas as pd
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_table(database: str, tablename: str, order_by: Optional[list[str]] = None) -> pd.DataFrame:

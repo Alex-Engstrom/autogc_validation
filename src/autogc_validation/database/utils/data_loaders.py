@@ -31,17 +31,13 @@ def load_voc_info_from_dict(data: List[dict]) -> List[VOCInfo]:
             voc = VOCInfo(
                 aqs_code=item["aqs_code"],
                 compound=item["compound"],
-                category=VOCCategory(item["category"]),  # Convert to enum
+                category=VOCCategory(item["category"]),
                 carbon_count=item["carbon_count"],
                 molecular_weight=item["molecular_weight"],
-                column=ColumnType(item["column"]),  # Convert to enum
+                column=ColumnType(item["column"]),
                 elution_order=item["elution_order"],
-                priority=Priority(item["priority"])  # Convert to enum
+                priority=Priority(item["priority"])
             )
-            
-            # Validate the data
-            voc.validate()
-            
             voc_list.append(voc)
             
         except (KeyError, ValueError) as e:

@@ -6,9 +6,9 @@ Created on Tue Jan 13 15:34:20 2026
 """
 from autogc_validation.database.models import MODEL_REGISTRY
 from autogc_validation.database.conn import transaction
-from autogc_validation.utils.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def create_table(database: str, tablename: str) -> None:

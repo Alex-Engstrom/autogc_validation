@@ -12,7 +12,7 @@ from collections import defaultdict
 import json
 from datetime import datetime
 
-from .base_step import PipelineStep, StepResult
+from .step import PipelineStep, StepResult
 
 class PipelineOrchestrator:
     """Orchestrates execution of pipeline steps with dependency management"""
@@ -51,34 +51,34 @@ class PipelineOrchestrator:
     def _topological_sort(self) -> List[str]:
         """Sort steps in dependency order using topological sort"""
         graph = self._build_dependency_graph()
-        in_degree = defaultdict(int)
-        
-        # Calculate in-degrees
-        for node in graph:
-            in_degree[node] = 0
-        
-        for node in graph:
-            for neighbor in graph[node]:
-                in_degree[neighbor] += 1
-        
-        # Find all nodes with in-degree 0
-        queue = [node for node in graph if in_degree[node] == 0]
+
+        # Build reverse adjacency: dep -> [steps that depend on it]
+        dependents = defaultdict(list)
+        for node, deps in graph.items():
+            for dep in deps:
+                dependents[dep].append(node)
+
+        # In-degree = number of dependencies each step has
+        in_degree = {node: len(deps) for node, deps in graph.items()}
+
+        # Start with steps that have no dependencies
+        queue = [node for node, degree in in_degree.items() if degree == 0]
         result = []
-        
+
         while queue:
             node = queue.pop(0)
             result.append(node)
-            
-            # Reduce in-degree for neighbors
-            for neighbor in graph.get(node, []):
-                in_degree[neighbor] -= 1
-                if in_degree[neighbor] == 0:
-                    queue.append(neighbor)
-        
+
+            # Steps that depend on this node can now decrement their in-degree
+            for dependent in dependents.get(node, []):
+                in_degree[dependent] -= 1
+                if in_degree[dependent] == 0:
+                    queue.append(dependent)
+
         # Check for cycles
         if len(result) != len(graph):
             raise ValueError("Circular dependency detected in pipeline")
-        
+
         return result
     
     def run(self, step_names: Optional[List[str]] = None, force: bool = False):

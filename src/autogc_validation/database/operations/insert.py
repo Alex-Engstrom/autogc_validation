@@ -8,10 +8,10 @@ import sqlite3
 from enum import Enum
 from dataclasses import fields
 from autogc_validation.database.conn import transaction
-from autogc_validation.utils.logging_config import get_logger
+import logging
 from autogc_validation.database.models import MODELS
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def insert(database: str, obj) -> bool:
