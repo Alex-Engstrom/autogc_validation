@@ -4,10 +4,9 @@ Created on Fri Jan 23 13:53:01 2026
 
 @author: aengstrom
 """
-
+import sqlite3
 from contextlib import contextmanager
 from autogc_validation.utils.logging_config import get_logger
-from .config import get_connection
 logger = get_logger(__name__)
 
 def get_connection(database: str):
@@ -25,6 +24,7 @@ def connection(database: str):
         yield conn
     except Exception:
         logger.exception("Unhandled exception during DB connection usage")
+        raise
     finally:
         conn.close()
         logger.debug("Closed database connection: %s", database)
