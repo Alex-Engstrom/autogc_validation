@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jan 13 14:11:32 2026
@@ -8,30 +9,33 @@ Created on Tue Jan 13 14:11:32 2026
 """Canister-related data models."""
 
 from pydantic.dataclasses import dataclass
+from pydantic import field_validator, model_validator
 from autogc_validation.database.enums import CanisterType, ConcentrationUnit
 from typing import Optional
-from autogc_validation.database.models import BaseModel
+from autogc_validation.database.models.base import BaseModel
 
-@dataclass 
+@dataclass
 class CanisterTypes(BaseModel):
-    """Table of valid canister types
+    """Table of valid canister types.
+
     Attributes:
-        canister_type: Type of canister (CVS, RTS, LCS, etc.)"""
-    
+        canister_type: Type of canister (CVS, RTS, LCS, etc.)
+    """
+
     canister_type: CanisterType
-    
+
     __tablename__ = "canister_types"
-    
+
     __table_sql__ = """CREATE TABLE IF NOT EXISTS canister_types (
                             canister_type TEXT PRIMARY KEY
                         );
                         """
-    
+
 @dataclass
 class PrimaryCanister(BaseModel):
     """
     Primary standard canister with known concentrations.
-    
+
     Attributes:
         primary_canister_id: Unique canister identifier
         canister_type: Type of canister (CVS, RTS, LCS, etc.)
@@ -40,40 +44,43 @@ class PrimaryCanister(BaseModel):
     primary_canister_id: str
     canister_type: CanisterType
     expiration_date: Optional[str] = None
-    
+
     __tablename__ = "primary_canisters"
-    
+
     __table_sql__ = """
                     CREATE TABLE IF NOT EXISTS primary_canisters (
                         primary_canister_id TEXT PRIMARY KEY,
                         canister_type TEXT NOT NULL,
-                        expiration_date TEXT NOT NULL,
+                        expiration_date TEXT,
                         FOREIGN KEY(canister_type) REFERENCES canister_types(canister_type)
                     );
                     """
-                    
-    def validate(self) -> None:
-        """Validate primary canister data."""
-        if not self.primary_canister_id or not self.primary_canister_id.strip():
+
+    @field_validator('primary_canister_id')
+    @classmethod
+    def validate_id(cls, v: str) -> str:
+        if not v or not v.strip():
             raise ValueError("primary_canister_id cannot be empty")
-        
-        if not self.canister_type or not self.canister_type.strip():
-            raise ValueError("canister_type cannot be empty")
-        
-        if self.expiration_date:
-            BaseModel.validate_date_format(self.expiration_date, "expiration_date")
-    
+        return v
+
+    @field_validator('expiration_date')
+    @classmethod
+    def validate_expiration(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return BaseModel.validate_date_format(v)
+        return v
 
 
 @dataclass
 class CanisterConcentration(BaseModel):
     """
     Concentration of a compound in a primary canister.
-    
+
     Attributes:
         primary_canister_id: Canister identifier
         aqs_code: Compound AQS code
         concentration: Concentration in ppbv (stored in database)
+        units: Concentration units
         canister_type: Type of canister
     """
     primary_canister_id: str
@@ -81,9 +88,9 @@ class CanisterConcentration(BaseModel):
     concentration: float
     units: ConcentrationUnit
     canister_type: CanisterType
-    
+
     __tablename__ = "primary_canister_concentration"
-    
+
     __table_sql__ = """
                     CREATE TABLE IF NOT EXISTS primary_canister_concentration (
                         primary_canister_id TEXT,
@@ -97,24 +104,34 @@ class CanisterConcentration(BaseModel):
                         FOREIGN KEY (canister_type) REFERENCES canister_types(canister_type)
                     );
                     """
-    
-    def validate(self) -> None:
-        """Validate canister concentration."""
-        if not self.primary_canister_id:
+
+    @field_validator('primary_canister_id')
+    @classmethod
+    def validate_id(cls, v: str) -> str:
+        if not v or not v.strip():
             raise ValueError("primary_canister_id cannot be empty")
-        
-        if self.aqs_code <= 0:
-            raise ValueError(f"aqs_code must be positive, got {self.aqs_code}")
-        
-        if self.concentration < 0:
-            raise ValueError(f"concentration cannot be negative, got {self.concentration}")
-    
+        return v
+
+    @field_validator('aqs_code')
+    @classmethod
+    def validate_aqs_code(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError(f"aqs_code must be positive, got {v}")
+        return v
+
+    @field_validator('concentration')
+    @classmethod
+    def validate_concentration(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError(f"concentration cannot be negative, got {v}")
+        return v
+
 
 @dataclass
 class SiteCanister(BaseModel):
     """
     Diluted canister deployed at a monitoring site.
-    
+
     Attributes:
         site_canister_id: Unique identifier for this site canister
         site_id: Site where canister is deployed
@@ -133,9 +150,9 @@ class SiteCanister(BaseModel):
     date_on: str
     date_off: Optional[str] = None
     in_use: int = 0
-    
+
     __tablename__ = "site_canisters"
-    
+
     __table_sql__ = """
                     CREATE TABLE IF NOT EXISTS site_canisters (
                         site_canister_id TEXT PRIMARY KEY,
@@ -144,37 +161,61 @@ class SiteCanister(BaseModel):
                         dilution_ratio REAL,
                         blend_date TEXT,
                         date_on TEXT,
-                        date_off TEXT,                   -- timestamp when returned
-                        in_use INTEGER DEFAULT 0,        -- 0 = not in use, 1 = in use        
+                        date_off TEXT,
+                        in_use INTEGER DEFAULT 0,
                         FOREIGN KEY (site_id) REFERENCES sites(site_id),
                         FOREIGN KEY (primary_canister_id) REFERENCES primary_canisters(primary_canister_id)
                     );
                     """
-    
-    def validate(self) -> None:
-        """Validate site canister data."""
-        if not self.site_canister_id or not self.site_canister_id.strip():
+
+    @field_validator('site_canister_id')
+    @classmethod
+    def validate_id(cls, v: str) -> str:
+        if not v or not v.strip():
             raise ValueError("site_canister_id cannot be empty")
-        
-        if self.site_id <= 0:
-            raise ValueError(f"site_id must be positive, got {self.site_id}")
-        
-        if not self.primary_canister_id or not self.primary_canister_id.strip():
+        return v
+
+    @field_validator('site_id')
+    @classmethod
+    def validate_site_id(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError(f"site_id must be positive, got {v}")
+        return v
+
+    @field_validator('primary_canister_id')
+    @classmethod
+    def validate_primary_canister_id(cls, v: str) -> str:
+        if not v or not v.strip():
             raise ValueError("primary_canister_id cannot be empty")
-        
-        if self.dilution_ratio <= 0:
-            raise ValueError(f"dilution_ratio must be positive, got {self.dilution_ratio}")
-        
-        if self.in_use not in (0, 1):
-            raise ValueError(f"in_use must be 0 or 1, got {self.in_use}")
-        
-        BaseModel.validate_date_format(self.blend_date, "blend_date")
-        BaseModel.validate_date_format(self.date_on, "date_on")
-        if self.date_off:
-            BaseModel.validate_date_format(self.date_off, "date_off")
-    
+        return v
+
+    @field_validator('dilution_ratio')
+    @classmethod
+    def validate_dilution_ratio(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError(f"dilution_ratio must be positive, got {v}")
+        return v
+
+    @field_validator('in_use')
+    @classmethod
+    def validate_in_use(cls, v: int) -> int:
+        if v not in (0, 1):
+            raise ValueError(f"in_use must be 0 or 1, got {v}")
+        return v
+
+    @field_validator('blend_date', 'date_on')
+    @classmethod
+    def validate_dates(cls, v: str) -> str:
+        return BaseModel.validate_date_format(v)
+
+    @field_validator('date_off')
+    @classmethod
+    def validate_date_off(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return BaseModel.validate_date_format(v)
+        return v
+
     @property
     def is_active(self) -> bool:
         """Check if canister is currently active."""
         return self.in_use == 1 and self.date_off is None
-    

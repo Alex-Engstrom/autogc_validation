@@ -29,18 +29,29 @@ class BaseModel:
         filtered_data = {k: v for k, v in data.items() if k in valid_fields}
         return cls(**filtered_data)
     
+    DATE_FORMATS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M")
+
     @staticmethod
     def validate_date_format(date_str: str) -> str:
         """Validate date format and raise error if invalid."""
-        formats = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M")
-        for fmt in formats:
+        for fmt in BaseModel.DATE_FORMATS:
             try:
                 datetime.strptime(date_str, fmt)
                 return date_str
             except ValueError:
                 continue
-        
+
         raise ValueError(
             f"Invalid date format: '{date_str}'. "
             f"Expected: YYYY-MM-DD HH:MM:SS or YYYY-MM-DD HH:MM"
         )
+
+    @staticmethod
+    def parse_date(date_str: str) -> datetime:
+        """Parse a date string into a datetime object."""
+        for fmt in BaseModel.DATE_FORMATS:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        raise ValueError(f"Invalid date format: '{date_str}'")

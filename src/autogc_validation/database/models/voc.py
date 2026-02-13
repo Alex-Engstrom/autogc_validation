@@ -8,6 +8,7 @@ Created on Tue Jan 13 14:11:19 2026
 """VOC (Volatile Organic Compound) data models."""
 
 from pydantic.dataclasses import dataclass
+from pydantic import field_validator
 from autogc_validation.database.models.base import BaseModel
 from autogc_validation.database.enums import VOCCategory, ColumnType, Priority, CompoundAQSCode, CompoundName
 
@@ -16,7 +17,7 @@ from autogc_validation.database.enums import VOCCategory, ColumnType, Priority, 
 class VOCInfo(BaseModel):
     """
     Reference information for a VOC compound.
-    
+
     Attributes:
         aqs_code: EPA Air Quality System parameter code
         compound: Compound name (e.g., "Benzene", "Ethane")
@@ -35,9 +36,9 @@ class VOCInfo(BaseModel):
     column: ColumnType
     elution_order: int
     priority: Priority
-    
+
     __tablename__ = "voc_info"
-    
+
     __table_sql__ = """
                     CREATE TABLE IF NOT EXISTS voc_info (
                         aqs_code INTEGER PRIMARY KEY,
@@ -50,23 +51,24 @@ class VOCInfo(BaseModel):
                         priority BOOLEAN
                     );
                     """
-    
-    def validate(self) -> None:
-        """Validate VOC info."""
-        if self.aqs_code <= 0:
-            raise ValueError(f"aqs_code must be positive, got {self.aqs_code}")
-        if len(str(self.aqs_code)) != 5:
-            raise ValueError(f"aqs_code must be 5 digits long, got {self.aqs_code}")
-        
-        if self.carbon_count <= 0:
-            raise ValueError(f"carbon_count must be positive, got {self.carbon_count}")
-        
-        if self.molecular_weight <= 0:
-            raise ValueError(f"molecular_weight must be positive, got {self.molecular_weight}")
-        
-        if self.elution_order < 0:
-            raise ValueError(f"elution_order must be non-negative, got {self.elution_order}")
-        
-        if self.priority not in (0, 1):
-            raise ValueError(f"priority must be 0 or 1, got {self.priority}")
-    
+
+    @field_validator('carbon_count')
+    @classmethod
+    def validate_carbon_count(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError(f"carbon_count must be positive, got {v}")
+        return v
+
+    @field_validator('molecular_weight')
+    @classmethod
+    def validate_molecular_weight(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError(f"molecular_weight must be positive, got {v}")
+        return v
+
+    @field_validator('elution_order')
+    @classmethod
+    def validate_elution_order(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError(f"elution_order must be non-negative, got {v}")
+        return v

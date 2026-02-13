@@ -8,6 +8,7 @@ Created on Tue Jan 13 14:11:26 2026
 """Site-related data models."""
 
 from pydantic.dataclasses import dataclass
+from pydantic import field_validator
 from .base import BaseModel
 
 
@@ -15,7 +16,7 @@ from .base import BaseModel
 class Site(BaseModel):
     """
     Monitoring site information.
-    
+
     Attributes:
         site_id: Unique site identifier
         name_short: Short site name (e.g., "HW")
@@ -30,9 +31,9 @@ class Site(BaseModel):
     lat: float
     long: float
     date_started: str
-    
+
     __tablename__ = "sites"
-    
+
     __table_sql__ = """
                     CREATE TABLE IF NOT EXISTS sites (
                         site_id INTEGER PRIMARY KEY,
@@ -43,25 +44,43 @@ class Site(BaseModel):
                         date_started TEXT
                     );
                     """
-    
-    def validate(self) -> None:
-        """Validate site data."""
-        if self.site_id <= 0:
-            raise ValueError(f"site_id must be positive, got {self.site_id}")
-        
-        if not self.name_short or not self.name_short.strip():
+
+    @field_validator('site_id')
+    @classmethod
+    def validate_site_id(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError(f"site_id must be positive, got {v}")
+        return v
+
+    @field_validator('name_short')
+    @classmethod
+    def validate_name_short(cls, v: str) -> str:
+        if not v or not v.strip():
             raise ValueError("name_short cannot be empty")
-        
-        if not self.name_long or not self.name_long.strip():
+        return v
+
+    @field_validator('name_long')
+    @classmethod
+    def validate_name_long(cls, v: str) -> str:
+        if not v or not v.strip():
             raise ValueError("name_long cannot be empty")
-        
-        if not (-90 <= self.lat <= 90):
-            raise ValueError(f"lat must be between -90 and 90, got {self.lat}")
-        
-        if not (-180 <= self.long <= 180):
-            raise ValueError(f"long must be between -180 and 180, got {self.long}")
-        
-        BaseModel.validate_date_format(self.date_started, "date_started")
-    
+        return v
 
+    @field_validator('lat')
+    @classmethod
+    def validate_lat(cls, v: float) -> float:
+        if not (-90 <= v <= 90):
+            raise ValueError(f"lat must be between -90 and 90, got {v}")
+        return v
 
+    @field_validator('long')
+    @classmethod
+    def validate_long(cls, v: float) -> float:
+        if not (-180 <= v <= 180):
+            raise ValueError(f"long must be between -180 and 180, got {v}")
+        return v
+
+    @field_validator('date_started')
+    @classmethod
+    def validate_date(cls, v: str) -> str:
+        return BaseModel.validate_date_format(v)
