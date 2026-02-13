@@ -8,9 +8,8 @@ Created on Tue Jan 13 14:11:19 2026
 """VOC (Volatile Organic Compound) data models."""
 
 from pydantic.dataclasses import dataclass
-from typing import Optional
 from autogc_validation.database.models.base import BaseModel
-from autogc_validation.database.enums import VOCCategory, ColumnType, Priority, ConcentrationUnit
+from autogc_validation.database.enums import VOCCategory, ColumnType, Priority, CompoundAQSCode, CompoundName
 
 
 @dataclass
@@ -28,8 +27,8 @@ class VOCInfo(BaseModel):
         elution_order: Order of elution from the column
         priority: Analysis priority (0=low, 1=high)
     """
-    aqs_code: int
-    compound: str
+    aqs_code: CompoundAQSCode
+    compound: CompoundName
     category: VOCCategory
     carbon_count: int
     molecular_weight: float

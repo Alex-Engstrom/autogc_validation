@@ -7,7 +7,7 @@ Created on Tue Jan 13 14:11:12 2026
 
 from pydantic.dataclasses import dataclass
 from dataclasses import asdict
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, ClassVar
 from datetime import datetime
 
 
@@ -15,6 +15,8 @@ from datetime import datetime
 class BaseModel:
     """Base class for all data models."""
     
+    __tablename__: ClassVar[str] # Name of SQL table
+    __table_sql__: ClassVar[str] # SQL command that creates the table
     def to_dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""
         return asdict(self)
@@ -27,29 +29,18 @@ class BaseModel:
         filtered_data = {k: v for k, v in data.items() if k in valid_fields}
         return cls(**filtered_data)
     
-    def validate(self) -> None:
-        """
-        Validate the model instance.
-        Override in subclasses to add validation logic.
-        Raises ValueError if validation fails.
-        """
-        pass
-
-
-def validate_date_format(date_str: Optional[str], field_name: str = "date") -> None:
-    """Validate date string format."""
-    if date_str is None:
-        return
-    
-    formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"]
-    for fmt in formats:
-        try:
-            datetime.strptime(date_str, fmt)
-            return
-        except ValueError:
-            continue
-    
-    raise ValueError(
-        f"{field_name} must be in format 'YYYY-MM-DD HH:MM:SS' or 'YYYY-MM-DD HH:MM', "
-        f"got: {date_str}"
-    )
+    @staticmethod
+    def validate_date_format(date_str: str) -> str:
+        """Validate date format and raise error if invalid."""
+        formats = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M")
+        for fmt in formats:
+            try:
+                datetime.strptime(date_str, fmt)
+                return date_str
+            except ValueError:
+                continue
+        
+        raise ValueError(
+            f"Invalid date format: '{date_str}'. "
+            f"Expected: YYYY-MM-DD HH:MM:SS or YYYY-MM-DD HH:MM"
+        )

@@ -8,10 +8,9 @@ Created on Tue Jan 13 14:11:32 2026
 """Canister-related data models."""
 
 from pydantic.dataclasses import dataclass
-from autogc_validation.database.enums import CanisterType
-from typing import Optional, List
-from autogc_validation.database.models import BaseModel, validate_date_format
-from autogc_validation.database.enums import ConcentrationUnit
+from autogc_validation.database.enums import CanisterType, ConcentrationUnit
+from typing import Optional
+from autogc_validation.database.models import BaseModel
 
 @dataclass 
 class CanisterTypes(BaseModel):
@@ -39,7 +38,7 @@ class PrimaryCanister(BaseModel):
         expiration_date: Date the canister expires (optional)
     """
     primary_canister_id: str
-    canister_type: str
+    canister_type: CanisterType
     expiration_date: Optional[str] = None
     
     __tablename__ = "primary_canisters"
@@ -62,7 +61,7 @@ class PrimaryCanister(BaseModel):
             raise ValueError("canister_type cannot be empty")
         
         if self.expiration_date:
-            validate_date_format(self.expiration_date, "expiration_date")
+            BaseModel.validate_date_format(self.expiration_date, "expiration_date")
     
 
 
@@ -169,10 +168,10 @@ class SiteCanister(BaseModel):
         if self.in_use not in (0, 1):
             raise ValueError(f"in_use must be 0 or 1, got {self.in_use}")
         
-        validate_date_format(self.blend_date, "blend_date")
-        validate_date_format(self.date_on, "date_on")
+        BaseModel.validate_date_format(self.blend_date, "blend_date")
+        BaseModel.validate_date_format(self.date_on, "date_on")
         if self.date_off:
-            validate_date_format(self.date_off, "date_off")
+            BaseModel.validate_date_format(self.date_off, "date_off")
     
     @property
     def is_active(self) -> bool:

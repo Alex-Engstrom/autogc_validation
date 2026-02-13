@@ -8,8 +8,7 @@ Created on Tue Jan 13 14:11:26 2026
 """Site-related data models."""
 
 from pydantic.dataclasses import dataclass
-from typing import Optional
-from .base import BaseModel, validate_date_format
+from .base import BaseModel
 
 
 @dataclass
@@ -62,7 +61,7 @@ class Site(BaseModel):
         if not (-180 <= self.long <= 180):
             raise ValueError(f"long must be between -180 and 180, got {self.long}")
         
-        validate_date_format(self.date_started, "date_started")
+        BaseModel.validate_date_format(self.date_started, "date_started")
     
 
 

@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jan 13 14:04:59 2026
+Created on Fri Jan 23 13:53:01 2026
 
 @author: aengstrom
 """
 
-"""Database connection utilities - shared across all repos."""
 from contextlib import contextmanager
-import sqlite3
 from autogc_validation.utils.logging_config import get_logger
-
+from .config import get_connection
 logger = get_logger(__name__)
 
-@contextmanager
 def get_connection(database: str):
-    logger.debug("Opening database connection: %s", database)
+    """Internal helper to create configured connection."""
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+@contextmanager
+def connection(database: str):
+    logger.debug("Opening database connection: %s", database)
+    conn = get_connection(database)
     try:
         yield conn
     except Exception:
@@ -29,9 +32,7 @@ def get_connection(database: str):
 @contextmanager
 def transaction(database: str):
     logger.debug("Starting transaction: %s", database)
-    conn = sqlite3.connect(database)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn = get_connection(database)
     try:
         yield conn
         conn.commit()

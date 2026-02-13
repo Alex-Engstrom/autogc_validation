@@ -7,10 +7,9 @@ Created on Fri Jan 16 15:03:24 2026
 
 import logging
 from pathlib import Path
-from ..models.registry import MODEL_REGISTRY
-from ..operations.create_table import create_table
-from ..operations import voc_info
-from ..utils.data_loaders import load_standard_voc_data
+from autogc_validation.database.models import MODEL_REGISTRY
+from autogc_validation.database.operations import create_table, voc_info
+from autogc_validation.database.utils.data_loaders import load_standard_voc_data
 
 logger = logging.getLogger(__name__)
 

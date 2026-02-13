@@ -4,18 +4,18 @@ Created on Fri Jan 16 16:02:07 2026
 
 @author: aengstrom
 """
-from dataclasses import is_dataclass, fields
-from ..connection.manager import transaction
+from dataclasses import fields
+from autogc_validation.database.conn import transaction
 from autogc_validation.utils.logging_config import get_logger
-from ..models.registry import MODEL_REGISTRY, MODEL_LIST
+from autogc_validation.database.models import MODELS
 
 logger = get_logger(__name__)
 
 
 def insert(database: str, obj)-> None:
 
-    if not type(obj) in MODEL_LIST:
-        logger.warning(f"{obj} must be of the type ({' '.join(cls.__name__ for cls in MODEL_LIST)})")    
+    if not type(obj) in MODELS:
+        logger.warning(f"{obj} must be of the type ({' '.join(cls.__name__ for cls in MODELS)})")    
     
     
     columns = [f.name for f in fields(obj)]

@@ -10,9 +10,13 @@ from .column_type import ColumnType
 from .concentration_unit import ConcentrationUnit
 from .priority import Priority
 from .voc_category import VOCCategory
+from .compound_code import CompoundAQSCode
+from .compound_name import CompoundName
 
 __all__ = ["CanisterType",
            "ColumnType",
            "ConcentrationUnit",
            "Priority",
-           "VOCCategory"]
+           "VOCCategory",
+           "CompoundAQSCode",
+           "CompoundName"]

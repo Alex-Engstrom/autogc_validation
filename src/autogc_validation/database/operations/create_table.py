@@ -4,8 +4,8 @@ Created on Tue Jan 13 15:34:20 2026
 
 @author: aengstrom
 """
-from ..models.registry import MODEL_REGISTRY
-from autogc_validation.database.connection.manager import get_connection
+from autogc_validation.database.models import MODEL_REGISTRY
+from autogc_validation.database.conn import connection
 from autogc_validation.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -15,7 +15,7 @@ def create_table(database: str, tablename: str) -> None:
     try:
         sql = obj.__table_sql__
 
-        with get_connection(database) as conn:
+        with connection(database) as conn:
             conn.execute(sql)
             logger.info("Created table %s", tablename)
     except Exception:

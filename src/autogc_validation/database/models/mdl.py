@@ -5,7 +5,9 @@ Created on Fri Jan 16 15:38:12 2026
 @author: aengstrom
 """
 from pydantic.dataclasses import dataclass
-from .base import BaseModel, validate_date_format
+from pydantic import field_validator, model_validator
+from .base import BaseModel
+from autogc_validation.database.enums import CompoundAQSCode
 @dataclass
 class MDL(BaseModel):
     """
@@ -18,34 +20,43 @@ class MDL(BaseModel):
         date_applied: Date this MDL became effective
     """
     site_id: int
-    aqs_code: int
+    aqs_code: CompoundAQSCode
     concentration: float
-    date_applied: str
+    date_on: str
+    date_off: str
     
     __tablename__ = "mdls"
     
     __table_sql__ = """
                     CREATE TABLE IF NOT EXISTS mdls (
                         site_id INTEGER,
-                        date_applied TEXT,
                         aqs_code INTEGER,
                         concentration REAL,
-                        PRIMARY KEY (site_id, aqs_code, date_applied),
+                        date_on TEXT,
+                        date_off TEXT,
+                        PRIMARY KEY (site_id, aqs_code, date_on, date_off),
                         FOREIGN KEY (site_id) REFERENCES sites(site_id),
                         FOREIGN KEY (aqs_code) REFERENCES voc_info(aqs_code)
                     );
                     """
+    @field_validator('date_on', 'date_off')
+    @classmethod
+    def validate_date(cls, v: str) -> str:
+        BaseModel.validate_date_format(v)
+        return v
+    @model_validator(mode='after')
+    def validate_date_order(self) -> 'MDL':
+        """Validate AFTER all fields are set."""
+        # 'self' here is the complete MDL instance
+        
+        from datetime import datetime
+        
+        on = datetime.strptime(self.date_on, "%Y-%m-%d %H:%M:%S")
+        off = datetime.strptime(self.date_off, "%Y-%m-%d %H:%M:%S")
+        
+        if on >= off:
+            raise ValueError("date_on must be before date_off")
+        
+        return self
     
-    def validate(self) -> None:
-        """Validate MDL data."""
-        if self.site_id <= 0:
-            raise ValueError(f"site_id must be positive, got {self.site_id}")
-        
-        if self.aqs_code <= 0:
-            raise ValueError(f"aqs_code must be positive, got {self.aqs_code}")
-        
-        if self.concentration < 0:
-            raise ValueError(f"concentration cannot be negative, got {self.concentration}")
-        
-        validate_date_format(self.date_applied, "date_applied")
     
