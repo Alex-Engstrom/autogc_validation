@@ -9,6 +9,7 @@ import logging
 from typing import List, Optional
 import pandas as pd
 
+
 from autogc_validation.database.conn import connection
 from autogc_validation.database.models import VOCInfo
 
