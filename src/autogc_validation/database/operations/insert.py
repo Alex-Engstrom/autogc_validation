@@ -54,6 +54,7 @@ def insert(database: str, obj) -> bool:
     with transaction(database) as conn:
         try:
             conn.execute(sql, values)
+            logger.info(f"{type(obj).__tablename__} table populated with {dict(zip(columns, values))}")
             return True
         except sqlite3.IntegrityError as e:
             logger.warning("Duplicate entry skipped for %s: %s", table, e)

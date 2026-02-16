@@ -37,8 +37,7 @@ class MDL(BaseModel):
                         date_on TEXT,
                         date_off TEXT,
                         PRIMARY KEY (site_id, aqs_code, date_on),
-                        FOREIGN KEY (site_id) REFERENCES sites(site_id),
-                        FOREIGN KEY (aqs_code) REFERENCES voc_info(aqs_code)
+                        FOREIGN KEY (site_id) REFERENCES sites(site_id)
                     );
                     """
 
