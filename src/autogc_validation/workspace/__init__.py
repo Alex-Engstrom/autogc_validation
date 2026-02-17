@@ -3,12 +3,17 @@
 Workspace management for monthly AutoGC validation.
 
 Provides functions for setting up the monthly folder structure,
-extracting and organizing data files, and a high-level orchestrator
-that runs the full workspace initialization sequence.
+extracting and organizing data files, and a two-phase orchestrator:
+
+  1. ``create_workspace`` — creates the folder structure so the user
+     can manually copy zipped files into ``temp/``.
+  2. ``process_workspace`` — unzips, moves, and sorts the files
+     placed in ``temp/``.
 """
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -128,73 +133,84 @@ class WorkspaceResult:
         return result
 
 
-def init_workspace(
+def create_workspace(
     root_dir: Union[str, Path],
-    source_dir: Union[str, Path],
     sitename: str,
     year: Union[int, str],
     month: Union[int, str],
-    unzip: bool = True,
-    allow_network_drive: bool = False,
 ) -> WorkspaceResult:
-    """Run the full workspace initialization sequence.
+    """Phase 1: Create the monthly folder structure.
 
-    Executes the following steps in order:
-      1. Create monthly folder structure
-      2. Unzip daily zip files from source to temp/
-      3. Move .dat files from temp/ to Original/
-      4. Move .tx1 files from temp/ to Original/
-      5. Sort .dat files into FINAL/week N/ folders
-
-    Each step is logged and recorded in the returned WorkspaceResult.
-    If a step fails, the error is captured and subsequent steps
-    continue where possible. State is saved to disk after each
-    successful step.
+    After this returns, copy zipped data files into
+    ``result.base_dir / "temp"`` before calling :func:`process_workspace`.
 
     Args:
         root_dir: Parent directory for the monthly folder.
-        source_dir: Directory containing source data (zip files).
         sitename: Site name code (e.g. "RB").
         year: Year.
         month: Month number (1-12).
-        unzip: Whether to unzip files from source_dir.
-        allow_network_drive: Allow operation on network drives.
 
     Returns:
-        WorkspaceResult with a record of each step.
+        WorkspaceResult with ``base_dir`` set and the
+        ``create_folders`` step recorded.
     """
     result = WorkspaceResult()
-    source = Path(source_dir)
 
     def _record_step(step_name: str) -> None:
         result.steps_completed.append(step_name)
         result.step_timestamps[step_name] = datetime.now().isoformat()
         result.save()
 
-    # Step 1: Create folder structure
-    logger.info("Step 1: Creating monthly folder structure")
+    logger.info("Phase 1: Creating monthly folder structure")
     try:
         base_dir = generate_monthly_folder_structure(root_dir, sitename, year, month)
         result.base_dir = base_dir
         _record_step("create_folders")
-        logger.info("Step 1 complete: %s", base_dir)
+        logger.info("Phase 1 complete: %s", base_dir)
     except Exception as e:
         result.errors.append(f"create_folders: {e}")
-        logger.exception("Step 1 failed")
-        return result  # Can't continue without the folder structure
+        logger.exception("Phase 1 failed")
 
+    return result
+
+
+def process_workspace(
+    workspace_dir: Union[str, Path],
+) -> WorkspaceResult:
+    """Phase 2: Unzip, move, and sort data files placed in ``temp/``.
+
+    Loads saved state from *workspace_dir* and runs any steps not yet
+    completed:
+
+      - ``unzip_files`` — unzip all .zip files found in temp/
+      - ``move_dat_files`` — move .dat files from temp/ to Original/
+      - ``move_tx1_files`` — move .tx1 files from temp/ to Original/
+      - ``sort_by_week`` — sort .dat files into FINAL/week N/ folders
+
+    Args:
+        workspace_dir: Path to the monthly validation folder created
+            by :func:`create_workspace` (e.g. ``RB202601v1/``).
+
+    Returns:
+        Updated WorkspaceResult with processing steps recorded.
+    """
+    result = WorkspaceResult.load(workspace_dir)
+
+    def _record_step(step_name: str) -> None:
+        result.steps_completed.append(step_name)
+        result.step_timestamps[step_name] = datetime.now().isoformat()
+        result.save()
+
+    base_dir = result.base_dir
     temp_dir = base_dir / "temp"
     original_dir = base_dir / "Original"
     final_dir = base_dir / "FINAL"
 
-    # Step 2: Unzip files
-    if unzip:
-        logger.info("Step 2: Unzipping files from %s", source)
+    # Step 2: Unzip files in temp/
+    if "unzip_files" not in result.steps_completed:
+        logger.info("Step 2: Unzipping files in temp/")
         try:
-            extracted = unzip_files(
-                source, temp_dir,
-                allow_network_drive=allow_network_drive,
-            )
+            extracted = unzip_files(temp_dir, temp_dir, create_subfolders=False)
             result.unzipped = extracted
             _record_step("unzip_files")
             logger.info("Step 2 complete: %d zip(s) extracted", len(extracted))
@@ -202,62 +218,89 @@ def init_workspace(
             result.errors.append(f"unzip_files: {e}")
             logger.exception("Step 2 failed")
     else:
-        logger.info("Step 2: Skipped (unzip=False)")
+        logger.info("Step 2: Skipped (already completed)")
 
     # Step 3: Move .dat files
-    logger.info("Step 3: Moving .dat files to Original/")
-    try:
-        dat_folder, dat_summary = move_dat_files(temp_dir, original_dir)
-        result.dat_summary = dat_summary
-        _record_step("move_dat_files")
-        logger.info(
-            "Step 3 complete: %d found, %d copied, %d duplicates",
-            dat_summary["found"][0],
-            dat_summary["copied"][0],
-            dat_summary["duplicates"][0],
-        )
-    except Exception as e:
-        result.errors.append(f"move_dat_files: {e}")
-        logger.exception("Step 3 failed")
-        dat_folder = None
+    dat_folder = None
+    if "move_dat_files" not in result.steps_completed:
+        logger.info("Step 3: Moving .dat files to Original/")
+        try:
+            dat_folder, dat_summary = move_dat_files(temp_dir, original_dir)
+            result.dat_summary = dat_summary
+            _record_step("move_dat_files")
+            logger.info(
+                "Step 3 complete: %d found, %d copied, %d duplicates",
+                dat_summary["found"][0],
+                dat_summary["copied"][0],
+                dat_summary["duplicates"][0],
+            )
+        except Exception as e:
+            result.errors.append(f"move_dat_files: {e}")
+            logger.exception("Step 3 failed")
+    else:
+        logger.info("Step 3: Skipped (already completed)")
+        # Reconstruct dat_folder so step 5 can proceed
+        dat_folder = original_dir / "dat"
+        if not dat_folder.exists():
+            dat_folder = None
 
     # Step 4: Move .tx1 files
-    logger.info("Step 4: Moving .tx1 files to Original/")
-    try:
-        _, tx1_summary = move_tx1_files(temp_dir, original_dir)
-        result.tx1_summary = tx1_summary
-        _record_step("move_tx1_files")
-        logger.info(
-            "Step 4 complete: %d found, %d copied, %d duplicates",
-            tx1_summary["found"][0],
-            tx1_summary["copied"][0],
-            tx1_summary["duplicates"][0],
-        )
-    except Exception as e:
-        result.errors.append(f"move_tx1_files: {e}")
-        logger.exception("Step 4 failed")
+    if "move_tx1_files" not in result.steps_completed:
+        logger.info("Step 4: Moving .tx1 files to Original/")
+        try:
+            _, tx1_summary = move_tx1_files(temp_dir, original_dir)
+            result.tx1_summary = tx1_summary
+            _record_step("move_tx1_files")
+            logger.info(
+                "Step 4 complete: %d found, %d copied, %d duplicates",
+                tx1_summary["found"][0],
+                tx1_summary["copied"][0],
+                tx1_summary["duplicates"][0],
+            )
+        except Exception as e:
+            result.errors.append(f"move_tx1_files: {e}")
+            logger.exception("Step 4 failed")
+    else:
+        logger.info("Step 4: Skipped (already completed)")
 
     # Step 5: Sort .dat files by week
-    if dat_folder:
-        logger.info("Step 5: Sorting .dat files into weekly folders")
-        try:
-            week_counts = move_files_by_week(
-                dat_folder, final_dir, int(month), int(year),
-            )
-            result.week_counts = week_counts
-            _record_step("sort_by_week")
-            logger.info("Step 5 complete: %s", week_counts)
-        except Exception as e:
-            result.errors.append(f"sort_by_week: {e}")
-            logger.exception("Step 5 failed")
+    if "sort_by_week" not in result.steps_completed:
+        if dat_folder:
+            logger.info("Step 5: Sorting .dat files into weekly folders")
+            try:
+                # Extract month/year from the base_dir name (e.g. RB202601v1)
+                dirname = base_dir.name
+                match = re.match(r".*(\d{4})(\d{2})v\d+$", dirname)
+                if not match:
+                    raise ValueError(
+                        f"Cannot parse year/month from folder name: {dirname}"
+                    )
+                year = int(match.group(1))
+                month = int(match.group(2))
+
+                week_counts = move_files_by_week(
+                    dat_folder, final_dir, month, year,
+                )
+                result.week_counts = week_counts
+                _record_step("sort_by_week")
+                logger.info("Step 5 complete: %s", week_counts)
+            except Exception as e:
+                result.errors.append(f"sort_by_week: {e}")
+                logger.exception("Step 5 failed")
+        else:
+            logger.warning("Step 5: Skipped (no dat folder available)")
     else:
-        logger.warning("Step 5: Skipped (no dat folder from step 3)")
+        logger.info("Step 5: Skipped (already completed)")
 
     # Final summary
+    total_steps = 4  # steps 2, 3, 4, 5
+    completed_processing = len([
+        s for s in result.steps_completed if s != "create_folders"
+    ])
     logger.info(
-        "Workspace init complete: %d/%d steps succeeded",
-        len(result.steps_completed),
-        5,
+        "Workspace processing complete: %d/%d steps succeeded",
+        completed_processing,
+        total_steps,
     )
     if result.errors:
         logger.warning("Errors: %s", result.errors)
