@@ -3,3 +3,5 @@ notebooks/*.ipynb
 *.txt
 __pycache__/
 *.py[cod]
+validation/
+data/
