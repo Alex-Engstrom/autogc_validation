@@ -332,43 +332,40 @@ def _generate_notebook(
     """
     yyyymm = f"{year}{month:02d}"
 
+    workspace_dir = str(result.base_dir)
+    date_str = f"{year}-{month:02d}-01 00:00"
+
     nb = nbformat.v4.new_notebook()
     nb.cells = [
+        # --- Header ---
         nbformat.v4.new_markdown_cell(
-            f"# {site} {yyyymm} Workspace Workflow\n\n"
-            "Two-phase pipeline for monthly AutoGC validation:\n\n"
-            "1. **`create_workspace`** — creates the folder structure\n"
-            "2. Copy zipped files into `temp/`\n"
-            "3. **`process_workspace`** — unzips, moves, and sorts files"
+            f"# {site} {yyyymm} Monthly Validation"
         ),
         nbformat.v4.new_code_cell(
             "import logging\n"
-            "from pathlib import Path\n"
-            "from autogc_validation.workspace import create_workspace, process_workspace\n\n"
+            "from pathlib import Path\n\n"
             "logging.basicConfig(level=logging.INFO)\n"
             "logger = logging.getLogger(__name__)"
         ),
+
+        # --- Configuration ---
         nbformat.v4.new_markdown_cell("## Configuration"),
         nbformat.v4.new_code_cell(
-            f'root_dir = Path(r"{result.base_dir.parent}")\n'
-            f'sitename = "{site}"\n'
-            f"year = {year}\n"
-            f"month = {month}"
+            f'workspace_dir = Path(r"{workspace_dir}")\n'
+            f'site_id = 0  # TODO: set AQS site ID\n'
+            f'database = r""  # TODO: path to SQLite database\n'
+            f'date = "{date_str}"'
         ),
-        nbformat.v4.new_markdown_cell("## Phase 1: Create folder structure"),
-        nbformat.v4.new_code_cell(
-            "result = create_workspace(root_dir, sitename, year, month)\n"
-            'print(f"Workspace created: {result.base_dir}")\n'
-            'print(f"Copy zipped files into: {result.base_dir / \'temp\'}")'
-        ),
+
+        # --- File processing ---
         nbformat.v4.new_markdown_cell(
-            "## Copy files\n\n"
-            "**Stop here.** Copy zipped `.zip` files from the network "
-            "location into the `temp/` folder printed above, then continue."
+            "## 1. Copy and process files\n\n"
+            "Copy zipped `.zip` files from the network location into "
+            f"`{workspace_dir}\\temp`, then run the cell below."
         ),
-        nbformat.v4.new_markdown_cell("## Phase 2: Unzip, move, and sort files"),
         nbformat.v4.new_code_cell(
-            "result = process_workspace(result.base_dir)\n\n"
+            "from autogc_validation.workspace import process_workspace\n\n"
+            "result = process_workspace(workspace_dir)\n\n"
             'print(f"Steps completed: {result.steps_completed}")\n'
             'print(f"Errors: {result.errors}")\n'
             "if result.dat_summary:\n"
@@ -380,16 +377,114 @@ def _generate_notebook(
             "if result.week_counts:\n"
             '    print(f"Week counts: {result.week_counts}")'
         ),
+
+        # --- Load dataset ---
+        nbformat.v4.new_markdown_cell("## 2. Load dataset"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.dataset import Dataset\n\n"
+            'ds = Dataset(workspace_dir / "FINAL")\n'
+            'print(f"Loaded {len(ds.samples)} samples")\n'
+            "ds.data.head()"
+        ),
+
+        # --- Query MDLs ---
+        nbformat.v4.new_markdown_cell("## 3. Query MDLs and canister concentrations"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.database.operations.mdl_info import get_active_mdls\n"
+            "from autogc_validation.database.operations.canister_info import get_active_canister_concentrations\n\n"
+            "mdls = get_active_mdls(database, site_id, date)\n"
+            'print(f"MDLs loaded: {len(mdls)} compounds")\n\n'
+            'cvs_conc = get_active_canister_concentrations(database, site_id, "CVS", date)\n'
+            'lcs_conc = get_active_canister_concentrations(database, site_id, "LCS", date)\n'
+            'rts_conc = get_active_canister_concentrations(database, site_id, "RTS", date)\n'
+            'print(f"Canister concentrations loaded — CVS: {len(cvs_conc)}, LCS: {len(lcs_conc)}, RTS: {len(rts_conc)}")'
+        ),
+
+        # --- Blank QC ---
+        nbformat.v4.new_markdown_cell("## 4. Blank check"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.blanks import compounds_above_mdl, compounds_above_mdl_wide\n\n"
+            "blank_results = compounds_above_mdl(ds.data, mdls)\n"
+            "blank_wide = compounds_above_mdl_wide(ds.data, mdls)\n\n"
+            "failing_blanks = blank_results[\n"
+            "    blank_results['compounds_above_mdl'].apply(lambda x: x != ['__NONE__'])\n"
+            "]\n"
+            'print(f"Blanks with exceedances: {len(failing_blanks)} / {len(blank_results)}")\n'
+            "failing_blanks"
+        ),
+
+        # --- Recovery QC ---
+        nbformat.v4.new_markdown_cell("## 5. QC recovery checks (CVS / LCS / RTS)"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.recovery import check_qc_recovery, check_qc_recovery_wide\n\n"
+            "# CVS recovery\n"
+            "cvs_results = check_qc_recovery(ds.data, 'c', cvs_conc, blend_ratio=1.0)\n"
+            "cvs_wide = check_qc_recovery_wide(ds.data, 'c', cvs_conc, blend_ratio=1.0)\n"
+            "cvs_failing = cvs_results[cvs_results['failing_qc'].apply(lambda x: x != ['__NONE__'])]\n"
+            'print(f"CVS failures: {len(cvs_failing)} / {len(cvs_results)}")\n\n'
+            "# LCS recovery\n"
+            "lcs_results = check_qc_recovery(ds.data, 'e', lcs_conc, blend_ratio=1.0)\n"
+            "lcs_wide = check_qc_recovery_wide(ds.data, 'e', lcs_conc, blend_ratio=1.0)\n"
+            "lcs_failing = lcs_results[lcs_results['failing_qc'].apply(lambda x: x != ['__NONE__'])]\n"
+            'print(f"LCS failures: {len(lcs_failing)} / {len(lcs_results)}")\n\n'
+            "# RTS recovery\n"
+            "rts_results = check_qc_recovery(ds.data, 'q', rts_conc, blend_ratio=1.0)\n"
+            "rts_wide = check_qc_recovery_wide(ds.data, 'q', rts_conc, blend_ratio=1.0)\n"
+            "rts_failing = rts_results[rts_results['failing_qc'].apply(lambda x: x != ['__NONE__'])]\n"
+            'print(f"RTS failures: {len(rts_failing)} / {len(rts_results)}")'
+        ),
+
+        # --- Ambient screening ---
+        nbformat.v4.new_markdown_cell("## 6. Ambient screening"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.screening import (\n"
+            "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
+            ")\n\n"
+            "# Compound ratio screening (EPA TAD Table 10-1)\n"
+            "ratios = check_ratios(ds.data, mdls, database)\n"
+            'print(f"Ratio flags: {len(ratios)}")\n'
+            "if not ratios.empty:\n"
+            "    display(ratios)\n\n"
+            "# Overrange detection\n"
+            "overrange = check_overrange_values(ds.data)\n"
+            'print(f"\\nOverrange values: {len(overrange)}")\n'
+            "if not overrange.empty:\n"
+            "    display(overrange)\n\n"
+            "# Daily max TNMHC\n"
+            "daily_tnmhc = check_daily_max_tnmhc(ds.data)\n"
+            'print(f"\\nDaily max TNMHC:")\n'
+            "daily_tnmhc"
+        ),
+
+        # --- MDVR ---
+        nbformat.v4.new_markdown_cell("## 7. MDVR qualifier generation"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.mdvr import (\n"
+            "    build_blank_qualifier_lines,\n"
+            "    build_qc_qualifier_lines,\n"
+            "    write_mdvr_to_excel,\n"
+            ")\n\n"
+            "blank_quals = build_blank_qualifier_lines(ds.data, blank_wide)\n"
+            'print(f"Blank qualifier lines: {len(blank_quals)}")\n\n'
+            "cvs_quals = build_qc_qualifier_lines(ds.data, cvs_wide, 'c')\n"
+            "lcs_quals = build_qc_qualifier_lines(ds.data, lcs_wide, 'e')\n"
+            "rts_quals = build_qc_qualifier_lines(ds.data, rts_wide, 'q')\n"
+            'print(f"QC qualifier lines — CVS: {len(cvs_quals)}, LCS: {len(lcs_quals)}, RTS: {len(rts_quals)}")'
+        ),
         nbformat.v4.new_markdown_cell(
-            "## Resume from saved state\n\n"
-            "If the kernel restarts, reload the workspace from disk and "
-            "re-run. Already-completed steps are skipped automatically."
+            "### Export MDVR to Excel\n\n"
+            "Uncomment and set template/output paths to export."
         ),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.workspace import WorkspaceResult, process_workspace\n\n"
-            f'workspace_dir = Path(r"{result.base_dir}")\n'
-            "result = process_workspace(workspace_dir)\n"
-            'print(f"Steps completed: {result.steps_completed}")'
+            "import pandas as pd\n\n"
+            "all_quals = pd.concat([blank_quals, cvs_quals, lcs_quals, rts_quals], ignore_index=True)\n"
+            'print(f"Total qualifier lines: {len(all_quals)}")\n'
+            "all_quals\n\n"
+            "# write_mdvr_to_excel(\n"
+            "#     all_quals,\n"
+            '#     template_path=Path(r"path/to/template.xlsx"),\n'
+            f'#     output_path=workspace_dir / "MDVR" / "{site}{yyyymm}_MDVR.xlsx",\n'
+            "# )"
         ),
     ]
 
