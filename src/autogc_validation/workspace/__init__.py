@@ -19,6 +19,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union
 
+import nbformat
+
 from autogc_validation.workspace.folders import generate_monthly_folder_structure
 from autogc_validation.workspace.files import (
     unzip_files,
@@ -306,3 +308,143 @@ def process_workspace(
         logger.warning("Errors: %s", result.errors)
 
     return result
+
+
+def _generate_notebook(
+    result: WorkspaceResult,
+    site: str,
+    year: int,
+    month: int,
+) -> Path:
+    """Generate a pre-filled Jupyter notebook inside the workspace.
+
+    The notebook mirrors the workspace_workflow template with paths
+    hardcoded for the given site and month.
+
+    Args:
+        result: WorkspaceResult from create_workspace (must have base_dir set).
+        site: Site name code (e.g. "RB").
+        year: Year.
+        month: Month number (1-12).
+
+    Returns:
+        Path to the created notebook file.
+    """
+    yyyymm = f"{year}{month:02d}"
+
+    nb = nbformat.v4.new_notebook()
+    nb.cells = [
+        nbformat.v4.new_markdown_cell(
+            f"# {site} {yyyymm} Workspace Workflow\n\n"
+            "Two-phase pipeline for monthly AutoGC validation:\n\n"
+            "1. **`create_workspace`** — creates the folder structure\n"
+            "2. Copy zipped files into `temp/`\n"
+            "3. **`process_workspace`** — unzips, moves, and sorts files"
+        ),
+        nbformat.v4.new_code_cell(
+            "import logging\n"
+            "from pathlib import Path\n"
+            "from autogc_validation.workspace import create_workspace, process_workspace\n\n"
+            "logging.basicConfig(level=logging.INFO)\n"
+            "logger = logging.getLogger(__name__)"
+        ),
+        nbformat.v4.new_markdown_cell("## Configuration"),
+        nbformat.v4.new_code_cell(
+            f'root_dir = Path(r"{result.base_dir.parent}")\n'
+            f'sitename = "{site}"\n'
+            f"year = {year}\n"
+            f"month = {month}"
+        ),
+        nbformat.v4.new_markdown_cell("## Phase 1: Create folder structure"),
+        nbformat.v4.new_code_cell(
+            "result = create_workspace(root_dir, sitename, year, month)\n"
+            'print(f"Workspace created: {result.base_dir}")\n'
+            'print(f"Copy zipped files into: {result.base_dir / \'temp\'}")'
+        ),
+        nbformat.v4.new_markdown_cell(
+            "## Copy files\n\n"
+            "**Stop here.** Copy zipped `.zip` files from the network "
+            "location into the `temp/` folder printed above, then continue."
+        ),
+        nbformat.v4.new_markdown_cell("## Phase 2: Unzip, move, and sort files"),
+        nbformat.v4.new_code_cell(
+            "result = process_workspace(result.base_dir)\n\n"
+            'print(f"Steps completed: {result.steps_completed}")\n'
+            'print(f"Errors: {result.errors}")\n'
+            "if result.dat_summary:\n"
+            "    print(f\"DAT files: {result.dat_summary['found'][0]} found, "
+            "{result.dat_summary['copied'][0]} copied\")\n"
+            "if result.tx1_summary:\n"
+            "    print(f\"TX1 files: {result.tx1_summary['found'][0]} found, "
+            "{result.tx1_summary['copied'][0]} copied\")\n"
+            "if result.week_counts:\n"
+            '    print(f"Week counts: {result.week_counts}")'
+        ),
+        nbformat.v4.new_markdown_cell(
+            "## Resume from saved state\n\n"
+            "If the kernel restarts, reload the workspace from disk and "
+            "re-run. Already-completed steps are skipped automatically."
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.workspace import WorkspaceResult, process_workspace\n\n"
+            f'workspace_dir = Path(r"{result.base_dir}")\n'
+            "result = process_workspace(workspace_dir)\n"
+            'print(f"Steps completed: {result.steps_completed}")'
+        ),
+    ]
+
+    notebook_path = result.base_dir / f"{site}{yyyymm}.ipynb"
+    nbformat.write(nb, str(notebook_path))
+    logger.info("Notebook created: %s", notebook_path)
+    return notebook_path
+
+
+def start_month(
+    sites: list[str],
+    project_dir: Union[str, Path],
+    year: int,
+    month: int,
+) -> dict[str, WorkspaceResult]:
+    """Initialize workspaces for multiple sites for a given month.
+
+    For each site this function:
+      - Creates ``project_dir/validation/{site}/``
+      - Creates ``project_dir/data/{site}/{YYYYMM}/``
+      - Calls :func:`create_workspace` to build the folder structure
+      - Generates a pre-filled Jupyter notebook in the workspace
+
+    Args:
+        sites: List of site name codes (e.g. ``["RB", "HW", "LP"]``).
+        project_dir: Path to the autogc_validation project root.
+        year: Year.
+        month: Month number (1-12).
+
+    Returns:
+        Dict mapping site name to its WorkspaceResult.
+    """
+    project_dir = Path(project_dir)
+    yyyymm = f"{year}{month:02d}"
+    results: dict[str, WorkspaceResult] = {}
+
+    for site in sites:
+        logger.info("Starting month setup for site %s (%s)", site, yyyymm)
+
+        # Create site validation directory
+        validation_dir = project_dir / "validation" / site
+        validation_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create site data directory
+        data_dir = project_dir / "data" / site / yyyymm
+        data_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create workspace folder structure
+        result = create_workspace(validation_dir, site, year, month)
+
+        # Generate notebook
+        if result.base_dir is not None:
+            _generate_notebook(result, site, year, month)
+
+        results[site] = result
+        logger.info("Site %s setup complete", site)
+
+    return results
