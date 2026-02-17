@@ -11,22 +11,21 @@ from typing import Dict, Set, Union
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, aqs_to_name, name_to_aqs
-from autogc_validation.database.operations.voc_info import get_all_voc_data_as_dataframe
+from autogc_validation.database.enums import (
+    CompoundAQSCode,
+    VOCCategory,
+    aqs_to_name,
+    name_to_aqs,
+    get_codes_by_category,
+)
+from autogc_validation.qc.utils import to_aqs_indexed_series
 
 logger = logging.getLogger(__name__)
-
-
-def _get_compounds_by_category(database: str, category: str) -> list[int]:
-    """Get list of AQS codes for compounds in a given VOC category."""
-    voc_df = get_all_voc_data_as_dataframe(database)
-    return voc_df[voc_df["category"] == category]["aqs_code"].tolist()
 
 
 def check_ratios(
     data: pd.DataFrame,
     mdls: Dict[Union[str, int], float],
-    database: str,
 ) -> pd.DataFrame:
     """Screen ambient samples for suspicious compound ratios per EPA TAD Table 10-1.
 
@@ -37,16 +36,11 @@ def check_ratios(
     Args:
         data: Dataset.data DataFrame.
         mdls: MDL values keyed by compound name or AQS code.
-        database: Path to SQLite database (for loading compound categories).
 
     Returns:
         DataFrame with columns: screen_reason, compounds (list of names).
     """
-    mdl_series = pd.Series(mdls)
-    if not all(isinstance(k, int) for k in mdl_series.index):
-        mdl_series.index = mdl_series.index.map(
-            lambda k: name_to_aqs(k) if isinstance(k, str) else k
-        )
+    mdl_series = to_aqs_indexed_series(mdls)
     mdl_series.index = mdl_series.index.map(int)
 
     ambient_df = data[data["sample_type"] == "s"].sort_index().copy()
@@ -56,9 +50,8 @@ def check_ratios(
         pd.to_numeric, errors="coerce"
     )
 
-    # Load compound groups from database
-    alkanes = _get_compounds_by_category(database, "Alkane")
-    alkenes = _get_compounds_by_category(database, "Alkene")
+    alkanes = get_codes_by_category(VOCCategory.ALKANE)
+    alkenes = get_codes_by_category(VOCCategory.ALKENE)
 
     # Shorthand aliases
     C = CompoundAQSCode

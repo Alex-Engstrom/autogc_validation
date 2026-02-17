@@ -12,25 +12,13 @@ from typing import Dict, Union
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, name_to_aqs
-from autogc_validation.io.cdf import UNID_CODES
+from autogc_validation.database.enums import UNID_CODES, TOTAL_CODES
+from autogc_validation.qc.utils import to_aqs_indexed_series
 
 logger = logging.getLogger(__name__)
 
-TOTAL_CODES = {CompoundAQSCode.C_TNMHC, CompoundAQSCode.C_TNMTC}
-
 RECOVERY_LOWER_BOUND = 0.70
 RECOVERY_UPPER_BOUND = 1.30
-
-
-def _to_aqs_indexed_series(values: Dict[Union[str, int], float]) -> pd.Series:
-    """Convert a dict keyed by compound name or AQS code to an AQS-indexed Series."""
-    series = pd.Series(values)
-    if not all(isinstance(k, int) for k in series.index):
-        series.index = series.index.map(
-            lambda k: name_to_aqs(k) if isinstance(k, str) else k
-        )
-    return series.dropna()
 
 
 def check_qc_recovery(
@@ -64,7 +52,7 @@ def check_qc_recovery(
         if isinstance(c, int) and c not in UNID_CODES | TOTAL_CODES
     ]
 
-    expected = _to_aqs_indexed_series(canister_conc) * blend_ratio
+    expected = to_aqs_indexed_series(canister_conc) * blend_ratio
 
     results = []
     for timestamp, row in qc_df.iterrows():

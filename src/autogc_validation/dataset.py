@@ -12,13 +12,10 @@ from typing import List
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode
-from autogc_validation.io.cdf import UNID_CODES
+from autogc_validation.database.enums import CompoundAQSCode, UNID_CODES, TOTAL_CODES
 from autogc_validation.io.samples import Sample, SampleType, load_samples_from_folder
 
 logger = logging.getLogger(__name__)
-
-TOTAL_CODES = {CompoundAQSCode.C_TNMHC, CompoundAQSCode.C_TNMTC}
 
 
 class Dataset:
@@ -71,12 +68,13 @@ class Dataset:
         self, front_totals: pd.DataFrame, back_totals: pd.DataFrame
     ) -> pd.DataFrame:
         """Sum TNMHC and TNMTC values from front and back chromatograms."""
-        summed = front_totals.copy()
-        summed["peak_amount"] = (
-            front_totals["peak_amount"].values
-            + back_totals["peak_amount"].values
+        merged = front_totals.merge(
+            back_totals, on="peak_name", suffixes=("_front", "_back")
         )
-        return summed
+        merged["peak_amount"] = (
+            merged["peak_amount_front"] + merged["peak_amount_back"]
+        )
+        return merged[["peak_name", "peak_amount"]]
 
     def _build_amount_dict(
         self, front_df: pd.DataFrame, back_df: pd.DataFrame
@@ -114,6 +112,7 @@ class Dataset:
         """Generate a DataFrame of VOC concentrations for all samples."""
         chem_cols = self._get_chem_cols()
         rows = []
+        errors = 0
 
         for sample in self.samples:
             try:
@@ -139,9 +138,15 @@ class Dataset:
                     **{code: amount_dict.get(code) for code in chem_cols},
                 }
                 rows.append(row)
-            except Exception:
+            except (ValueError, KeyError, TypeError, OSError):
                 logger.exception("Error processing %s", sample.filename_base)
+                errors += 1
                 continue
+
+        if errors:
+            logger.warning(
+                "%d of %d samples failed to process", errors, len(self.samples)
+            )
 
         return pd.DataFrame(rows).set_index("date_time")
 
@@ -149,6 +154,7 @@ class Dataset:
         """Generate a DataFrame of retention times for all samples."""
         chem_cols = self._get_chem_cols()
         rows = []
+        errors = 0
 
         for sample in self.samples:
             try:
@@ -171,9 +177,15 @@ class Dataset:
                     **{code: rt_dict.get(code) for code in chem_cols},
                 }
                 rows.append(row)
-            except Exception:
+            except (ValueError, KeyError, TypeError, OSError):
                 logger.exception("Error processing %s", sample.filename_base)
+                errors += 1
                 continue
+
+        if errors:
+            logger.warning(
+                "%d of %d samples failed to process", errors, len(self.samples)
+            )
 
         return pd.DataFrame(rows).set_index("date_time")
 

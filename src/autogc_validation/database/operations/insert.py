@@ -51,11 +51,11 @@ def insert(database: str, obj) -> bool:
     VALUES ({", ".join("?" for _ in columns)})
     """
 
-    with transaction(database) as conn:
-        try:
+    try:
+        with transaction(database) as conn:
             conn.execute(sql, values)
-            logger.info(f"{type(obj).__tablename__} table populated with {dict(zip(columns, values))}")
+            logger.info("%s table populated with %s", table, dict(zip(columns, values)))
             return True
-        except sqlite3.IntegrityError as e:
-            logger.warning("Duplicate entry skipped for %s: %s", table, e)
-            return False
+    except sqlite3.IntegrityError as e:
+        logger.warning("Duplicate entry skipped for %s: %s", table, e)
+        return False

@@ -15,16 +15,19 @@ import numpy as np
 import pandas as pd
 from dateutil import parser
 
-from autogc_validation.database.enums import CompoundAQSCode, name_to_aqs
+from autogc_validation.database.enums import (
+    CompoundAQSCode,
+    PLOT_UNID_CODE,
+    BP_UNID_CODE,
+    UNID_CODES,
+    name_to_aqs,
+)
 
 logger = logging.getLogger(__name__)
 
-# Unidentified peak codes — not real compounds, not in the enums
-PLOT_UNID_CODE = 10000
-BP_UNID_CODE = 20000
-UNID_CODES = {PLOT_UNID_CODE, BP_UNID_CODE}
-
-# Mapping for unidentified peak names from CDF files
+# Mapping from CDF file peak name strings to synthetic UNID codes.
+# This is I/O-specific: it's how the AutoGC software labels unidentified
+# peaks in the NetCDF file. The codes themselves are defined in the enums package.
 _UNID_NAME_MAP = {
     "Plot unid": PLOT_UNID_CODE,
     "Bp unid": BP_UNID_CODE,

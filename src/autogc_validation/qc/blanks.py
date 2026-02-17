@@ -10,22 +10,10 @@ from typing import Dict, Union
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, name_to_aqs
-from autogc_validation.io.cdf import UNID_CODES
+from autogc_validation.database.enums import UNID_CODES, TOTAL_CODES
+from autogc_validation.qc.utils import to_aqs_indexed_series
 
 logger = logging.getLogger(__name__)
-
-TOTAL_CODES = {CompoundAQSCode.C_TNMHC, CompoundAQSCode.C_TNMTC}
-
-
-def _to_aqs_indexed_series(values: Dict[Union[str, int], float]) -> pd.Series:
-    """Convert a dict keyed by compound name or AQS code to an AQS-indexed Series."""
-    series = pd.Series(values)
-    if not all(isinstance(k, int) for k in series.index):
-        series.index = series.index.map(
-            lambda k: name_to_aqs(k) if isinstance(k, str) else k
-        )
-    return series.dropna()
 
 
 def compounds_above_mdl(
@@ -49,7 +37,7 @@ def compounds_above_mdl(
         if isinstance(c, int) and c not in UNID_CODES | TOTAL_CODES
     ]
 
-    mdl_series = _to_aqs_indexed_series(mdls)
+    mdl_series = to_aqs_indexed_series(mdls)
 
     results = []
     for timestamp, row in blank_df.iterrows():

@@ -131,7 +131,12 @@ def parse_dat_file(
 
     # Get date from modification time, subtract 1 hour since .dat is
     # written in the hour after data collection
-    mod_date = check_mod_date(filename) - timedelta(hours=1)
+    mod_date = check_mod_date(filename)
+    if mod_date is None:
+        logger.error("Could not get modification date for %s", filename.name)
+        return None
+
+    mod_date = mod_date - timedelta(hours=1)
 
     mod_date_vals = [mod_date.month, mod_date.day, mod_date.hour]
     filename_vals = [

@@ -441,7 +441,7 @@ def _generate_notebook(
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
             ")\n\n"
             "# Compound ratio screening (EPA TAD Table 10-1)\n"
-            "ratios = check_ratios(ds.data, mdls, database)\n"
+            "ratios = check_ratios(ds.data, mdls)\n"
             'print(f"Ratio flags: {len(ratios)}")\n'
             "if not ratios.empty:\n"
             "    display(ratios)\n\n"
