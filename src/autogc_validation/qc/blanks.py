@@ -10,7 +10,7 @@ from typing import Dict, Union
 
 import pandas as pd
 
-from autogc_validation.database.enums import UNID_CODES, TOTAL_CODES
+from autogc_validation.database.enums import UNID_CODES, TOTAL_CODES, SampleType
 from autogc_validation.qc.utils import to_aqs_indexed_series
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def compounds_above_mdl(
         DataFrame indexed by date_time with columns:
         filename, compounds_above_mdl (list of AQS codes).
     """
-    blank_df = data[data["sample_type"] == "b"].sort_index()
+    blank_df = data[data["sample_type"] == SampleType.BLANK].sort_index()
 
     compound_columns = [
         c for c in data.columns

@@ -10,25 +10,13 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from autogc_validation.database.enums import SampleType
 from autogc_validation.io.cdf import Chromatogram
 
 logger = logging.getLogger(__name__)
-
-
-class SampleType(StrEnum):
-    """Sample type codes from AutoGC filename convention."""
-    AMBIENT = "s"
-    BLANK = "b"
-    CVS = "c"
-    RTS = "q"
-    LCS = "e"
-    MDL_POINT = "d"
-    CALIBRATION_POINT = "m"
-    EXPERIMENTAL = "x"
 
 
 @dataclass

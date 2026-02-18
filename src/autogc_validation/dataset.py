@@ -12,8 +12,8 @@ from typing import List
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, UNID_CODES, TOTAL_CODES
-from autogc_validation.io.samples import Sample, SampleType, load_samples_from_folder
+from autogc_validation.database.enums import CompoundAQSCode, SampleType, UNID_CODES, TOTAL_CODES
+from autogc_validation.io.samples import Sample, load_samples_from_folder
 
 logger = logging.getLogger(__name__)
 

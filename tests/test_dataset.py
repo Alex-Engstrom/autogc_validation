@@ -10,7 +10,7 @@ from autogc_validation.database.enums import (
     TOTAL_CODES,
 )
 from autogc_validation.dataset import Dataset
-from autogc_validation.io.samples import SampleType
+from autogc_validation.database.enums import SampleType
 
 
 @pytest.fixture

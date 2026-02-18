@@ -202,7 +202,7 @@ def build_qc_qualifier_lines(
     if not rows:
         return pd.DataFrame(columns=_MDVR_COLUMNS)
 
-    return pd.DataFrame(rows)
+    return _shift_and_combine(pd.DataFrame(rows))
 
 
 def write_mdvr_to_excel(

@@ -17,7 +17,7 @@ from typing import Optional, Tuple
 
 import pandas as pd
 
-from autogc_validation.io.samples import SampleType
+from autogc_validation.database.enums import SampleType
 
 logger = logging.getLogger(__name__)
 

@@ -12,8 +12,10 @@ from typing import Dict, Union
 
 import pandas as pd
 
-from autogc_validation.database.enums import UNID_CODES, TOTAL_CODES
+from autogc_validation.database.enums import UNID_CODES, TOTAL_CODES, SampleType
 from autogc_validation.qc.utils import to_aqs_indexed_series
+
+_QC_SAMPLE_TYPES = {SampleType.CVS, SampleType.LCS, SampleType.RTS}
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +44,11 @@ def check_qc_recovery(
     Raises:
         ValueError: If qc_type is not 'c', 'e', or 'q'.
     """
-    if qc_type not in ("c", "e", "q"):
-        raise ValueError("qc_type must be 'c', 'e', or 'q'")
+    valid_codes = {st.value for st in _QC_SAMPLE_TYPES}
+    if qc_type not in valid_codes:
+        raise ValueError(
+            f"qc_type must be one of {valid_codes}, got '{qc_type}'"
+        )
 
     qc_df = data[data["sample_type"] == qc_type].sort_index()
 

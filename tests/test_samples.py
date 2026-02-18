@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from autogc_validation.io.samples import SampleType, parse_filename_metadata
+from autogc_validation.database.enums import SampleType
+from autogc_validation.io.samples import parse_filename_metadata
 
 
 class TestParseFilenameMetadata:

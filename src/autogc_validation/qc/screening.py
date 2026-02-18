@@ -13,6 +13,7 @@ import pandas as pd
 
 from autogc_validation.database.enums import (
     CompoundAQSCode,
+    SampleType,
     VOCCategory,
     aqs_to_name,
     name_to_aqs,
@@ -43,7 +44,7 @@ def check_ratios(
     mdl_series = to_aqs_indexed_series(mdls)
     mdl_series.index = mdl_series.index.map(int)
 
-    ambient_df = data[data["sample_type"] == "s"].sort_index().copy()
+    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].sort_index().copy()
 
     compound_cols = [c for c in ambient_df.columns if isinstance(c, int)]
     ambient_df[compound_cols] = ambient_df[compound_cols].apply(
@@ -53,92 +54,68 @@ def check_ratios(
     alkanes = get_codes_by_category(VOCCategory.ALKANE)
     alkenes = get_codes_by_category(VOCCategory.ALKENE)
 
-    # Shorthand aliases
     C = CompoundAQSCode
     m = mdl_series
     a = ambient_df
+    data_cols = set(ambient_df.columns)
+    mdl_codes = set(m.index)
 
-    conditions = [
-        (
-            (a[C.C_BENZENE] / 6 > a[C.C_TOLUENE] / 7)
-            & (a[C.C_BENZENE] > 3 * m[C.C_BENZENE]),
-            "benzene_gt_toluene",
-            [C.C_BENZENE, C.C_TOLUENE],
-        ),
-        (
-            (a[C.C_BENZENE] / 6 > a[C.C_ETHANE] / 2)
-            & (a[C.C_BENZENE] > 3 * m[C.C_BENZENE]),
-            "benzene_gt_ethane",
-            [C.C_BENZENE, C.C_ETHANE],
-        ),
-        (
-            (a[C.C_ETHYLENE] / 2 > a[C.C_ETHANE] / 2)
-            & (a[C.C_ETHYLENE] > 3 * m[C.C_ETHYLENE]),
-            "ethylene_gt_ethane",
-            [C.C_ETHYLENE, C.C_ETHANE],
-        ),
-        (
-            (a[C.C_PROPYLENE] / 3 > a[C.C_PROPANE] / 3)
-            & (a[C.C_PROPYLENE] > 3 * m[C.C_PROPYLENE]),
-            "propylene_gt_propane",
-            [C.C_PROPYLENE, C.C_PROPANE],
-        ),
-        (
-            (a[C.C_O_XYLENE] / 8 > a[C.C_M_P_XYLENE] / 8)
-            & (a[C.C_O_XYLENE] > 3 * m[C.C_O_XYLENE]),
-            "oxylene_gt_mpxylene",
-            [C.C_O_XYLENE, C.C_M_P_XYLENE],
-        ),
-        (
-            (a[C.C_2_3_DIMETHYLPENTANE] > a[C.C_2_METHYLHEXANE])
-            & (a[C.C_2_3_DIMETHYLPENTANE] > 3 * m[C.C_2_3_DIMETHYLPENTANE]),
-            "23dimethylpentane_gt_2methylhexane",
-            [C.C_2_METHYLHEXANE, C.C_2_3_DIMETHYLPENTANE],
-        ),
-        (
-            (a[C.C_2_4_DIMETHYLPENTANE] > a[C.C_METHYLCYCLOPENTANE])
-            & (a[C.C_2_4_DIMETHYLPENTANE] > 3 * m[C.C_2_4_DIMETHYLPENTANE]),
-            "24dimethylpentane_gt_methylcyclopentane",
-            [C.C_METHYLCYCLOPENTANE, C.C_2_4_DIMETHYLPENTANE],
-        ),
-        (
-            (a[C.C_ISO_BUTANE] > a[C.C_N_BUTANE])
-            & (a[C.C_ISO_BUTANE] > 3 * m[C.C_ISO_BUTANE]),
-            "isobutane_gt_nbutane",
-            [C.C_ISO_BUTANE, C.C_N_BUTANE],
-        ),
-        (
-            (a[C.C_3_METHYLPENTANE] / 6 > 0.6 * a[C.C_2_METHYLPENTANE] / 6)
-            & (a[C.C_3_METHYLPENTANE] > 3 * m[C.C_3_METHYLPENTANE]),
-            "3methylpentane_gt_2methylpentane",
-            [C.C_3_METHYLPENTANE, C.C_2_METHYLPENTANE],
-        ),
-        (
-            (a[C.C_N_UNDECANE] / 11 > a[C.C_N_DECANE] / 10)
-            & (a[C.C_N_UNDECANE] > 3 * m[C.C_N_UNDECANE]),
-            "nundecane_gt_ndecane",
-            [C.C_N_UNDECANE, C.C_N_DECANE],
-        ),
-        (
-            ~(
-                (a[C.C_ISO_PENTANE] > a[C.C_N_PENTANE])
-                & (a[C.C_N_PENTANE] > a[C.C_CYCLOPENTANE])
-            )
-            & (a[C.C_ISO_PENTANE] > 3 * m[C.C_ISO_PENTANE])
-            & (a[C.C_N_PENTANE] > 3 * m[C.C_N_PENTANE])
-            & (a[C.C_CYCLOPENTANE] > 3 * m[C.C_CYCLOPENTANE]),
-            "not_isopentane_gt_npentane_gt_cyclopentane",
-            [C.C_ISO_PENTANE, C.C_N_PENTANE, C.C_CYCLOPENTANE],
-        ),
-        (
-            a[alkenes].sum(axis=1) > a[alkanes].sum(axis=1),
-            "alkenes_gt_alkanes",
-            [],
-        ),
+    def _has(codes):
+        """Check that all codes exist in both DataFrame columns and MDL series."""
+        return all(int(c) in data_cols and int(c) in mdl_codes for c in codes)
+
+    # Each entry: (required_codes, condition_builder, label, compound_list)
+    # condition_builder is a callable so missing columns don't cause KeyError
+    condition_defs = [
+        ([C.C_BENZENE, C.C_TOLUENE],
+         lambda: (a[C.C_BENZENE] / 6 > a[C.C_TOLUENE] / 7) & (a[C.C_BENZENE] > 3 * m[C.C_BENZENE]),
+         "benzene_gt_toluene", [C.C_BENZENE, C.C_TOLUENE]),
+        ([C.C_BENZENE, C.C_ETHANE],
+         lambda: (a[C.C_BENZENE] / 6 > a[C.C_ETHANE] / 2) & (a[C.C_BENZENE] > 3 * m[C.C_BENZENE]),
+         "benzene_gt_ethane", [C.C_BENZENE, C.C_ETHANE]),
+        ([C.C_ETHYLENE, C.C_ETHANE],
+         lambda: (a[C.C_ETHYLENE] / 2 > a[C.C_ETHANE] / 2) & (a[C.C_ETHYLENE] > 3 * m[C.C_ETHYLENE]),
+         "ethylene_gt_ethane", [C.C_ETHYLENE, C.C_ETHANE]),
+        ([C.C_PROPYLENE, C.C_PROPANE],
+         lambda: (a[C.C_PROPYLENE] / 3 > a[C.C_PROPANE] / 3) & (a[C.C_PROPYLENE] > 3 * m[C.C_PROPYLENE]),
+         "propylene_gt_propane", [C.C_PROPYLENE, C.C_PROPANE]),
+        ([C.C_O_XYLENE, C.C_M_P_XYLENE],
+         lambda: (a[C.C_O_XYLENE] / 8 > a[C.C_M_P_XYLENE] / 8) & (a[C.C_O_XYLENE] > 3 * m[C.C_O_XYLENE]),
+         "oxylene_gt_mpxylene", [C.C_O_XYLENE, C.C_M_P_XYLENE]),
+        ([C.C_2_3_DIMETHYLPENTANE, C.C_2_METHYLHEXANE],
+         lambda: (a[C.C_2_3_DIMETHYLPENTANE] > a[C.C_2_METHYLHEXANE]) & (a[C.C_2_3_DIMETHYLPENTANE] > 3 * m[C.C_2_3_DIMETHYLPENTANE]),
+         "23dimethylpentane_gt_2methylhexane", [C.C_2_METHYLHEXANE, C.C_2_3_DIMETHYLPENTANE]),
+        ([C.C_2_4_DIMETHYLPENTANE, C.C_METHYLCYCLOPENTANE],
+         lambda: (a[C.C_2_4_DIMETHYLPENTANE] > a[C.C_METHYLCYCLOPENTANE]) & (a[C.C_2_4_DIMETHYLPENTANE] > 3 * m[C.C_2_4_DIMETHYLPENTANE]),
+         "24dimethylpentane_gt_methylcyclopentane", [C.C_METHYLCYCLOPENTANE, C.C_2_4_DIMETHYLPENTANE]),
+        ([C.C_ISO_BUTANE, C.C_N_BUTANE],
+         lambda: (a[C.C_ISO_BUTANE] > a[C.C_N_BUTANE]) & (a[C.C_ISO_BUTANE] > 3 * m[C.C_ISO_BUTANE]),
+         "isobutane_gt_nbutane", [C.C_ISO_BUTANE, C.C_N_BUTANE]),
+        ([C.C_3_METHYLPENTANE, C.C_2_METHYLPENTANE],
+         lambda: (a[C.C_3_METHYLPENTANE] / 6 > 0.6 * a[C.C_2_METHYLPENTANE] / 6) & (a[C.C_3_METHYLPENTANE] > 3 * m[C.C_3_METHYLPENTANE]),
+         "3methylpentane_gt_2methylpentane", [C.C_3_METHYLPENTANE, C.C_2_METHYLPENTANE]),
+        ([C.C_N_UNDECANE, C.C_N_DECANE],
+         lambda: (a[C.C_N_UNDECANE] / 11 > a[C.C_N_DECANE] / 10) & (a[C.C_N_UNDECANE] > 3 * m[C.C_N_UNDECANE]),
+         "nundecane_gt_ndecane", [C.C_N_UNDECANE, C.C_N_DECANE]),
+        ([C.C_ISO_PENTANE, C.C_N_PENTANE, C.C_CYCLOPENTANE],
+         lambda: (
+             ~((a[C.C_ISO_PENTANE] > a[C.C_N_PENTANE]) & (a[C.C_N_PENTANE] > a[C.C_CYCLOPENTANE]))
+             & (a[C.C_ISO_PENTANE] > 3 * m[C.C_ISO_PENTANE])
+             & (a[C.C_N_PENTANE] > 3 * m[C.C_N_PENTANE])
+             & (a[C.C_CYCLOPENTANE] > 3 * m[C.C_CYCLOPENTANE])
+         ),
+         "not_isopentane_gt_npentane_gt_cyclopentane", [C.C_ISO_PENTANE, C.C_N_PENTANE, C.C_CYCLOPENTANE]),
+        ([],
+         lambda: a[alkenes].sum(axis=1) > a[alkanes].sum(axis=1),
+         "alkenes_gt_alkanes", []),
     ]
 
     flagged = []
-    for cond, label, compounds in conditions:
+    for required, build_cond, label, compounds in condition_defs:
+        if required and not _has(required):
+            logger.debug("Skipping ratio check '%s': missing compounds in data or MDLs", label)
+            continue
+        cond = build_cond()
         subset = ambient_df.loc[cond].copy()
         if subset.empty:
             continue
@@ -180,7 +157,7 @@ def check_overrange_values(
         except (KeyError, ValueError):
             logger.warning("Unknown compound name for exclusion: %s", name)
 
-    ambient_df = data[data["sample_type"] == "s"].copy()
+    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].copy()
 
     compound_cols = [c for c in ambient_df.columns if isinstance(c, int)]
     ambient_df[compound_cols] = ambient_df[compound_cols].apply(
@@ -214,7 +191,7 @@ def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:
     Returns:
         Series indexed by the timestamp of each daily max, values are TNMHC (ppbC).
     """
-    ambient_df = data[data["sample_type"] == "s"].sort_index()
+    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].sort_index()
 
     s = ambient_df[CompoundAQSCode.C_TNMHC]
 
