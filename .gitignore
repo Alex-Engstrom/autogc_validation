@@ -3,5 +3,6 @@ notebooks/*.ipynb
 *.txt
 __pycache__/
 *.py[cod]
+*.egg-info/
 validation/
 data/

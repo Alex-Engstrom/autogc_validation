@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-src/autogc_validation/__init__.py
-src/autogc_validation/config.py
-src/autogc_validation.egg-info/PKG-INFO
-src/autogc_validation.egg-info/SOURCES.txt
-src/autogc_validation.egg-info/dependency_links.txt
-src/autogc_validation.egg-info/requires.txt
-src/autogc_validation.egg-info/top_level.txt
