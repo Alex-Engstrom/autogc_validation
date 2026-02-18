@@ -60,6 +60,7 @@ def check_qc_recovery(
             code for code in compound_columns
             if (code in expected.index
                 and pd.notna(row[code])
+                and float(expected[code]) != 0
                 and (row[code] / float(expected[code]) > RECOVERY_UPPER_BOUND
                      or row[code] / float(expected[code]) < RECOVERY_LOWER_BOUND))
         ]

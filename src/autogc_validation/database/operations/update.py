@@ -48,7 +48,7 @@ def retire_site_canister(database: str, site_canister_id: str, date_off: str) ->
 
     with transaction(database) as conn:
         conn.execute(
-            "UPDATE site_canisters SET date_off = ?, in_use = 0 WHERE site_canister_id = ?",
+            "UPDATE site_canisters SET date_off = ? WHERE site_canister_id = ?",
             (date_off, site_canister_id)
         )
         logger.info("Retired site canister %s on %s", site_canister_id, date_off)

@@ -64,6 +64,15 @@ class TestCheckQcRecovery:
         with pytest.raises(ValueError, match="qc_type must be"):
             check_qc_recovery(df, "z", sample_canister_conc, 1.0)
 
+    def test_zero_expected_concentration_skipped(self, make_dataset_df):
+        """Compound with zero expected concentration → skipped, not ZeroDivisionError."""
+        zero_canister = {CompoundAQSCode.C_BENZENE: 0.0}
+        values = {int(CompoundAQSCode.C_BENZENE): 5.0}
+        df = make_dataset_df(sample_type="c", values=values)
+        result = check_qc_recovery(df, "c", zero_canister, 1.0)
+        # Should not crash, and benzene should not be flagged
+        assert int(CompoundAQSCode.C_BENZENE) not in result.iloc[0]["failing_qc"]
+
     def test_compounds_not_in_canister_skipped(self, make_dataset_df):
         """Compounds not in canister dict → skipped (partial canister)."""
         # Only provide canister conc for benzene

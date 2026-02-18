@@ -35,7 +35,7 @@ def get_active_mdls(
         FROM mdls
         WHERE site_id = ?
           AND date_on <= ?
-          AND date_off > ?
+          AND (date_off IS NULL OR date_off > ?)
     """
 
     with connection(database) as conn:

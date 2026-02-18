@@ -4,6 +4,8 @@ Created on Fri Jan 16 15:38:12 2026
 
 @author: aengstrom
 """
+from typing import Optional
+
 from pydantic.dataclasses import dataclass
 from pydantic import field_validator, model_validator
 from .base import BaseModel
@@ -19,13 +21,13 @@ class MDL(BaseModel):
         aqs_code: Compound AQS code
         concentration: MDL concentration in ppbv
         date_on: Date this MDL became effective
-        date_off: Date this MDL was superseded
+        date_off: Date this MDL was superseded (None if still active)
     """
     site_id: int
     aqs_code: CompoundAQSCode
     concentration: float
     date_on: str
-    date_off: str
+    date_off: Optional[str] = None
 
     __tablename__ = "mdls"
 
@@ -48,14 +50,23 @@ class MDL(BaseModel):
             raise ValueError(f"concentration cannot be negative, got {v}")
         return v
 
-    @field_validator('date_on', 'date_off')
+    @field_validator('date_on')
     @classmethod
-    def validate_date(cls, v: str) -> str:
+    def validate_date_on(cls, v: str) -> str:
         return BaseModel.validate_date_format(v)
+
+    @field_validator('date_off')
+    @classmethod
+    def validate_date_off(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return BaseModel.validate_date_format(v)
+        return v
 
     @model_validator(mode='after')
     def validate_date_order(self) -> 'MDL':
-        """Validate that date_on is before date_off."""
+        """Validate that date_on is before date_off (when date_off is set)."""
+        if self.date_off is None:
+            return self
         on = BaseModel.parse_date(self.date_on)
         off = BaseModel.parse_date(self.date_off)
 

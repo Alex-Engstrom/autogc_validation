@@ -140,7 +140,6 @@ class SiteCanister(BaseModel):
         blend_date: Date canister was blended
         date_on: Date canister was deployed
         date_off: Date canister was removed (None if still active)
-        in_use: Whether canister is currently in use (0 or 1)
     """
     site_canister_id: str
     site_id: int
@@ -149,7 +148,6 @@ class SiteCanister(BaseModel):
     blend_date: str
     date_on: str
     date_off: Optional[str] = None
-    in_use: int = 0
 
     __tablename__ = "site_canisters"
 
@@ -162,7 +160,6 @@ class SiteCanister(BaseModel):
                         blend_date TEXT,
                         date_on TEXT,
                         date_off TEXT,
-                        in_use INTEGER DEFAULT 0,
                         FOREIGN KEY (site_id) REFERENCES sites(site_id),
                         FOREIGN KEY (primary_canister_id) REFERENCES primary_canisters(primary_canister_id)
                     );
@@ -196,13 +193,6 @@ class SiteCanister(BaseModel):
             raise ValueError(f"dilution_ratio must be positive, got {v}")
         return v
 
-    @field_validator('in_use')
-    @classmethod
-    def validate_in_use(cls, v: int) -> int:
-        if v not in (0, 1):
-            raise ValueError(f"in_use must be 0 or 1, got {v}")
-        return v
-
     @field_validator('blend_date', 'date_on')
     @classmethod
     def validate_dates(cls, v: str) -> str:
@@ -218,4 +208,4 @@ class SiteCanister(BaseModel):
     @property
     def is_active(self) -> bool:
         """Check if canister is currently active."""
-        return self.in_use == 1 and self.date_off is None
+        return self.date_off is None

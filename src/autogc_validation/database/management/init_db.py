@@ -7,7 +7,8 @@ Created on Fri Jan 16 15:03:24 2026
 
 import logging
 from pathlib import Path
-from autogc_validation.database.models import MODEL_REGISTRY
+from autogc_validation.database.enums import CanisterType
+from autogc_validation.database.models import MODEL_REGISTRY, CanisterTypes
 from autogc_validation.database.operations import create_table, insert
 from autogc_validation.database.utils.data_loaders import load_standard_voc_data
 
@@ -53,6 +54,12 @@ def initialize_database(database_path: str, force: bool = False) -> None:
     logger.info("Inserting VOC data into database...")
     inserted = sum(1 for voc in voc_data if insert(str(db_path), voc))
     logger.info("Inserted %d/%d VOC records", inserted, len(voc_data))
-    
+
+    # Seed canister types
+    logger.info("Inserting canister types...")
+    for ct in CanisterType:
+        insert(str(db_path), CanisterTypes(canister_type=ct))
+    logger.info("Inserted %d canister types", len(CanisterType))
+
     logger.info("Database initialization complete!")
 

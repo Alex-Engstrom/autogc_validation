@@ -37,10 +37,12 @@ def get_active_canister_concentrations(
     sql = """
         SELECT pc.aqs_code, pc.concentration * sc.dilution_ratio AS concentration
         FROM site_canisters sc
+        JOIN primary_canisters p
+          ON sc.primary_canister_id = p.primary_canister_id
         JOIN primary_canister_concentration pc
           ON sc.primary_canister_id = pc.primary_canister_id
         WHERE sc.site_id = ?
-          AND sc.canister_type = ?
+          AND p.canister_type = ?
           AND sc.date_on <= ?
           AND (sc.date_off IS NULL OR sc.date_off > ?)
     """
