@@ -108,8 +108,14 @@ class Dataset:
         if "peak_name" not in df or "peak_amount" not in df:
             raise ValueError(f"Malformed peakamounts table in {filename}")
 
-    def _generate_data(self) -> pd.DataFrame:
-        """Generate a DataFrame of VOC concentrations for all samples."""
+    def _generate_frame(self, attr: str, builder) -> pd.DataFrame:
+        """Generate a DataFrame by extracting an attribute from each sample.
+
+        Args:
+            attr: Chromatogram property name ('peakamounts' or 'peaklocations').
+            builder: Method that converts front/back DataFrames into a
+                {AQS code: value} dict (e.g. _build_amount_dict or _build_rt_dict).
+        """
         chem_cols = self._get_chem_cols()
         rows = []
         errors = 0
@@ -123,19 +129,20 @@ class Dataset:
                     )
                     continue
 
-                front_df = sample.front.peakamounts
-                back_df = sample.back.peakamounts
+                front_df = getattr(sample.front, attr)
+                back_df = getattr(sample.back, attr)
 
-                self._validate_peak_df(front_df, sample.front.filename)
-                self._validate_peak_df(back_df, sample.back.filename)
+                if attr == "peakamounts":
+                    self._validate_peak_df(front_df, sample.front.filename)
+                    self._validate_peak_df(back_df, sample.back.filename)
 
-                amount_dict = self._build_amount_dict(front_df, back_df)
+                value_dict = builder(front_df, back_df)
 
                 row = {
                     "date_time": dt,
                     "sample_type": sample.sample_type.value,
                     "filename": sample.filename_base,
-                    **{code: amount_dict.get(code) for code in chem_cols},
+                    **{code: value_dict.get(code) for code in chem_cols},
                 }
                 rows.append(row)
             except (ValueError, KeyError, TypeError, OSError):
@@ -149,45 +156,14 @@ class Dataset:
             )
 
         return pd.DataFrame(rows).set_index("date_time")
+
+    def _generate_data(self) -> pd.DataFrame:
+        """Generate a DataFrame of VOC concentrations for all samples."""
+        return self._generate_frame("peakamounts", self._build_amount_dict)
 
     def _generate_rt(self) -> pd.DataFrame:
         """Generate a DataFrame of retention times for all samples."""
-        chem_cols = self._get_chem_cols()
-        rows = []
-        errors = 0
-
-        for sample in self.samples:
-            try:
-                dt = sample.front.datetime
-                if abs((dt - sample.back.datetime).total_seconds()) > 1:
-                    logger.warning(
-                        "%s: front/back datetime mismatch", sample.filename_base
-                    )
-                    continue
-
-                front_df = sample.front.peaklocations
-                back_df = sample.back.peaklocations
-
-                rt_dict = self._build_rt_dict(front_df, back_df)
-
-                row = {
-                    "date_time": dt,
-                    "sample_type": sample.sample_type.value,
-                    "filename": sample.filename_base,
-                    **{code: rt_dict.get(code) for code in chem_cols},
-                }
-                rows.append(row)
-            except (ValueError, KeyError, TypeError, OSError):
-                logger.exception("Error processing %s", sample.filename_base)
-                errors += 1
-                continue
-
-        if errors:
-            logger.warning(
-                "%d of %d samples failed to process", errors, len(self.samples)
-            )
-
-        return pd.DataFrame(rows).set_index("date_time")
+        return self._generate_frame("peaklocations", self._build_rt_dict)
 
     def __repr__(self):
         return f"Dataset({self.folder}, n_samples={len(self.samples)})"
