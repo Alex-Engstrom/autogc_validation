@@ -361,7 +361,7 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell(
             "## 1. Copy and process files\n\n"
             "Copy zipped `.zip` files from the network location into "
-            f"`{workspace_dir}\\temp`, then run the cell below."
+            f"`{Path(workspace_dir).as_posix()}/temp`, then run the cell below."
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace import process_workspace\n\n"

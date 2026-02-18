@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "VOC data validation pipeline for AutoGC ambient air monitoring"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{name = "name", email = "exhf@domain.com"}]
+authors = [{name = "Alex Engstrom"}]
 
 # Core dependencies - what your project needs to run
 dependencies = [
