@@ -25,7 +25,7 @@ def initialize_database(database_path: str, force: bool = False) -> None:
     db_path = Path(database_path)
     
     if db_path.exists() and not force:
-        logger.warning(f"Database already exists at {db_path}")
+        logger.warning("Database already exists at %s", db_path)
         raise FileExistsError(
             f"Database exists at {db_path}. Use force=True to overwrite."
         )
@@ -37,7 +37,7 @@ def initialize_database(database_path: str, force: bool = False) -> None:
     # Create database directory if needed
     db_path.parent.mkdir(parents=True, exist_ok=True)
     
-    logger.info(f"Initializing database at {db_path}")
+    logger.info("Initializing database at %s", db_path)
     
     # Create tables
     logger.info("Creating tables...")
@@ -48,11 +48,11 @@ def initialize_database(database_path: str, force: bool = False) -> None:
     # Load and insert VOC reference data
     logger.info("Loading VOC reference data...")
     voc_data = load_standard_voc_data()
-    logger.info(f"Loaded {len(voc_data)} VOC compounds")
+    logger.info("Loaded %d VOC compounds", len(voc_data))
     
     logger.info("Inserting VOC data into database...")
     inserted = sum(1 for voc in voc_data if insert(str(db_path), voc))
-    logger.info(f"Inserted {inserted}/{len(voc_data)} VOC records")
+    logger.info("Inserted %d/%d VOC records", inserted, len(voc_data))
     
     logger.info("Database initialization complete!")
 

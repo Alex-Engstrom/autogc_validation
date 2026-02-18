@@ -218,6 +218,6 @@ def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:
 
     s = ambient_df[CompoundAQSCode.C_TNMHC]
 
-    timestamps_of_daily_max = s.groupby(s.index.day).idxmax()
+    timestamps_of_daily_max = s.groupby(s.index.date).idxmax()
 
     return s.loc[timestamps_of_daily_max]

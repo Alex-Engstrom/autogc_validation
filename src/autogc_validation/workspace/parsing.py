@@ -7,10 +7,10 @@ between the letter-based encoding used in filenames and numeric
 values, and checking file modification dates.
 """
 
-import ctypes
 import logging
 import os
 import re
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Tuple
@@ -25,7 +25,13 @@ logger = logging.getLogger(__name__)
 # --- Network drive safety ---
 
 def is_network_drive(path: os.PathLike) -> bool:
-    """Check if a path resides on a network drive (Windows only)."""
+    """Check if a path resides on a network drive (Windows only).
+
+    Returns False on non-Windows platforms where drive letters do not exist.
+    """
+    if sys.platform != "win32":
+        return False
+    import ctypes
     drive = os.path.splitdrive(os.path.abspath(path))[0] + "\\"
     DRIVE_REMOTE = 4
     return ctypes.windll.kernel32.GetDriveTypeW(drive) == DRIVE_REMOTE
@@ -161,6 +167,7 @@ def list_by_sample_type(
     input_directory: os.PathLike,
     sample_type: SampleType,
     year: int,
+    output_dir: Optional[os.PathLike] = None,
 ) -> list[Path]:
     """List .dat files matching a sample type and export to CSV.
 
@@ -168,6 +175,7 @@ def list_by_sample_type(
         input_directory: Directory containing .dat files.
         sample_type: SampleType enum value to filter by.
         year: Year for date formatting.
+        output_dir: Directory for the CSV output. Defaults to input_directory.
 
     Returns:
         List of paths with filename/modification date mismatches.
@@ -175,6 +183,7 @@ def list_by_sample_type(
     rows = []
     mismatched_list = []
     input_directory = Path(input_directory)
+    output_dir = Path(output_dir) if output_dir is not None else input_directory
 
     for file in input_directory.iterdir():
         result = parse_dat_file(file)
@@ -196,5 +205,7 @@ def list_by_sample_type(
             })
 
     df = pd.DataFrame(rows)
-    df.to_csv(f"{sample_type.value}.csv", header=True, index=False)
+    csv_path = output_dir / f"{sample_type.value}.csv"
+    df.to_csv(csv_path, header=True, index=False)
+    logger.info("Wrote %d rows to %s", len(df), csv_path)
     return mismatched_list

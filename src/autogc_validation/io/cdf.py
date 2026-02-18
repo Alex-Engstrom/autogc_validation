@@ -57,50 +57,34 @@ class Chromatogram:
         self._peakamounts = None
         self._peakwindows = None
         self._peaklocations = None
-        self._loaded = False
-        self._error = None
-
-    def load(self):
-        """Explicitly load all data from the CDF file."""
-        try:
-            self._datetime = self._get_datetime()
-            self._chromatogram = self._generate_chrom()
-            self._peakamounts = self._generate_class_attributes('peakamounts')
-            self._peakwindows = self._generate_class_attributes('peakwindows')
-            self._peaklocations = self._generate_class_attributes('peaklocations')
-            self._loaded = True
-            self._error = None
-        except Exception as e:
-            self._error = str(e)
-            raise
 
     @property
     def datetime(self):
-        if not self._loaded and self._datetime is None:
+        if self._datetime is None:
             self._datetime = self._get_datetime()
         return self._datetime
 
     @property
     def chromatogram(self):
-        if not self._loaded and self._chromatogram is None:
+        if self._chromatogram is None:
             self._chromatogram = self._generate_chrom()
         return self._chromatogram
 
     @property
     def peakamounts(self):
-        if not self._loaded and self._peakamounts is None:
+        if self._peakamounts is None:
             self._peakamounts = self._generate_class_attributes('peakamounts')
         return self._peakamounts
 
     @property
     def peakwindows(self):
-        if not self._loaded and self._peakwindows is None:
+        if self._peakwindows is None:
             self._peakwindows = self._generate_class_attributes('peakwindows')
         return self._peakwindows
 
     @property
     def peaklocations(self):
-        if not self._loaded and self._peaklocations is None:
+        if self._peaklocations is None:
             self._peaklocations = self._generate_class_attributes('peaklocations')
         return self._peaklocations
 
