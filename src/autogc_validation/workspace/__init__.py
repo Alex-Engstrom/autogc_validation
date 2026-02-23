@@ -494,6 +494,68 @@ def _generate_notebook(
     return notebook_path
 
 
+def _generate_checklist(
+    result: WorkspaceResult,
+    site: str,
+    year: int,
+    month: int,
+) -> Path:
+    """Generate a monthly validation checklist inside the workspace.
+
+    Creates a Markdown file with checkbox sections for each week and
+    for month-level tasks.
+
+    Args:
+        result: WorkspaceResult from create_workspace (must have base_dir set).
+        site: Site name code (e.g. "RB").
+        year: Year.
+        month: Month number (1-12).
+
+    Returns:
+        Path to the created checklist file.
+    """
+    yyyymm = f"{year}{month:02d}"
+
+    content = f"""# {site} {yyyymm} Validation Checklist
+
+## Monthly
+- [ ] Import and process data files
+- [ ] Load dataset and verify sample counts
+- [ ] Query MDLs and canister concentrations
+- [ ] Run blank QC checks
+- [ ] Run recovery checks (CVS, LCS, RTS)
+- [ ] Run ambient screening (ratios, overrange, TNMHC)
+- [ ] Generate MDVR qualifiers
+- [ ] Submit AQS files
+- [ ] File MDVR
+
+## Week 1
+- [ ] Review data completeness
+- [ ] Check for missing or corrupted files
+- [ ] Notes:
+
+## Week 2
+- [ ] Review data completeness
+- [ ] Check for missing or corrupted files
+- [ ] Notes:
+
+## Week 3
+- [ ] Review data completeness
+- [ ] Check for missing or corrupted files
+- [ ] Notes:
+
+## Week 4
+- [ ] Review data completeness
+- [ ] Check for missing or corrupted files
+- [ ] Notes:
+"""
+
+    checklist_path = result.base_dir / f"{site}{yyyymm}_checklist.md"
+    checklist_path.write_text(content)
+    logger.info("Checklist created: %s", checklist_path)
+    return checklist_path
+
+
 def start_month(
     sites: list[str],
     project_dir: Union[str, Path],
@@ -535,9 +597,10 @@ def start_month(
         # Create workspace folder structure
         result = create_workspace(validation_dir, site, year, month)
 
-        # Generate notebook
+        # Generate notebook and checklist
         if result.base_dir is not None:
             _generate_notebook(result, site, year, month)
+            _generate_checklist(result, site, year, month)
 
         results[site] = result
         logger.info("Site %s setup complete", site)
