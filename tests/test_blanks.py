@@ -67,6 +67,16 @@ class TestCompoundsAboveMdl:
         assert result.iloc[0]["compounds_above_mdl"] == ["__NONE__"]
 
 
+    def test_empty_dataframe_returns_empty(self, make_dataset_df, sample_mdls):
+        """Empty DataFrame (no blank rows) → empty result."""
+        # Build a valid DF with ambient rows only — no blanks to process
+        df = make_dataset_df(sample_type="s", n_rows=1)
+        # Remove all rows to get an empty DF with correct schema
+        df = df.iloc[0:0]
+        result = compounds_above_mdl(df, sample_mdls)
+        assert len(result) == 0
+
+
 class TestCompoundsAboveMdlWide:
     def test_wide_format_01_matrix(self, make_dataset_df, sample_mdls):
         """Wide format produces 0/1 matrix."""

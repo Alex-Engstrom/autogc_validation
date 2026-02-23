@@ -72,6 +72,21 @@ class TestSumTotals:
         assert tnmhc_row["peak_amount"].iloc[0] == 15.0
 
 
+    def test_mismatched_front_back(self, dataset_instance):
+        """When front and back have different compounds, only shared ones are summed."""
+        front = pd.DataFrame({
+            "peak_name": [int(CompoundAQSCode.C_TNMHC)],
+            "peak_amount": [10.0],
+        })
+        back = pd.DataFrame({
+            "peak_name": [int(CompoundAQSCode.C_TNMTC)],
+            "peak_amount": [8.0],
+        })
+        result = dataset_instance._sum_totals(front, back)
+        # No shared peak_name → empty result
+        assert len(result) == 0
+
+
 class TestValidatePeakDf:
     def test_raises_on_missing_columns(self, dataset_instance):
         df = pd.DataFrame({"wrong_col": [1, 2]})

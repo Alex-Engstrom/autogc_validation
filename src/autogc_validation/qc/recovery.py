@@ -59,6 +59,13 @@ def check_qc_recovery(
 
     expected = to_aqs_indexed_series(canister_conc) * blend_ratio
 
+    skipped = set(compound_columns) - set(expected.index)
+    if skipped:
+        logger.warning(
+            "Compounds in data but missing from canister concentrations: %s",
+            skipped,
+        )
+
     results = []
     for timestamp, row in qc_df.iterrows():
         failing = [
@@ -77,7 +84,21 @@ def check_qc_recovery(
             "failing_qc": failing,
         })
 
-    return pd.DataFrame(results).set_index("date_time")
+    if not results:
+        logger.info("Recovery check complete: 0 of 0 samples had failures")
+        return pd.DataFrame(columns=["failing_qc"])
+
+    result_df = pd.DataFrame(results).set_index("date_time")
+
+    n_failures = sum(
+        1 for r in results if r["failing_qc"] != ["__NONE__"]
+    )
+    logger.info(
+        "Recovery check complete: %d of %d samples had failures",
+        n_failures, len(results),
+    )
+
+    return result_df
 
 
 def check_qc_recovery_wide(

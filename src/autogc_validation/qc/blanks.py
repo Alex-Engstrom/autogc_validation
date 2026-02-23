@@ -39,6 +39,10 @@ def compounds_above_mdl(
 
     mdl_series = to_aqs_indexed_series(mdls)
 
+    skipped = set(compound_columns) - set(mdl_series.index)
+    if skipped:
+        logger.warning("Compounds in data but missing from MDLs: %s", skipped)
+
     results = []
     for timestamp, row in blank_df.iterrows():
         above = [
@@ -56,7 +60,21 @@ def compounds_above_mdl(
             "compounds_above_mdl": above,
         })
 
-    return pd.DataFrame(results).set_index("date_time")
+    if not results:
+        logger.info("Blank check complete: 0 of 0 samples had compounds above MDL")
+        return pd.DataFrame(columns=["filename", "compounds_above_mdl"])
+
+    result_df = pd.DataFrame(results).set_index("date_time")
+
+    n_above = sum(
+        1 for r in results if r["compounds_above_mdl"] != ["__NONE__"]
+    )
+    logger.info(
+        "Blank check complete: %d of %d samples had compounds above MDL",
+        n_above, len(results),
+    )
+
+    return result_df
 
 
 def compounds_above_mdl_wide(

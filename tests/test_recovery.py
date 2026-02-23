@@ -89,6 +89,14 @@ class TestCheckQcRecovery:
         assert int(CompoundAQSCode.C_ETHANE) not in failing
 
 
+    def test_empty_dataframe_returns_empty(self, make_dataset_df, sample_canister_conc):
+        """Empty DataFrame (no QC rows) → empty result."""
+        df = make_dataset_df(sample_type="s", n_rows=1)
+        df = df.iloc[0:0]
+        result = check_qc_recovery(df, "c", sample_canister_conc, 1.0)
+        assert len(result) == 0
+
+
 class TestCheckQcRecoveryWide:
     def test_wide_format_matrix(self, make_dataset_df, sample_canister_conc):
         """Wide format produces correct 0/1 matrix."""

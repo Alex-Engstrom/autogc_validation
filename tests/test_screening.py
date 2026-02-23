@@ -52,6 +52,17 @@ class TestCheckOverrangeValues:
         assert len(result) == 0
 
 
+    def test_empty_dataframe_returns_empty(self):
+        """Empty DataFrame (no ambient rows) → empty result."""
+        all_codes = list(CompoundAQSCode)
+        df = pd.DataFrame(
+            columns=["sample_type", "filename"] + [int(c) for c in all_codes]
+        )
+        df.index.name = "date_time"
+        result = check_overrange_values(df, upper_cal_point=30.0)
+        assert len(result) == 0
+
+
 class TestCheckDailyMaxTnmhc:
     def test_returns_correct_daily_max(self):
         tnmhc = int(CompoundAQSCode.C_TNMHC)
@@ -99,6 +110,17 @@ class TestCheckRatios:
         df = _build_full_ambient_df(overrides)
         result = check_ratios(df, mdls)
         assert "benzene_gt_toluene" not in result.get("screen_reason", pd.Series()).values
+
+    def test_empty_dataframe_returns_empty(self):
+        """Empty DataFrame (no ambient rows) → empty result."""
+        all_codes = list(CompoundAQSCode)
+        df = pd.DataFrame(
+            columns=["sample_type", "filename"] + [int(c) for c in all_codes]
+        )
+        df.index.name = "date_time"
+        result = check_ratios(df, self._full_mdls())
+        assert len(result) == 0
+        assert "screen_reason" in result.columns
 
     def test_empty_result_when_no_conditions_met(self):
         """Empty DataFrame returned when no conditions are met."""

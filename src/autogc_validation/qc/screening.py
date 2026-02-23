@@ -46,6 +46,11 @@ def check_ratios(
 
     ambient_df = data[data["sample_type"] == SampleType.AMBIENT].sort_index().copy()
 
+    compound_cols_for_skip = [c for c in data.columns if isinstance(c, int)]
+    skipped = set(compound_cols_for_skip) - set(mdl_series.index)
+    if skipped:
+        logger.warning("Compounds in data but missing from MDLs: %s", skipped)
+
     compound_cols = [c for c in ambient_df.columns if isinstance(c, int)]
     ambient_df[compound_cols] = ambient_df[compound_cols].apply(
         pd.to_numeric, errors="coerce"
@@ -126,10 +131,19 @@ def check_ratios(
         flagged.append(subset)
 
     if not flagged:
+        logger.info(
+            "Ratio screening: 0 flagged conditions across %d samples",
+            len(ambient_df),
+        )
         return pd.DataFrame(columns=["screen_reason", "compounds"])
 
     ratios_check = pd.concat(flagged, ignore_index=False)
-    return ratios_check[["screen_reason", "compounds"]].copy()
+    result = ratios_check[["screen_reason", "compounds"]].copy()
+    logger.info(
+        "Ratio screening: %d flagged conditions across %d samples",
+        len(result), len(ambient_df),
+    )
+    return result
 
 
 def check_overrange_values(
@@ -142,7 +156,7 @@ def check_overrange_values(
     Args:
         data: Dataset.data DataFrame.
         upper_cal_point: Upper calibration concentration (ppbC).
-        exclude_compounds: Compound names to exclude (default: TNMTC, TNMHC).
+        exclude_compounds: AQS codes to exclude. Defaults to TNMTC and TNMHC.
 
     Returns:
         DataFrame with columns: compound (AQS code), value, compound_name.
@@ -178,6 +192,11 @@ def check_overrange_values(
     exceedances = long_df[mask].copy()
 
     exceedances["compound_name"] = exceedances["compound"].map(aqs_to_name)
+
+    logger.info(
+        "Overrange screening: %d exceedances across %d samples",
+        len(exceedances), len(ambient_df),
+    )
 
     return exceedances
 

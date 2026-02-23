@@ -185,6 +185,8 @@ def list_by_sample_type(
     input_directory = Path(input_directory)
     output_dir = Path(output_dir) if output_dir is not None else input_directory
 
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     for file in input_directory.iterdir():
         result = parse_dat_file(file)
         if result is None:
