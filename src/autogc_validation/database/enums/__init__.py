@@ -93,6 +93,24 @@ def get_codes_by_category(category: VOCCategory) -> list[int]:
     return [v["aqs_code"] for v in _VOC_DATA if v["category"] == category.value]
 
 
+def get_carbon_count(code: int) -> int:
+    """Return the carbon count for a given AQS code.
+
+    Args:
+        code: An AQS code integer.
+
+    Returns:
+        Carbon count as an integer.
+
+    Raises:
+        ValueError: If the code is not a known target compound.
+    """
+    for v in _VOC_DATA:
+        if v["aqs_code"] == code:
+            return v["carbon_count"]
+    raise ValueError(f"AQS code {code} is not a known target compound")
+
+
 __all__ = [
     "CanisterType",
     "ColumnType",
@@ -113,4 +131,5 @@ __all__ = [
     "name_to_aqs",
     "get_column_type",
     "get_codes_by_category",
+    "get_carbon_count",
 ]
