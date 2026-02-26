@@ -145,7 +145,6 @@ class SiteCanister(BaseModel):
     site_id: int
     primary_canister_id: str
     dilution_ratio: float
-    blend_date: str
     date_on: str
     date_off: Optional[str] = None
 
@@ -157,7 +156,6 @@ class SiteCanister(BaseModel):
                         site_id INTEGER NOT NULL,
                         primary_canister_id TEXT NOT NULL,
                         dilution_ratio REAL,
-                        blend_date TEXT,
                         date_on TEXT,
                         date_off TEXT,
                         FOREIGN KEY (site_id) REFERENCES sites(site_id),
@@ -193,7 +191,7 @@ class SiteCanister(BaseModel):
             raise ValueError(f"dilution_ratio must be positive, got {v}")
         return v
 
-    @field_validator('blend_date', 'date_on')
+    @field_validator('date_on')
     @classmethod
     def validate_dates(cls, v: str) -> str:
         return BaseModel.validate_date_format(v)

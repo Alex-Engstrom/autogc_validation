@@ -356,7 +356,9 @@ def _generate_notebook(
             f'database = r""  # TODO: path to SQLite database\n'
             f'date = "{date_str}"'
         ),
-
+        # --- Database Update ---
+        nbformat.v4.new_markdown_cell("## Database update\n\n"),
+        nbformat.v4.new_code_cell(),
         # --- File processing ---
         nbformat.v4.new_markdown_cell(
             "## 1. Copy and process files\n\n"

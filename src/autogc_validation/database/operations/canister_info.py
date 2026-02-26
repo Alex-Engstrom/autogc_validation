@@ -7,9 +7,12 @@ canister type, and date.
 """
 
 import logging
+import pandas as pd
 from typing import Dict, Optional
 
 from autogc_validation.database.conn import connection
+from autogc_validation.database.enums import ConcentrationUnit
+from autogc_validation.conversions import convert 
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +22,8 @@ def get_active_canister_concentrations(
     site_id: int,
     canister_type: str,
     date: str,
-) -> Dict[int, float]:
+    output_unit: ConcentrationUnit
+) -> pd.DataFrame:
     """Get diluted canister concentrations active for a site on a specific date.
 
     Joins site_canisters to primary_canister_concentration and applies
@@ -35,7 +39,7 @@ def get_active_canister_concentrations(
         Dict mapping AQS code (int) to diluted concentration (float).
     """
     sql = """
-        SELECT pc.aqs_code, pc.concentration * sc.dilution_ratio AS concentration
+        SELECT pc.aqs_code, pc.concentration * sc.dilution_ratio AS concentration, pc.units
         FROM site_canisters sc
         JOIN primary_canisters p
           ON sc.primary_canister_id = p.primary_canister_id
@@ -49,4 +53,13 @@ def get_active_canister_concentrations(
 
     with connection(database) as conn:
         cursor = conn.execute(sql, (site_id, canister_type, date, date))
-        return {row["aqs_code"]: row["concentration"] for row in cursor.fetchall()}
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(rows, columns = columns)
+        df["concentration"] = df.apply(lambda row: convert(value = row["concentration"], 
+                                       aqs_code = row["aqs_code"],
+                                       from_unit = row["units"],
+                                        to_unit = output_unit), axis = 1)
+        df["units"] = output_unit
+
+    return df
