@@ -4,5 +4,5 @@ notebooks/*.ipynb
 __pycache__/
 *.py[cod]
 *.egg-info/
-validation/
-data/
+!validation/.gitkeep
+!data/.gitkeep
