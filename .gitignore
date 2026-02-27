@@ -8,3 +8,4 @@ __pycache__/
 !validation/.gitkeep
 !data/.gitkeep
 !data/autogc.sql
+!ezchrom/.gitkeep

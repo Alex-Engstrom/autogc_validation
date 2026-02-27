@@ -9,7 +9,7 @@ from typing import Optional
 from pydantic.dataclasses import dataclass
 from pydantic import field_validator, model_validator
 from .base import BaseModel
-from autogc_validation.database.enums import CompoundAQSCode
+from autogc_validation.database.enums import CompoundAQSCode, ConcentrationUnit
 
 @dataclass
 class MDL(BaseModel):
@@ -19,13 +19,15 @@ class MDL(BaseModel):
     Attributes:
         site_id: Site identifier
         aqs_code: Compound AQS code
-        concentration: MDL concentration in ppbv
+        concentration: MDL concentration value
+        units: Concentration unit for the MDL value
         date_on: Date this MDL became effective
         date_off: Date this MDL was superseded (None if still active)
     """
     site_id: int
     aqs_code: CompoundAQSCode
     concentration: float
+    units: ConcentrationUnit
     date_on: str
     date_off: Optional[str] = None
 
@@ -36,6 +38,7 @@ class MDL(BaseModel):
                         site_id INTEGER,
                         aqs_code INTEGER,
                         concentration REAL,
+                        units TEXT NOT NULL,
                         date_on TEXT,
                         date_off TEXT,
                         PRIMARY KEY (site_id, aqs_code, date_on),

@@ -38,8 +38,8 @@ def get_active_canister_concentrations(
         output_unit: Concentration unit for the returned values.
 
     Returns:
-        DataFrame with columns: aqs_code (int), concentration (float),
-        units (ConcentrationUnit). One row per compound.
+        Single-row DataFrame with AQS codes as columns and diluted
+        concentrations as values. Units stored in df.attrs['units'].
     """
     sql = """
         SELECT pc.aqs_code, pc.concentration * sc.dilution_ratio AS concentration, pc.units
@@ -58,11 +58,18 @@ def get_active_canister_concentrations(
         cursor = conn.execute(sql, (site_id, canister_type, date, date))
         rows = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
-        df = pd.DataFrame(rows, columns = columns)
-        df["concentration"] = df.apply(lambda row: convert(value = row["concentration"], 
-                                       aqs_code = row["aqs_code"],
-                                       from_unit = row["units"],
-                                        to_unit = output_unit), axis = 1)
-        df["units"] = output_unit
+        df = pd.DataFrame(rows, columns=columns)
 
-    return df
+    df["concentration"] = df.apply(
+        lambda row: convert(
+            value=row["concentration"],
+            aqs_code=row["aqs_code"],
+            from_unit=row["units"],
+            to_unit=output_unit,
+        ),
+        axis=1,
+    )
+
+    wide = pd.DataFrame([df.set_index("aqs_code")["concentration"].to_dict()])
+    wide.attrs["units"] = output_unit
+    return wide
