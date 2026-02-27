@@ -11,6 +11,7 @@ extracting and organizing data files, and a two-phase orchestrator:
      placed in ``temp/``.
 """
 
+import calendar
 import json
 import logging
 import re
@@ -378,11 +379,19 @@ def _generate_notebook(
         # --- Configuration ---
         nbformat.v4.new_markdown_cell("## Configuration"),
         nbformat.v4.new_code_cell(
+            "import pandas as pd\n\n"
             f'workspace_dir = Path(r"{workspace_dir}")\n'
             f'data_dir = Path(r"{result.data_dir}")\n'
-            f'site_id = {site_code}\n'  
-            f'database = Path(r"{_DBPATH}")\n'  
-            f'date = "{date_str}"'
+            f'site_id = {site_code}\n'
+            f'database = Path(r"{_DBPATH}")\n'
+            f'date = "{date_str}"\n\n'
+            f'# Week date ranges (boundaries: 1-7, 8-14, 15-21, 22-end)\n'
+            f'weeks = {{\n'
+            f'    1: (pd.Timestamp({year}, {month},  1), pd.Timestamp({year}, {month},  7, 23, 59, 59)),\n'
+            f'    2: (pd.Timestamp({year}, {month},  8), pd.Timestamp({year}, {month}, 14, 23, 59, 59)),\n'
+            f'    3: (pd.Timestamp({year}, {month}, 15), pd.Timestamp({year}, {month}, 21, 23, 59, 59)),\n'
+            f'    4: (pd.Timestamp({year}, {month}, 22), pd.Timestamp({year}, {month}, {calendar.monthrange(year, month)[1]}, 23, 59, 59)),\n'
+            f'}}'
         ),
         # --- Database Update ---
         nbformat.v4.new_markdown_cell("## Database update\n\n"),
@@ -412,7 +421,7 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("## 2. Load dataset"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.dataset import Dataset\n\n"
-            'ds = Dataset(workspace_dir / "FINAL")\n'
+            'ds = Dataset(data_dir)\n'
             'print(f"Loaded {len(ds.samples)} samples")\n'
             "ds.data.head()"
         ),
