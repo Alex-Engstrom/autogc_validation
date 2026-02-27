@@ -35,7 +35,9 @@ logger = logging.getLogger(__name__)
 
 _STATE_FILENAME = ".workspace_state.json"
 
-_DBPATH = "D:/autogc_validation/data/autogc.db"
+# Resolve database path relative to the project root (3 levels up from this file:
+# workspace/ -> autogc_validation/ -> src/ -> project root)
+_DBPATH = str(Path(__file__).parents[3] / "data" / "autogc.db")
 
 
 def _serialize_summary(summary: Optional[dict]) -> Optional[dict]:
