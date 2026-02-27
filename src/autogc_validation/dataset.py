@@ -171,7 +171,9 @@ class Dataset:
         """Return a cached per-type DataFrame, computing it on first access."""
         cache = self._typed_rt if use_rt else self._typed_data
         if sample_type not in cache:
-            cache[sample_type] = self.filter_by_type(sample_type, use_rt=use_rt)
+            df = self.filter_by_type(sample_type, use_rt=use_rt)
+            df.attrs["sample_type"] = sample_type
+            cache[sample_type] = df
         return cache[sample_type]
 
     def _get_chem_cols(self) -> List[int]:
