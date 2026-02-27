@@ -28,6 +28,7 @@ from autogc_validation.workspace.files import (
     move_tx1_files,
     move_files_by_week,
     rename_dattxt_files_to_txt,
+    convert_folder_contents_to_pdf,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ class WorkspaceResult:
     base_dir: Optional[Path] = None
     data_dir: Optional[Path] = None
     unzipped: Optional[list[Path]] = None
+    documents: Optional[list[Path]] = None
     dat_summary: Optional[dict] = None
     tx1_summary: Optional[dict] = None
     week_counts: Optional[dict[str, int]] = None
@@ -91,6 +93,7 @@ class WorkspaceResult:
             "base_dir": str(self.base_dir),
             "data_dir": str(self.data_dir) if self.data_dir else None,
             "unzipped": [str(p) for p in self.unzipped] if self.unzipped else None,
+            "documents": [str(p) for p in self.documents] if self.documents else None,
             "dat_summary": _serialize_summary(self.dat_summary),
             "tx1_summary": _serialize_summary(self.tx1_summary),
             "week_counts": self.week_counts,
@@ -129,6 +132,7 @@ class WorkspaceResult:
             base_dir=Path(data["base_dir"]),
             data_dir=Path(data["data_dir"]) if data.get("data_dir") else None,
             unzipped=[Path(p) for p in data["unzipped"]] if data.get("unzipped") else None,
+            documents=[Path(p) for p in data["documents"]] if data.get("documents") else None,
             dat_summary=_deserialize_summary(data.get("dat_summary")),
             tx1_summary=_deserialize_summary(data.get("tx1_summary")),
             week_counts=data.get("week_counts"),
@@ -298,10 +302,24 @@ def process_workspace(
             logger.warning("Step 5: Skipped (no dat folder available)")
     else:
         logger.info("Step 5: Skipped (already completed)")
-    # Step 6: Copy documents and convert to pdf
-    
+
+    # Step 6: Convert documents in temp/ to PDF
+    if "convert_documents" not in result.steps_completed or force:
+        logger.info("Step 6: Converting documents in temp/ to PDF")
+        try:
+            documents_dir = base_dir / "MDVR"
+            converted = convert_folder_contents_to_pdf(temp_dir, documents_dir)
+            result.documents = converted
+            _record_step("convert_documents")
+            logger.info("Step 6 complete: %d document(s) converted", len(converted))
+        except Exception as e:
+            result.errors.append(f"convert_documents: {e}")
+            logger.exception("Step 6 failed")
+    else:
+        logger.info("Step 6: Skipped (already completed)")
+
     # Final summary
-    total_steps = 4  # steps 2, 3, 4, 5
+    total_steps = 5  # steps 2, 3, 4, 5, 6
     completed_processing = len([
         s for s in result.steps_completed if s != "create_folders"
     ])
