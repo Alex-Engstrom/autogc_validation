@@ -14,6 +14,7 @@ extracting and organizing data files, and a two-phase orchestrator:
 import json
 import logging
 import re
+import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -399,10 +400,10 @@ def _generate_notebook(
             'print(f"Errors: {result.errors}")\n'
             "if result.dat_summary:\n"
             "    print(f\"DAT files: {result.dat_summary['found'][0]} found, "
-            "{result.dat_summary['copied'][0]} copied\")\n"
+            "{result.dat_summary['copied'][0]} copied, {dat_summary['duplicates'][0]} duplicated\")\n"
             "if result.tx1_summary:\n"
             "    print(f\"TX1 files: {result.tx1_summary['found'][0]} found, "
-            "{result.tx1_summary['copied'][0]} copied\")\n"
+            "{result.tx1_summary['copied'][0]} copied, {result.tx1_summary['duplicates'][0]} duplicated\")\n"
             "if result.week_counts:\n"
             '    print(f"Week counts: {result.week_counts}")'
         ),
@@ -586,6 +587,31 @@ def _generate_checklist(
     return checklist_path
 
 
+def _copy_mdvr_template(
+    result: WorkspaceResult,
+    site: str,
+    year: int,
+    month: int,
+    project_dir: Path,
+) -> None:
+    """Copy the site MDVR template into the workspace MDVR folder.
+
+    Looks for ``templates/mdvr/{site}_MDVR_template.xlsx`` in the project
+    root. Logs a warning if the template does not exist rather than raising.
+    """
+    yyyymm = f"{year}{month:02d}"
+    template_path = project_dir / "templates" / "mdvr" / f"{site}_MDVR_template.xlsx"
+
+    if not template_path.exists():
+        logger.warning("MDVR template not found for site %s: %s", site, template_path)
+        return
+
+    dest = result.base_dir / "MDVR" / f"{site}{yyyymm}_MDVR.xlsx"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(template_path, dest)
+    logger.info("Copied MDVR template to %s", dest)
+
+
 def start_month(
     sites: list[str],
     project_dir: Union[str, Path],
@@ -599,6 +625,7 @@ def start_month(
       - Creates ``project_dir/data/{site}/{YYYYMM}/``
       - Calls :func:`create_workspace` to build the folder structure
       - Generates a pre-filled Jupyter notebook in the workspace
+      - Copies ``templates/mdvr/{site}_MDVR_template.xlsx`` to the workspace
 
     Args:
         sites: List of site name codes (e.g. ``["RB", "HW", "LP"]``).
@@ -630,10 +657,11 @@ def start_month(
         if result.base_dir is not None:
             result.save()
 
-        # Generate notebook and checklist
+        # Generate notebook, checklist, and copy MDVR template
         if result.base_dir is not None:
             _generate_notebook(result, site, year, month)
             _generate_checklist(result, site, year, month)
+            _copy_mdvr_template(result, site, year, month, project_dir)
 
         results[site] = result
         logger.info("Site %s setup complete", site)
