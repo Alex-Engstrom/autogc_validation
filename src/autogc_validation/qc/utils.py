@@ -23,18 +23,19 @@ def _safe_name_to_aqs(key):
         ) from None
 
 
-def to_aqs_indexed_series(values: Dict[Union[str, int], float]) -> pd.Series:
-    """Convert a dict keyed by compound name or AQS code to an AQS-indexed Series.
+def to_aqs_indexed_series(
+    values: Union[Dict[Union[str, int], float], pd.DataFrame],
+) -> pd.Series:
+    """Convert compound concentrations to an AQS-indexed Series.
 
-    QC functions receive MDL or canister concentration dicts that may be
-    keyed by human-readable compound names (str) or AQS codes (int).
-    This normalizes them to integer AQS code indices so they can be
-    aligned with Dataset.data columns.
+    Accepts either a dict (keyed by compound name or AQS code) or a
+    DataFrame with 'aqs_code' and 'concentration' columns (as returned
+    by get_active_canister_concentrations).
 
     Args:
-        values: Dict mapping compound identifier to a numeric value.
-            Keys can be compound name strings (e.g., "Benzene") or
-            AQS code integers (e.g., 45201). Mixed keys are supported.
+        values: Dict mapping compound identifier to a numeric value, or
+            a DataFrame with 'aqs_code' (int) and 'concentration' (float)
+            columns.
 
     Returns:
         Series with integer AQS code index, NaN values dropped.
@@ -42,6 +43,10 @@ def to_aqs_indexed_series(values: Dict[Union[str, int], float]) -> pd.Series:
     Raises:
         ValueError: If a string key does not match any known compound name.
     """
+    if isinstance(values, pd.DataFrame):
+        series = values.set_index("aqs_code")["concentration"]
+        return series.dropna()
+
     series = pd.Series(values)
     if not all(isinstance(k, int) for k in series.index):
         series.index = series.index.map(_safe_name_to_aqs)

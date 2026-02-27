@@ -14,6 +14,7 @@ import pandas as pd
 from autogc_validation.database.enums import (
     CompoundAQSCode,
     SampleType,
+    TOTAL_CODES,
     VOCCategory,
     aqs_to_name,
     name_to_aqs,
@@ -111,7 +112,10 @@ def check_ratios(
          ),
          "not_isopentane_gt_npentane_gt_cyclopentane", [C.C_ISO_PENTANE, C.C_N_PENTANE, C.C_CYCLOPENTANE]),
         ([],
-         lambda: a[alkenes].sum(axis=1) > a[alkanes].sum(axis=1),
+         lambda: (
+             a[[c for c in alkenes if c in data_cols]].sum(axis=1)
+             > a[[c for c in alkanes if c in data_cols]].sum(axis=1)
+         ),
          "alkenes_gt_alkanes", []),
     ]
 
@@ -149,27 +153,32 @@ def check_ratios(
 def check_overrange_values(
     data: pd.DataFrame,
     upper_cal_point: float = 30.0,
-    exclude_compounds: Set[str] = None,
+    exclude_compounds: Set[Union[str, int]] = None,
 ) -> pd.DataFrame:
     """Flag ambient samples where compounds exceed the upper calibration limit.
 
     Args:
         data: Dataset.data DataFrame.
         upper_cal_point: Upper calibration concentration (ppbC).
-        exclude_compounds: AQS codes to exclude. Defaults to TNMTC and TNMHC.
+        exclude_compounds: Compound identifiers to exclude — either AQS code
+            integers or compound name strings. Defaults to TNMHC and TNMTC
+            total codes.
 
     Returns:
         DataFrame with columns: compound (AQS code), value, compound_name.
     """
     if exclude_compounds is None:
-        exclude_compounds = {"TNMTC", "TNMHC"}
-
-    exclude_codes = set()
-    for name in exclude_compounds:
-        try:
-            exclude_codes.add(name_to_aqs(name))
-        except (KeyError, ValueError):
-            logger.warning("Unknown compound name for exclusion: %s", name)
+        exclude_codes = set(TOTAL_CODES)
+    else:
+        exclude_codes = set()
+        for item in exclude_compounds:
+            if isinstance(item, int):
+                exclude_codes.add(item)
+            else:
+                try:
+                    exclude_codes.add(name_to_aqs(item))
+                except (KeyError, ValueError):
+                    logger.warning("Unknown compound name for exclusion: %s", item)
 
     ambient_df = data[data["sample_type"] == SampleType.AMBIENT].copy()
 

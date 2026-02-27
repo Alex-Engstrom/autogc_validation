@@ -8,7 +8,7 @@ canister type, and date.
 
 import logging
 import pandas as pd
-from typing import Dict, Optional
+from typing import Dict
 
 from autogc_validation.database.conn import connection
 from autogc_validation.database.enums import ConcentrationUnit
@@ -22,21 +22,24 @@ def get_active_canister_concentrations(
     site_id: int,
     canister_type: str,
     date: str,
-    output_unit: ConcentrationUnit
+    output_unit: ConcentrationUnit,
 ) -> pd.DataFrame:
     """Get diluted canister concentrations active for a site on a specific date.
 
     Joins site_canisters to primary_canister_concentration and applies
-    the dilution ratio to get effective concentrations.
+    the dilution ratio to get effective concentrations, then converts to
+    the requested unit.
 
     Args:
         database: Path to SQLite database.
         site_id: Site identifier.
         canister_type: Canister type ('CVS', 'RTS', or 'LCS').
         date: Date string (YYYY-MM-DD HH:MM or YYYY-MM-DD HH:MM:SS).
+        output_unit: Concentration unit for the returned values.
 
     Returns:
-        Dict mapping AQS code (int) to diluted concentration (float).
+        DataFrame with columns: aqs_code (int), concentration (float),
+        units (ConcentrationUnit). One row per compound.
     """
     sql = """
         SELECT pc.aqs_code, pc.concentration * sc.dilution_ratio AS concentration, pc.units

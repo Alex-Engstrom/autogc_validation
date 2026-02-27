@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import nbformat
-
+from autogc_validation.database.enums import Sites
 from autogc_validation.workspace.folders import generate_monthly_folder_structure
 from autogc_validation.workspace.files import (
     unzip_files,
@@ -33,6 +33,8 @@ from autogc_validation.workspace.files import (
 logger = logging.getLogger(__name__)
 
 _STATE_FILENAME = ".workspace_state.json"
+
+_DBPATH = "D:/autogc_validation/data/autogc.db"
 
 
 def _serialize_summary(summary: Optional[dict]) -> Optional[dict]:
@@ -177,7 +179,7 @@ def create_workspace(
 
 
 def process_workspace(
-    workspace_dir: Union[str, Path],
+    workspace_dir: Union[str, Path], force = False
 ) -> WorkspaceResult:
     """Phase 2: Unzip, move, and sort data files placed in ``temp/``.
 
@@ -209,10 +211,10 @@ def process_workspace(
     final_dir = base_dir / "FINAL"
 
     # Step 2: Unzip files in temp/
-    if "unzip_files" not in result.steps_completed:
+    if "unzip_files" not in result.steps_completed or force:
         logger.info("Step 2: Unzipping files in temp/")
         try:
-            extracted = unzip_files(temp_dir, temp_dir, create_subfolders=False)
+            extracted = unzip_files(temp_dir, temp_dir, create_subfolders=True)
             result.unzipped = extracted
             _record_step("unzip_files")
             logger.info("Step 2 complete: %d zip(s) extracted", len(extracted))
@@ -224,7 +226,7 @@ def process_workspace(
 
     # Step 3: Move .dat files
     dat_folder = None
-    if "move_dat_files" not in result.steps_completed:
+    if "move_dat_files" not in result.steps_completed or force:
         logger.info("Step 3: Moving .dat files to Original/")
         try:
             dat_folder, dat_summary = move_dat_files(temp_dir, original_dir)
@@ -247,7 +249,7 @@ def process_workspace(
             dat_folder = None
 
     # Step 4: Move .tx1 files
-    if "move_tx1_files" not in result.steps_completed:
+    if "move_tx1_files" not in result.steps_completed or force:
         logger.info("Step 4: Moving .tx1 files to Original/")
         try:
             _, tx1_summary = move_tx1_files(temp_dir, original_dir)
@@ -266,7 +268,7 @@ def process_workspace(
         logger.info("Step 4: Skipped (already completed)")
 
     # Step 5: Sort .dat files by week
-    if "sort_by_week" not in result.steps_completed:
+    if "sort_by_week" not in result.steps_completed or force:
         if dat_folder:
             logger.info("Step 5: Sorting .dat files into weekly folders")
             try:
@@ -293,7 +295,8 @@ def process_workspace(
             logger.warning("Step 5: Skipped (no dat folder available)")
     else:
         logger.info("Step 5: Skipped (already completed)")
-
+    # Step 6: Copy documents and convert to pdf
+    
     # Final summary
     total_steps = 4  # steps 2, 3, 4, 5
     completed_processing = len([
@@ -334,7 +337,7 @@ def _generate_notebook(
 
     workspace_dir = str(result.base_dir)
     date_str = f"{year}-{month:02d}-01 00:00"
-
+    site_code: int = Sites[site]
     nb = nbformat.v4.new_notebook()
     nb.cells = [
         # --- Header ---
@@ -352,8 +355,8 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("## Configuration"),
         nbformat.v4.new_code_cell(
             f'workspace_dir = Path(r"{workspace_dir}")\n'
-            f'site_id = 0  # TODO: set AQS site ID\n'
-            f'database = r""  # TODO: path to SQLite database\n'
+            f'site_id = {site_code}\n'  # TODO: set AQS site ID\n'
+            f'database = Path(r"{_DBPATH}")\n'  # TODO: path to SQLite database\n'
             f'date = "{date_str}"'
         ),
         # --- Database Update ---
@@ -393,12 +396,13 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("## 3. Query MDLs and canister concentrations"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.database.operations.mdl_info import get_active_mdls\n"
-            "from autogc_validation.database.operations.canister_info import get_active_canister_concentrations\n\n"
+            "from autogc_validation.database.operations.canister_info import get_active_canister_concentrations\n"
+            "from autogc_validation.database.enums import ConcentrationUnit\n\n"
             "mdls = get_active_mdls(database, site_id, date)\n"
             'print(f"MDLs loaded: {len(mdls)} compounds")\n\n'
-            'cvs_conc = get_active_canister_concentrations(database, site_id, "CVS", date)\n'
-            'lcs_conc = get_active_canister_concentrations(database, site_id, "LCS", date)\n'
-            'rts_conc = get_active_canister_concentrations(database, site_id, "RTS", date)\n'
+            'cvs_conc = get_active_canister_concentrations(database, site_id, "CVS", date, ConcentrationUnit.PPBC)\n'
+            'lcs_conc = get_active_canister_concentrations(database, site_id, "LCS", date, ConcentrationUnit.PPBC)\n'
+            'rts_conc = get_active_canister_concentrations(database, site_id, "RTS", date, ConcentrationUnit.PPBC)\n'
             'print(f"Canister concentrations loaded — CVS: {len(cvs_conc)}, LCS: {len(lcs_conc)}, RTS: {len(rts_conc)}")'
         ),
 

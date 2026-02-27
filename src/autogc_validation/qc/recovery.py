@@ -26,7 +26,7 @@ RECOVERY_UPPER_BOUND = 1.30
 def check_qc_recovery(
     data: pd.DataFrame,
     qc_type: str,
-    canister_conc: Dict[Union[str, int], float],
+    canister_conc: Union[Dict[Union[str, int], float], pd.DataFrame],
     blend_ratio: float,
 ) -> pd.DataFrame:
     """Check QC sample recovery against expected concentrations.
@@ -104,7 +104,7 @@ def check_qc_recovery(
 def check_qc_recovery_wide(
     data: pd.DataFrame,
     qc_type: str,
-    canister_conc: Dict[Union[str, int], float],
+    canister_conc: Union[Dict[Union[str, int], float], pd.DataFrame],
     blend_ratio: float,
 ) -> pd.DataFrame:
     """Wide-format QC recovery failure table (one column per compound, values 0/1).

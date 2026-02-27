@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-from autogc_validation.workspace.parsing import assert_local_drive, parse_dat_file
+from autogc_validation.workspace.parsing import assert_local_drive, parse_dat_file, letter_to_number
 
 logger = logging.getLogger(__name__)
 
@@ -25,90 +25,119 @@ logger = logging.getLogger(__name__)
 # Unzip
 # ---------------------------------------------------------------------------
 
-def unzip_files(
-    source_directory: Union[str, Path],
-    destination_directory: Union[str, Path],
-    delete_zip_after_extract: bool = False,
-    create_subfolders: bool = True,
-    allow_network_drive: bool = False,
-) -> list[Path]:
-    """Unzip all .zip files from source to destination, preserving modification dates.
-
-    Args:
-        source_directory: Directory containing .zip files.
-        destination_directory: Directory for extracted contents.
-        delete_zip_after_extract: Delete zip files after successful extraction.
-        create_subfolders: Create a subfolder per zip file (named after the zip).
-        allow_network_drive: Allow operation on network drives.
-
-    Returns:
-        List of successfully extracted zip file paths.
+def unzip_files(source_directory: os.PathLike, 
+                destination_directory: os.PathLike, 
+                delete_zip_after_extract: bool =False, 
+                create_subfolders: bool=True, 
+                allow_network_drive: bool = False)->list[Path]:
     """
-    src = Path(source_directory)
-    dest = Path(destination_directory)
-
-    for path in [src, dest]:
+    Unzips all zip files in a source directory to a destination directory,
+    preserving the original modification dates.
+    
+    Parameters:
+    source_directory (str): Path to the directory containing zip files
+    destination_directory (str): Path where extracted files should be saved
+    delete_zip_after_extract (bool): Whether to delete the zip file after extraction
+    create_subfolders (bool): Whether to create subfolders for each zip file
+    
+    Returns:
+    list: List of successfully extracted zip files
+    """
+    
+    # Convert to Path objects for easier handling
+    source_directory_path = Path(source_directory)
+    destination_directory_path = Path(destination_directory)
+    
+    #Check if paths are on a network location
+    for path in [source_directory_path, destination_directory_path]:
         assert_local_drive(path, allow_network_drive)
+                
+    
+    # Check if source directory exists
+    # --- Validate source directory ---
+    if not source_directory_path.exists():
+        logger.error(f"Source directory does not exist: {source_directory}")
+        raise FileNotFoundError(f"Source directory does not exist: {source_directory}")
 
-    if not src.exists():
-        raise FileNotFoundError(f"Source directory does not exist: {src}")
-    if not src.is_dir():
-        raise NotADirectoryError(f"Source path is not a directory: {src}")
+    if not source_directory_path.is_dir():
+        logger.error(f"Source path is not a directory: {source_directory}")
+        raise NotADirectoryError(f"Source path is not a directory: {source_directory}")
 
-    dest.mkdir(parents=True, exist_ok=True)
+    # --- Validate destination directory ---
+    if not os.access(destination_directory_path, os.W_OK):
+        logger.error(f"Destination directory not writable: {destination_directory_path}")
+        raise PermissionError(f"Destination directory not writable: {destination_directory_path}")
 
-    if not os.access(dest, os.W_OK):
-        raise PermissionError(f"Destination directory not writable: {dest}")
-
-    zip_files = list(src.glob("*.zip"))
+    # Create destination directory if it doesn't exist
+    destination_directory_path.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Destination directory: {destination_directory_path}")
+    
+    # Find all zip files in source directory
+    zip_files = list(source_directory_path.glob("*.zip"))    
     if not zip_files:
-        logger.info("No zip files found in %s", src)
+        logger.info(f"No zip files found in {source_directory_path}")
         return []
-
-    logger.info("Found %d zip file(s) in %s", len(zip_files), src)
-
+    logger.info(f"Found {len(zip_files)} zip file(s) in source directory")
+    
     successfully_extracted: list[Path] = []
-
+    
     for zip_file in zip_files:
         try:
-            logger.info("Processing: %s", zip_file.name)
-
-            extract_path = (
-                dest / zip_file.stem if create_subfolders else dest
-            )
-            extract_path.mkdir(parents=True, exist_ok=True)
-
+            logger.info("\nProcessing: %s",zip_file.name)
+            
+            # Determine extraction path
+            if create_subfolders:
+                extract_folder_name = zip_file.stem
+                extract_path = destination_directory_path / extract_folder_name
+            else:
+                extract_path = destination_directory_path
+            
+            # Create extraction directory if it doesn't exist
+            extract_path.mkdir(parents=True, exist_ok = True)
+            logger.info("Extracting to: %s", extract_path)
+            
+            # Extract the zip file with date preservation
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
                 file_list = zip_ref.namelist()
-                logger.info("Found %d file(s) in zip", len(file_list))
-
+                logger.info("Found %s file(s) in zip",len(file_list))
+                
+                # Extract each file individually to preserve modification dates
                 for file_info in zip_ref.infolist():
+                    # Extract the file
                     zip_ref.extract(file_info, extract_path)
-                    extracted_path = extract_path / file_info.filename
-
+                    
+                    # Get the full path to the extracted file
+                    extracted_file_path = extract_path / file_info.filename
+                    
+                    # Preserve the original modification date
                     if not file_info.is_dir():
-                        timestamp = datetime(*file_info.date_time).timestamp()
-                        os.utime(extracted_path, (timestamp, timestamp))
-
-                logger.info("Extracted %d file(s) from %s", len(file_list), zip_file.name)
-
+                        date_time = file_info.date_time
+                        timestamp = datetime(*date_time).timestamp()
+                        os.utime(extracted_file_path, (timestamp, timestamp))
+                        
+                    logger.info("%s -(mod date preserved)",file_info.filename)
+                
+                logger.info("Successfully extracted %s file(s)",len(file_list))
+            
             successfully_extracted.append(zip_file)
-
+            
+            # Delete zip file if requested
             if delete_zip_after_extract:
                 zip_file.unlink()
-                logger.info("Deleted zip file: %s", zip_file.name)
-
+                logger.info("Deleted original zip file: %s",zip_file.name)
+                
         except zipfile.BadZipFile:
-            logger.exception("%s is not a valid zip file", zip_file.name)
+            logger.exception("Error: %s is not a valid zip file", zip_file.name)
         except PermissionError:
-            logger.exception("Permission denied processing %s", zip_file.name)
-        except Exception:
-            logger.exception("Error processing %s", zip_file.name)
-
-    logger.info(
-        "Unzip complete: %d/%d extracted successfully",
-        len(successfully_extracted), len(zip_files),
-    )
+            logger.exception("Error: Permission denied when processing %s", zip_file.name)
+        except Exception as e:
+            logger.exception("Error processing %s: %s", zip_file.name, e)
+    
+    logger.info("""\n=== Summary ===
+                Total zip files processed: %s
+                Successfully extracted: %s
+                """, len(zip_files), len(successfully_extracted))
+    
     return successfully_extracted
 
 
@@ -145,7 +174,7 @@ def move_files_by_extension(
     for path in [src, dest]:
         assert_local_drive(path, allow_network_drive)
 
-    if dest in src.parents or dest == src:
+    if src in dest.parents or dest == src:
         raise RuntimeError("Destination folder cannot be inside the source folder")
 
     output_folder = dest / dump_folder_name
@@ -259,6 +288,14 @@ def move_files_by_week(
             continue
 
         parsed, _ = result
+        month_num = letter_to_number(parsed["month"])
+        if month_num is None:
+            logger.warning("Invalid month letter '%s' in file %s", parsed["month"], file.name)
+            continue
+        if month_num + 1 != month:
+            logger.warning('file %s is not from month %s', file, month)
+            continue
+
 
         try:
             file_day = int(parsed['day'])
