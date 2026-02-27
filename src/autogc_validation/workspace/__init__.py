@@ -66,6 +66,7 @@ class WorkspaceResult:
     loaded from disk to survive kernel restarts.
     """
     base_dir: Optional[Path] = None
+    data_dir: Optional[Path] = None
     unzipped: Optional[list[Path]] = None
     dat_summary: Optional[dict] = None
     tx1_summary: Optional[dict] = None
@@ -88,6 +89,7 @@ class WorkspaceResult:
 
         state = {
             "base_dir": str(self.base_dir),
+            "data_dir": str(self.data_dir) if self.data_dir else None,
             "unzipped": [str(p) for p in self.unzipped] if self.unzipped else None,
             "dat_summary": _serialize_summary(self.dat_summary),
             "tx1_summary": _serialize_summary(self.tx1_summary),
@@ -125,6 +127,7 @@ class WorkspaceResult:
 
         result = cls(
             base_dir=Path(data["base_dir"]),
+            data_dir=Path(data["data_dir"]) if data.get("data_dir") else None,
             unzipped=[Path(p) for p in data["unzipped"]] if data.get("unzipped") else None,
             dat_summary=_deserialize_summary(data.get("dat_summary")),
             tx1_summary=_deserialize_summary(data.get("tx1_summary")),
@@ -355,6 +358,7 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("## Configuration"),
         nbformat.v4.new_code_cell(
             f'workspace_dir = Path(r"{workspace_dir}")\n'
+            f'data_dir = Path(r"{result.data_dir}")\n'
             f'site_id = {site_code}\n'  # TODO: set AQS site ID\n'
             f'database = Path(r"{_DBPATH}")\n'  # TODO: path to SQLite database\n'
             f'date = "{date_str}"'
@@ -602,6 +606,9 @@ def start_month(
 
         # Create workspace folder structure
         result = create_workspace(validation_dir, site, year, month)
+        result.data_dir = data_dir
+        if result.base_dir is not None:
+            result.save()
 
         # Generate notebook and checklist
         if result.base_dir is not None:
