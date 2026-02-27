@@ -13,6 +13,7 @@ from .sample_type import SampleType
 from .voc_category import VOCCategory
 from .compound_code import CompoundAQSCode
 from .compound_name import CompoundName
+from .sites import Sites
 
 # ---------------------------------------------------------------------------
 # Synthetic codes for unidentified peaks
@@ -120,6 +121,7 @@ __all__ = [
     "VOCCategory",
     "CompoundAQSCode",
     "CompoundName",
+    "Sites",
     "PLOT_UNID_CODE",
     "BP_UNID_CODE",
     "UNID_CODES",

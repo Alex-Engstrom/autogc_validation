@@ -1,5 +1,6 @@
-notebooks/*.ipynb
+.ipynb_checkpoints/
 *.ipynb
+!notebooks/*.ipynb
 *.txt
 __pycache__/
 *.py[cod]

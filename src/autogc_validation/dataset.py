@@ -8,7 +8,7 @@ concentration and retention time DataFrames for downstream QC analysis.
 
 import logging
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import pandas as pd
 
@@ -24,15 +24,28 @@ class Dataset:
     Attributes:
         folder: Path to the directory of CDF files.
         samples: List of Sample objects (paired front/back chromatograms).
-        data: DataFrame of concentrations (ppbC) indexed by datetime.
-        rt: DataFrame of retention times indexed by datetime.
+        data: Concentration DataFrame (ppbC), all sample types, indexed by datetime.
+        rt: Retention time DataFrame, all sample types, indexed by datetime.
+
+    Typed concentration properties (filter data by sample type):
+        ambient, blanks, cvs, rts, lcs, mdl_points, calibration, experimental
+
+    Typed retention time properties (filter rt by sample type):
+        ambient_rt, blanks_rt, cvs_rt, rts_rt, lcs_rt, mdl_points_rt,
+        calibration_rt, experimental_rt
     """
 
     def __init__(self, folder: Path):
         self.folder = Path(folder)
         self.samples = load_samples_from_folder(self.folder)
-        self._data = None
-        self._rt = None
+        self._data: pd.DataFrame | None = None
+        self._rt: pd.DataFrame | None = None
+        self._typed_data: Dict[SampleType, pd.DataFrame] = {}
+        self._typed_rt: Dict[SampleType, pd.DataFrame] = {}
+
+    # ------------------------------------------------------------------
+    # Combined DataFrames
+    # ------------------------------------------------------------------
 
     @property
     def data(self) -> pd.DataFrame:
@@ -48,9 +61,118 @@ class Dataset:
             self._rt = self._generate_rt()
         return self._rt
 
-    def filter_by_type(self, sample_type: SampleType) -> pd.DataFrame:
-        """Return rows of the data DataFrame matching a sample type."""
-        return self.data[self.data["sample_type"] == sample_type.value]
+    # ------------------------------------------------------------------
+    # Typed concentration properties
+    # ------------------------------------------------------------------
+
+    @property
+    def ambient(self) -> pd.DataFrame:
+        """Concentration data for ambient field samples."""
+        return self._get_typed(SampleType.AMBIENT)
+
+    @property
+    def blanks(self) -> pd.DataFrame:
+        """Concentration data for blank samples."""
+        return self._get_typed(SampleType.BLANK)
+
+    @property
+    def cvs(self) -> pd.DataFrame:
+        """Concentration data for canister verification standard samples."""
+        return self._get_typed(SampleType.CVS)
+
+    @property
+    def rts(self) -> pd.DataFrame:
+        """Concentration data for retention time standard samples."""
+        return self._get_typed(SampleType.RTS)
+
+    @property
+    def lcs(self) -> pd.DataFrame:
+        """Concentration data for laboratory control standard samples."""
+        return self._get_typed(SampleType.LCS)
+
+    @property
+    def mdl_points(self) -> pd.DataFrame:
+        """Concentration data for method detection limit samples."""
+        return self._get_typed(SampleType.MDL_POINT)
+
+    @property
+    def calibration(self) -> pd.DataFrame:
+        """Concentration data for calibration standard samples."""
+        return self._get_typed(SampleType.CALIBRATION_POINT)
+
+    @property
+    def experimental(self) -> pd.DataFrame:
+        """Concentration data for experimental samples."""
+        return self._get_typed(SampleType.EXPERIMENTAL)
+
+    # ------------------------------------------------------------------
+    # Typed retention time properties
+    # ------------------------------------------------------------------
+
+    @property
+    def ambient_rt(self) -> pd.DataFrame:
+        """Retention time data for ambient field samples."""
+        return self._get_typed(SampleType.AMBIENT, use_rt=True)
+
+    @property
+    def blanks_rt(self) -> pd.DataFrame:
+        """Retention time data for blank samples."""
+        return self._get_typed(SampleType.BLANK, use_rt=True)
+
+    @property
+    def cvs_rt(self) -> pd.DataFrame:
+        """Retention time data for canister verification standard samples."""
+        return self._get_typed(SampleType.CVS, use_rt=True)
+
+    @property
+    def rts_rt(self) -> pd.DataFrame:
+        """Retention time data for retention time standard samples."""
+        return self._get_typed(SampleType.RTS, use_rt=True)
+
+    @property
+    def lcs_rt(self) -> pd.DataFrame:
+        """Retention time data for laboratory control standard samples."""
+        return self._get_typed(SampleType.LCS, use_rt=True)
+
+    @property
+    def mdl_points_rt(self) -> pd.DataFrame:
+        """Retention time data for method detection limit samples."""
+        return self._get_typed(SampleType.MDL_POINT, use_rt=True)
+
+    @property
+    def calibration_rt(self) -> pd.DataFrame:
+        """Retention time data for calibration standard samples."""
+        return self._get_typed(SampleType.CALIBRATION_POINT, use_rt=True)
+
+    @property
+    def experimental_rt(self) -> pd.DataFrame:
+        """Retention time data for experimental samples."""
+        return self._get_typed(SampleType.EXPERIMENTAL, use_rt=True)
+
+    # ------------------------------------------------------------------
+    # Public filter method
+    # ------------------------------------------------------------------
+
+    def filter_by_type(self, sample_type: SampleType, use_rt: bool = False) -> pd.DataFrame:
+        """Return rows matching a sample type from the concentration or RT DataFrame.
+
+        Args:
+            sample_type: The sample type to filter by.
+            use_rt: If True, filter the retention time DataFrame instead.
+        """
+        source = self.rt if use_rt else self.data
+        return source[source["sample_type"] == sample_type.value]
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _get_typed(self, sample_type: SampleType, use_rt: bool = False) -> pd.DataFrame:
+        """Return a cached per-type DataFrame, computing it on first access."""
+        cache = self._typed_rt if use_rt else self._typed_data
+        if sample_type not in cache:
+            cache[sample_type] = self.filter_by_type(sample_type, use_rt=use_rt)
+        return cache[sample_type]
 
     def _get_chem_cols(self) -> List[int]:
         """AQS codes to use as DataFrame columns (excludes UnID)."""

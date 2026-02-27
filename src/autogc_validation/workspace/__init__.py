@@ -368,7 +368,7 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "import logging\n"
             "from pathlib import Path\n\n"
-            "logging.basicConfig(level=logging.INFO)\n"
+            "logging.basicConfig(level=logging.WARNING)\n"
             "logger = logging.getLogger(__name__)"
         ),
 
@@ -377,8 +377,8 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             f'workspace_dir = Path(r"{workspace_dir}")\n'
             f'data_dir = Path(r"{result.data_dir}")\n'
-            f'site_id = {site_code}\n'  # TODO: set AQS site ID\n'
-            f'database = Path(r"{_DBPATH}")\n'  # TODO: path to SQLite database\n'
+            f'site_id = {site_code}\n'  
+            f'database = Path(r"{_DBPATH}")\n'  
             f'date = "{date_str}"'
         ),
         # --- Database Update ---

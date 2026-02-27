@@ -156,7 +156,7 @@ def parse_dat_file(
         if mod_val != file_val:
             logger.warning(
                 "%s mismatch between filename and modified date: %s",
-                key, filename,
+                key, filename.stem
             )
             return from_filename, filename
 
