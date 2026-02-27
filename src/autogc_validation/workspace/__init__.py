@@ -396,6 +396,14 @@ def _generate_notebook(
         # --- Database Update ---
         nbformat.v4.new_markdown_cell("## Database update\n\n"),
         nbformat.v4.new_code_cell(),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.database.management import dump_database\n\n"
+            "dump_database(\n"
+            "    database_path=database,\n"
+            "    output_path=database.with_suffix('.sql'),\n"
+            ")\n"
+            'print("Done. Remember to commit data/autogc.sql.")'
+        ),
         # --- File processing ---
         nbformat.v4.new_markdown_cell(
             "## 1. Copy and process files\n\n"
