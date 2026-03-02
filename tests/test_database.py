@@ -9,10 +9,16 @@ import pandas as pd
 from autogc_validation.database.management.init_db import initialize_database
 from autogc_validation.database.models import (
     MODEL_REGISTRY, Site, CanisterTypes, PrimaryCanister,
-    CanisterConcentration, SiteCanister,
+    CanisterConcentration, SiteCanister, MDL,
 )
 from autogc_validation.database.operations import insert, get_table
-from autogc_validation.database.operations.canister_info import get_active_canister_concentrations
+from autogc_validation.database.operations.canister_info import (
+    get_active_canister_concentrations, get_canister_periods,
+)
+from autogc_validation.database.operations.mdl_info import (
+    get_active_mdls, get_mdl_periods,
+)
+from autogc_validation.database.enums import CompoundAQSCode, ConcentrationUnit
 from autogc_validation.database.conn import transaction
 
 
@@ -138,29 +144,180 @@ class TestGetActiveCanisterConcentrations:
     def test_returns_diluted_concentrations(self, temp_db):
         self._seed_canister_data(temp_db)
         result = get_active_canister_concentrations(
-            temp_db, site_id=1, canister_type="CVS", date="2026-01-15 12:00:00",
+            temp_db, site_id=1, canister_type="CVS",
+            date="2026-01-15 12:00:00", output_unit=ConcentrationUnit.PPBV,
         )
         # 20.0 * 0.5 dilution_ratio = 10.0
-        assert result[45201] == pytest.approx(10.0)
+        assert result.iloc[0][45201] == pytest.approx(10.0)
 
     def test_empty_for_wrong_canister_type(self, temp_db):
         self._seed_canister_data(temp_db)
         result = get_active_canister_concentrations(
-            temp_db, site_id=1, canister_type="LCS", date="2026-01-15 12:00:00",
+            temp_db, site_id=1, canister_type="LCS",
+            date="2026-01-15 12:00:00", output_unit=ConcentrationUnit.PPBV,
         )
-        assert len(result) == 0
+        assert len(result.columns) == 0 or result.empty
 
     def test_empty_for_expired_canister(self, temp_db):
         self._seed_canister_data(temp_db)
-        # Retire the canister
         with transaction(temp_db) as conn:
             conn.execute(
                 "UPDATE site_canisters SET date_off = ? WHERE site_canister_id = ?",
                 ("2025-06-01 00:00:00", "SC-001"),
             )
         result = get_active_canister_concentrations(
-            temp_db, site_id=1, canister_type="CVS", date="2026-01-15 12:00:00",
+            temp_db, site_id=1, canister_type="CVS",
+            date="2026-01-15 12:00:00", output_unit=ConcentrationUnit.PPBV,
         )
-        assert len(result) == 0
+        assert result.empty
+
+
+class TestGetMdlPeriods:
+    def _seed_mdl_data(self, temp_db):
+        insert(temp_db, Site(
+            site_id=1, name_short="HW", name_long="Hawthorne",
+            lat=33.9, long=-118.3, date_started="2020-01-01 00:00:00",
+        ))
+        insert(temp_db, MDL(
+            site_id=1, aqs_code=CompoundAQSCode.C_BENZENE,
+            concentration=0.05, units=ConcentrationUnit.PPBV,
+            date_on="2026-01-01 00:00",
+        ))
+
+    def test_single_period_returns_one_row(self, temp_db):
+        self._seed_mdl_data(temp_db)
+        result = get_mdl_periods(
+            temp_db, site_id=1,
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert len(result) == 1
+
+    def test_single_period_index_is_start_date(self, temp_db):
+        self._seed_mdl_data(temp_db)
+        result = get_mdl_periods(
+            temp_db, site_id=1,
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert result.index[0] == pd.Timestamp("2026-01-01 00:00")
+
+    def test_mid_month_change_returns_two_rows(self, temp_db):
+        self._seed_mdl_data(temp_db)
+        # Add a second MDL effective Jan 15
+        insert(temp_db, MDL(
+            site_id=1, aqs_code=CompoundAQSCode.C_BENZENE,
+            concentration=0.10, units=ConcentrationUnit.PPBV,
+            date_on="2026-01-15 00:00",
+            date_off=None,
+        ))
+        # Retire the first one
+        with transaction(temp_db) as conn:
+            conn.execute(
+                "UPDATE mdls SET date_off = ? WHERE date_on = ?",
+                ("2026-01-15 00:00", "2026-01-01 00:00"),
+            )
+        result = get_mdl_periods(
+            temp_db, site_id=1,
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert len(result) == 2
+        assert pd.Timestamp("2026-01-01 00:00") in result.index
+        assert pd.Timestamp("2026-01-15 00:00") in result.index
+
+    def test_returns_wide_dataframe_with_aqs_columns(self, temp_db):
+        self._seed_mdl_data(temp_db)
+        result = get_mdl_periods(
+            temp_db, site_id=1,
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert int(CompoundAQSCode.C_BENZENE) in result.columns
+
+    def test_units_stored_in_attrs(self, temp_db):
+        self._seed_mdl_data(temp_db)
+        result = get_mdl_periods(
+            temp_db, site_id=1,
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert result.attrs["units"] == ConcentrationUnit.PPBV
+
+
+class TestGetCanisterPeriods:
+    def _seed_canister_data(self, temp_db):
+        insert(temp_db, Site(
+            site_id=1, name_short="HW", name_long="Hawthorne",
+            lat=33.9, long=-118.3, date_started="2020-01-01 00:00:00",
+        ))
+        insert(temp_db, CanisterTypes(canister_type="CVS"))
+        insert(temp_db, PrimaryCanister(
+            primary_canister_id="CAN-001", canister_type="CVS",
+        ))
+        insert(temp_db, CanisterConcentration(
+            primary_canister_id="CAN-001", aqs_code=45201,
+            concentration=20.0, units="ppbv", canister_type="CVS",
+        ))
+        insert(temp_db, SiteCanister(
+            site_canister_id="SC-001", site_id=1,
+            primary_canister_id="CAN-001", dilution_ratio=0.5,
+            blend_date="2025-01-01 00:00:00", date_on="2025-01-01 00:00:00",
+        ))
+
+    def test_single_period_returns_one_row(self, temp_db):
+        self._seed_canister_data(temp_db)
+        result = get_canister_periods(
+            temp_db, site_id=1, canister_type="CVS",
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert len(result) == 1
+
+    def test_mid_month_replacement_returns_two_rows(self, temp_db):
+        self._seed_canister_data(temp_db)
+        # Retire SC-001 and add SC-002 from Jan 15
+        with transaction(temp_db) as conn:
+            conn.execute(
+                "UPDATE site_canisters SET date_off = ? WHERE site_canister_id = ?",
+                ("2026-01-15 00:00:00", "SC-001"),
+            )
+        insert(temp_db, PrimaryCanister(
+            primary_canister_id="CAN-002", canister_type="CVS",
+        ))
+        insert(temp_db, CanisterConcentration(
+            primary_canister_id="CAN-002", aqs_code=45201,
+            concentration=25.0, units="ppbv", canister_type="CVS",
+        ))
+        insert(temp_db, SiteCanister(
+            site_canister_id="SC-002", site_id=1,
+            primary_canister_id="CAN-002", dilution_ratio=0.5,
+            blend_date="2026-01-15 00:00:00", date_on="2026-01-15 00:00:00",
+        ))
+        result = get_canister_periods(
+            temp_db, site_id=1, canister_type="CVS",
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert len(result) == 2
+        assert pd.Timestamp("2026-01-15 00:00") in result.index
+
+    def test_returns_wide_dataframe_with_aqs_columns(self, temp_db):
+        self._seed_canister_data(temp_db)
+        result = get_canister_periods(
+            temp_db, site_id=1, canister_type="CVS",
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert 45201 in result.columns
+
+    def test_units_stored_in_attrs(self, temp_db):
+        self._seed_canister_data(temp_db)
+        result = get_canister_periods(
+            temp_db, site_id=1, canister_type="CVS",
+            start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
+            output_unit=ConcentrationUnit.PPBV,
+        )
+        assert result.attrs["units"] == ConcentrationUnit.PPBV
 
 

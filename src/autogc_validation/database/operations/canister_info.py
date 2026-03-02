@@ -60,6 +60,11 @@ def get_active_canister_concentrations(
         columns = [desc[0] for desc in cursor.description]
         df = pd.DataFrame(rows, columns=columns)
 
+    if df.empty:
+        wide = pd.DataFrame()
+        wide.attrs["units"] = output_unit
+        return wide
+
     df["concentration"] = df.apply(
         lambda row: convert(
             value=row["concentration"],

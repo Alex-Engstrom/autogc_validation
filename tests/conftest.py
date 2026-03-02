@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from autogc_validation.database.enums import CompoundAQSCode, name_to_aqs
+from autogc_validation.database.enums import CompoundAQSCode, ConcentrationUnit, SampleType, name_to_aqs
 from autogc_validation.database.management.init_db import initialize_database
 
 
@@ -124,3 +124,46 @@ def temp_db(tmp_path):
 def temp_root(tmp_path):
     """Provides a temporary root folder for file ops tests."""
     return tmp_path
+
+
+@pytest.fixture
+def make_typed_df(make_dataset_df):
+    """Factory that builds a typed DataFrame with attrs['sample_type'] set.
+
+    Usage:
+        df = make_typed_df(SampleType.BLANK, values={43202: 0.5}, n_rows=2)
+    """
+    def _make(
+        sample_type: SampleType,
+        values=None,
+        n_rows=1,
+        start_time="2026-01-15 08:00:00",
+    ):
+        df = make_dataset_df(
+            sample_type=sample_type.value,
+            values=values,
+            n_rows=n_rows,
+            start_time=start_time,
+        )
+        df.attrs["sample_type"] = sample_type
+        return df
+
+    return _make
+
+
+@pytest.fixture
+def mdl_periods(sample_mdls):
+    """Single-period date-indexed wide MDL DataFrame (no mid-month change)."""
+    data = {int(code): [val] for code, val in sample_mdls.items()}
+    df = pd.DataFrame(data, index=pd.DatetimeIndex(["2026-01-01"]))
+    df.attrs["units"] = ConcentrationUnit.PPBC
+    return df
+
+
+@pytest.fixture
+def canister_periods(sample_canister_conc):
+    """Single-period date-indexed wide canister concentration DataFrame."""
+    data = {int(code): [val] for code, val in sample_canister_conc.items()}
+    df = pd.DataFrame(data, index=pd.DatetimeIndex(["2026-01-01"]))
+    df.attrs["units"] = ConcentrationUnit.PPBC
+    return df
