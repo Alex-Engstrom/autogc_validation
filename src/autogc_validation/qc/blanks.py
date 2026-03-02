@@ -2,106 +2,100 @@
 """
 Blank QC checks.
 
-Identifies compounds in blank samples that exceed their respective MDLs.
+Identifies compounds in blank samples that exceed their respective MDLs
+or a fixed concentration threshold.
 """
 
 import logging
-from typing import Dict, Union
 
 import pandas as pd
 
-from autogc_validation.database.enums import UNID_CODES, TOTAL_CODES, SampleType
-from autogc_validation.qc.utils import to_aqs_indexed_series
+from autogc_validation.database.enums import SampleType
+from autogc_validation.qc.utils import get_compound_cols, align_period_index
 
 logger = logging.getLogger(__name__)
 
+_THRESHOLD_PPBC = 0.5
+
 
 def compounds_above_mdl(
-    data: pd.DataFrame,
-    mdls: Dict[Union[str, int], float],
-) -> pd.DataFrame:
-    """Check which compounds exceed MDLs in blank samples.
+    blanks: pd.DataFrame,
+    mdl_periods: pd.DataFrame,
+    threshold_ppbc: float = _THRESHOLD_PPBC,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Check blank samples against MDLs and a fixed concentration threshold.
+
+    Accepts a typed blanks DataFrame (from Dataset.blanks) and a date-indexed
+    wide MDL DataFrame (from get_mdl_periods). Internally aligns each sample
+    to the MDL period that was active on its collection date.
 
     Args:
-        data: Dataset.data DataFrame with 'sample_type' column.
-        mdls: Dict mapping compound name or AQS code to MDL value (ppbC).
+        blanks: Dataset.blanks DataFrame — DatetimeIndex, AQS code columns,
+            filename column. Must have attrs["sample_type"] == SampleType.BLANK.
+        mdl_periods: Wide DataFrame with DatetimeIndex (one row per MDL period)
+            and AQS codes as columns, as returned by get_mdl_periods.
+        threshold_ppbc: Fixed concentration threshold (ppbC). Default 0.5.
 
     Returns:
-        DataFrame indexed by date_time with columns:
-        filename, compounds_above_mdl (list of AQS codes).
+        Tuple of (mdl_failures, threshold_failures):
+            mdl_failures: Wide boolean DataFrame — 1 where compound > MDL,
+                0 otherwise. Columns: filename + AQS codes. Index: date_time.
+            threshold_failures: Wide boolean DataFrame — 1 where compound
+                > threshold_ppbc, 0 otherwise. Same shape as mdl_failures.
+
+    Raises:
+        ValueError: If blanks.attrs["sample_type"] is not SampleType.BLANK.
     """
-    blank_df = data[data["sample_type"] == SampleType.BLANK].sort_index()
+    sample_type = blanks.attrs.get("sample_type")
+    if sample_type != SampleType.BLANK:
+        raise ValueError(
+            f"Expected blanks DataFrame with attrs['sample_type'] == SampleType.BLANK, "
+            f"got {sample_type!r}"
+        )
 
-    compound_columns = [
-        c for c in data.columns
-        if isinstance(c, int) and c not in UNID_CODES | TOTAL_CODES
-    ]
+    if blanks.empty:
+        logger.info("Blank check: no blank samples found")
+        empty = pd.DataFrame(columns=["filename"])
+        return empty, empty
 
-    mdl_series = to_aqs_indexed_series(mdls)
+    compound_cols = get_compound_cols(blanks)
+    period_indices = align_period_index(blanks, mdl_periods)
 
-    skipped = set(compound_columns) - set(mdl_series.index)
-    if skipped:
-        logger.warning("Compounds in data but missing from MDLs: %s", skipped)
+    mdl_rows = []
+    threshold_rows = []
 
-    results = []
-    for timestamp, row in blank_df.iterrows():
-        above = [
-            code for code in compound_columns
-            if (code in mdl_series.index
-                and pd.notna(row[code])
-                and row[code] > mdl_series[code])
-        ]
-        if not above:
-            above = ["__NONE__"]
+    for i, (timestamp, row) in enumerate(blanks.iterrows()):
+        effective_mdls = mdl_periods.iloc[period_indices[i]]
 
-        results.append({
-            "date_time": timestamp,
-            "filename": row["filename"],
-            "compounds_above_mdl": above,
-        })
+        mdl_flags = {"filename": row["filename"]}
+        threshold_flags = {"filename": row["filename"]}
 
-    if not results:
-        logger.info("Blank check complete: 0 of 0 samples had compounds above MDL")
-        return pd.DataFrame(columns=["filename", "compounds_above_mdl"])
+        for code in compound_cols:
+            value = row[code]
+            if pd.isna(value):
+                mdl_flags[code] = 0
+                threshold_flags[code] = 0
+                continue
 
-    result_df = pd.DataFrame(results).set_index("date_time")
+            mdl_val = effective_mdls.get(code)
+            mdl_flags[code] = int(
+                mdl_val is not None and not pd.isna(mdl_val) and value > mdl_val
+            )
+            threshold_flags[code] = int(value > threshold_ppbc)
 
-    n_above = sum(
-        1 for r in results if r["compounds_above_mdl"] != ["__NONE__"]
-    )
+        mdl_rows.append(mdl_flags)
+        threshold_rows.append(threshold_flags)
+
+    mdl_failures = pd.DataFrame(mdl_rows, index=blanks.index)
+    threshold_failures = pd.DataFrame(threshold_rows, index=blanks.index)
+    mdl_failures.index.name = "date_time"
+    threshold_failures.index.name = "date_time"
+
+    n_mdl = (mdl_failures.drop(columns="filename") > 0).any(axis=1).sum()
+    n_thresh = (threshold_failures.drop(columns="filename") > 0).any(axis=1).sum()
     logger.info(
-        "Blank check complete: %d of %d samples had compounds above MDL",
-        n_above, len(results),
+        "Blank check: %d/%d samples exceeded MDL; %d/%d exceeded %.1f ppbC threshold",
+        n_mdl, len(blanks), n_thresh, len(blanks), threshold_ppbc,
     )
 
-    return result_df
-
-
-def compounds_above_mdl_wide(
-    data: pd.DataFrame,
-    mdls: Dict[Union[str, int], float],
-) -> pd.DataFrame:
-    """Wide-format blank exceedance table (one column per compound, values 0/1).
-
-    Args:
-        data: Dataset.data DataFrame.
-        mdls: Dict mapping compound name or AQS code to MDL value.
-
-    Returns:
-        DataFrame indexed by date_time, columns are AQS codes, values are 0 or 1.
-    """
-    df = compounds_above_mdl(data, mdls)
-
-    exploded = df.explode("compounds_above_mdl")
-    exploded["value"] = (exploded["compounds_above_mdl"] != "__NONE__").astype(int)
-    wide = exploded.pivot_table(
-        index=exploded.index,
-        columns="compounds_above_mdl",
-        values="value",
-        aggfunc="first",
-        fill_value=0,
-    )
-    if "__NONE__" in wide.columns:
-        wide = wide.drop(columns="__NONE__")
-
-    return wide
+    return mdl_failures, threshold_failures

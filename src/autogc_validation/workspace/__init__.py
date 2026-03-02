@@ -358,11 +358,13 @@ def _generate_notebook(
     Returns:
         Path to the created notebook file.
     """
+    num_days = calendar.monthrange(year, month)[1]
     yyyymm = f"{year}{month:02d}"
-
     workspace_dir = str(result.base_dir)
-    date_str = f"{year}-{month:02d}-01 00:00"
+    start_date_str = f"{year}-{month:02d}-01 00:00"
+    end_date_str = f"{year}-{month:02d}-{num_days} 23:59"
     site_code: int = Sites[site]
+
     nb = nbformat.v4.new_notebook()
     nb.cells = [
         # --- Header ---
@@ -384,17 +386,19 @@ def _generate_notebook(
             f'data_dir = Path(r"{result.data_dir}")\n'
             f'site_id = {site_code}\n'
             f'database = Path(r"{_DBPATH}")\n'
-            f'date = "{date_str}"\n\n'
+            f'start_date = "{start_date_str}"\n'
+            f'end_date   = "{end_date_str}"\n\n'
             f'# Week date ranges (boundaries: 1-7, 8-14, 15-21, 22-end)\n'
             f'weeks = {{\n'
             f'    1: (pd.Timestamp({year}, {month},  1), pd.Timestamp({year}, {month},  7, 23, 59, 59)),\n'
             f'    2: (pd.Timestamp({year}, {month},  8), pd.Timestamp({year}, {month}, 14, 23, 59, 59)),\n'
             f'    3: (pd.Timestamp({year}, {month}, 15), pd.Timestamp({year}, {month}, 21, 23, 59, 59)),\n'
-            f'    4: (pd.Timestamp({year}, {month}, 22), pd.Timestamp({year}, {month}, {calendar.monthrange(year, month)[1]}, 23, 59, 59)),\n'
+            f'    4: (pd.Timestamp({year}, {month}, 22), pd.Timestamp({year}, {month}, {num_days}, 23, 59, 59)),\n'
             f'}}'
         ),
+
         # --- Database Update ---
-        nbformat.v4.new_markdown_cell("## Database update\n\n"),
+        nbformat.v4.new_markdown_cell("## Database update"),
         nbformat.v4.new_code_cell(),
         nbformat.v4.new_code_cell(
             "from autogc_validation.database.management import dump_database\n\n"
@@ -404,6 +408,7 @@ def _generate_notebook(
             ")\n"
             'print("Done. Remember to commit data/autogc.sql.")'
         ),
+
         # --- File processing ---
         nbformat.v4.new_markdown_cell(
             "## 1. Copy and process files\n\n"
@@ -417,10 +422,12 @@ def _generate_notebook(
             'print(f"Errors: {result.errors}")\n'
             "if result.dat_summary:\n"
             "    print(f\"DAT files: {result.dat_summary['found'][0]} found, "
-            "{result.dat_summary['copied'][0]} copied, {dat_summary['duplicates'][0]} duplicated\")\n"
+            "{result.dat_summary['copied'][0]} copied, "
+            "{result.dat_summary['duplicates'][0]} duplicated\")\n"
             "if result.tx1_summary:\n"
             "    print(f\"TX1 files: {result.tx1_summary['found'][0]} found, "
-            "{result.tx1_summary['copied'][0]} copied, {result.tx1_summary['duplicates'][0]} duplicated\")\n"
+            "{result.tx1_summary['copied'][0]} copied, "
+            "{result.tx1_summary['duplicates'][0]} duplicated\")\n"
             "if result.week_counts:\n"
             '    print(f"Week counts: {result.week_counts}")'
         ),
@@ -429,57 +436,64 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("## 2. Load dataset"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.dataset import Dataset\n\n"
-            'ds = Dataset(data_dir)\n'
+            "ds = Dataset(data_dir)\n"
             'print(f"Loaded {len(ds.samples)} samples")\n'
             "ds.data.head()"
         ),
-
-        # --- Query MDLs ---
-        nbformat.v4.new_markdown_cell("## 3. Query MDLs and canister concentrations"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.database.operations.mdl_info import get_active_mdls\n"
-            "from autogc_validation.database.operations.canister_info import get_active_canister_concentrations\n"
+            "# Helper: print a day-by-day failure summary from a boolean wide DataFrame\n"
+            "from autogc_validation.database.enums import aqs_to_name\n\n"
+            "def print_failures(failures: 'pd.DataFrame', label: str) -> None:\n"
+            '    """Print one line per sample showing filename and failing compound names."""\n'
+            "    compound_cols = [c for c in failures.columns if isinstance(c, int)]\n"
+            "    n_fail = 0\n"
+            "    for ts, row in failures.iterrows():\n"
+            "        failing = [aqs_to_name(c) for c in compound_cols if row[c] == 1]\n"
+            "        if failing:\n"
+            "            n_fail += 1\n"
+            f'            print(f"  {{ts:%Y-%m-%d %H:%M}}  {{row[\'filename\']}}  →  {{\', \'.join(failing)}}")\n'
+            f'    print(f"{{label}}: {{n_fail}} / {{len(failures)}} samples with failures")'
+        ),
+
+        # --- Query MDL and canister periods ---
+        nbformat.v4.new_markdown_cell("## 3. Query MDL and canister concentration periods"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.database.operations import (\n"
+            "    get_mdl_periods, get_canister_periods\n"
+            ")\n"
             "from autogc_validation.database.enums import ConcentrationUnit\n\n"
-            "mdls = get_active_mdls(database, site_id, date)\n"
-            'print(f"MDLs loaded: {len(mdls)} compounds")\n\n'
-            'cvs_conc = get_active_canister_concentrations(database, site_id, "CVS", date, ConcentrationUnit.PPBC)\n'
-            'lcs_conc = get_active_canister_concentrations(database, site_id, "LCS", date, ConcentrationUnit.PPBC)\n'
-            'rts_conc = get_active_canister_concentrations(database, site_id, "RTS", date, ConcentrationUnit.PPBC)\n'
-            'print(f"Canister concentrations loaded — CVS: {len(cvs_conc)}, LCS: {len(lcs_conc)}, RTS: {len(rts_conc)}")'
+            "mdl_periods = get_mdl_periods(database, site_id, start_date, end_date, ConcentrationUnit.PPBC)\n"
+            'print(f"MDL periods: {len(mdl_periods)} (changes on: {list(mdl_periods.index.date)})")\n\n'
+            'cvs_periods = get_canister_periods(database, site_id, "CVS", start_date, end_date, ConcentrationUnit.PPBC)\n'
+            'lcs_periods = get_canister_periods(database, site_id, "LCS", start_date, end_date, ConcentrationUnit.PPBC)\n'
+            'rts_periods = get_canister_periods(database, site_id, "RTS", start_date, end_date, ConcentrationUnit.PPBC)\n'
+            'print(f"Canister periods — CVS: {len(cvs_periods)}, LCS: {len(lcs_periods)}, RTS: {len(rts_periods)}")'
         ),
 
         # --- Blank QC ---
         nbformat.v4.new_markdown_cell("## 4. Blank check"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.qc.blanks import compounds_above_mdl, compounds_above_mdl_wide\n\n"
-            "blank_results = compounds_above_mdl(ds.data, mdls)\n"
-            "blank_wide = compounds_above_mdl_wide(ds.data, mdls)\n\n"
-            "failing_blanks = blank_results[\n"
-            "    blank_results['compounds_above_mdl'].apply(lambda x: x != ['__NONE__'])\n"
-            "]\n"
-            'print(f"Blanks with exceedances: {len(failing_blanks)} / {len(blank_results)}")\n'
-            "failing_blanks"
+            "from autogc_validation.qc.blanks import compounds_above_mdl\n\n"
+            "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n\n"
+            'print("--- Compounds exceeding MDL ---")\n'
+            'print_failures(mdl_failures, "MDL exceedances")\n\n'
+            'print("\\n--- Compounds exceeding 0.5 ppbC ---")\n'
+            'print_failures(threshold_failures, "Threshold exceedances")'
         ),
 
         # --- Recovery QC ---
         nbformat.v4.new_markdown_cell("## 5. QC recovery checks (CVS / LCS / RTS)"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.qc.recovery import check_qc_recovery, check_qc_recovery_wide\n\n"
-            "# CVS recovery\n"
-            "cvs_results = check_qc_recovery(ds.data, 'c', cvs_conc, blend_ratio=1.0)\n"
-            "cvs_wide = check_qc_recovery_wide(ds.data, 'c', cvs_conc, blend_ratio=1.0)\n"
-            "cvs_failing = cvs_results[cvs_results['failing_qc'].apply(lambda x: x != ['__NONE__'])]\n"
-            'print(f"CVS failures: {len(cvs_failing)} / {len(cvs_results)}")\n\n'
-            "# LCS recovery\n"
-            "lcs_results = check_qc_recovery(ds.data, 'e', lcs_conc, blend_ratio=1.0)\n"
-            "lcs_wide = check_qc_recovery_wide(ds.data, 'e', lcs_conc, blend_ratio=1.0)\n"
-            "lcs_failing = lcs_results[lcs_results['failing_qc'].apply(lambda x: x != ['__NONE__'])]\n"
-            'print(f"LCS failures: {len(lcs_failing)} / {len(lcs_results)}")\n\n'
-            "# RTS recovery\n"
-            "rts_results = check_qc_recovery(ds.data, 'q', rts_conc, blend_ratio=1.0)\n"
-            "rts_wide = check_qc_recovery_wide(ds.data, 'q', rts_conc, blend_ratio=1.0)\n"
-            "rts_failing = rts_results[rts_results['failing_qc'].apply(lambda x: x != ['__NONE__'])]\n"
-            'print(f"RTS failures: {len(rts_failing)} / {len(rts_results)}")'
+            "from autogc_validation.qc.recovery import check_qc_recovery\n\n"
+            "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
+            "lcs_failures = check_qc_recovery(ds.lcs, lcs_periods)\n"
+            "rts_failures = check_qc_recovery(ds.rts, rts_periods)\n\n"
+            'print("--- CVS ---")\n'
+            'print_failures(cvs_failures, "CVS")\n\n'
+            'print("\\n--- LCS ---")\n'
+            'print_failures(lcs_failures, "LCS")\n\n'
+            'print("\\n--- RTS ---")\n'
+            'print_failures(rts_failures, "RTS")'
         ),
 
         # --- Ambient screening ---
@@ -489,7 +503,9 @@ def _generate_notebook(
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
             ")\n\n"
             "# Compound ratio screening (EPA TAD Table 10-1)\n"
-            "ratios = check_ratios(ds.data, mdls)\n"
+            "# Note: check_ratios uses the first MDL period for threshold comparisons.\n"
+            "# If MDLs changed mid-month, split the ambient DataFrame by period manually.\n"
+            "ratios = check_ratios(ds.data, mdl_periods)\n"
             'print(f"Ratio flags: {len(ratios)}")\n'
             "if not ratios.empty:\n"
             "    display(ratios)\n\n"
@@ -512,11 +528,11 @@ def _generate_notebook(
             "    build_qc_qualifier_lines,\n"
             "    write_mdvr_to_excel,\n"
             ")\n\n"
-            "blank_quals = build_blank_qualifier_lines(ds.data, blank_wide)\n"
+            "blank_quals = build_blank_qualifier_lines(ds.data, mdl_failures)\n"
             'print(f"Blank qualifier lines: {len(blank_quals)}")\n\n'
-            "cvs_quals = build_qc_qualifier_lines(ds.data, cvs_wide, 'c')\n"
-            "lcs_quals = build_qc_qualifier_lines(ds.data, lcs_wide, 'e')\n"
-            "rts_quals = build_qc_qualifier_lines(ds.data, rts_wide, 'q')\n"
+            "cvs_quals = build_qc_qualifier_lines(ds.data, cvs_failures, 'c')\n"
+            "lcs_quals = build_qc_qualifier_lines(ds.data, lcs_failures, 'e')\n"
+            "rts_quals = build_qc_qualifier_lines(ds.data, rts_failures, 'q')\n"
             'print(f"QC qualifier lines — CVS: {len(cvs_quals)}, LCS: {len(lcs_quals)}, RTS: {len(rts_quals)}")'
         ),
         nbformat.v4.new_markdown_cell(
@@ -524,7 +540,6 @@ def _generate_notebook(
             "Uncomment and set template/output paths to export."
         ),
         nbformat.v4.new_code_cell(
-            "import pandas as pd\n\n"
             "all_quals = pd.concat([blank_quals, cvs_quals, lcs_quals, rts_quals], ignore_index=True)\n"
             'print(f"Total qualifier lines: {len(all_quals)}")\n'
             "all_quals\n\n"
