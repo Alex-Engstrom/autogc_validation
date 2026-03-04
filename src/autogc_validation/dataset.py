@@ -246,8 +246,17 @@ class Dataset:
 
         for sample in self.samples:
             try:
-                dt = sample.front.datetime
-                if abs((dt - sample.back.datetime).total_seconds()) > 1:
+                if sample.front.datetime is None or sample.back.datetime is None:
+                    logger.warning(
+                        "%s: could not read datetime from CDF file, skipping",
+                        sample.filename_base,
+                    )
+                    errors += 1
+                    continue
+
+                dt = sample.front.datetime.replace(tzinfo=None)
+                dt_back = sample.back.datetime.replace(tzinfo=None)
+                if abs((dt - dt_back).total_seconds()) > 1:
                     logger.warning(
                         "%s: front/back datetime mismatch", sample.filename_base
                     )
@@ -269,7 +278,7 @@ class Dataset:
                     **{code: value_dict.get(code) for code in chem_cols},
                 }
                 rows.append(row)
-            except (ValueError, KeyError, TypeError, OSError):
+            except Exception:
                 logger.exception("Error processing %s", sample.filename_base)
                 errors += 1
                 continue
@@ -279,7 +288,13 @@ class Dataset:
                 "%d of %d samples failed to process", errors, len(self.samples)
             )
 
-        return pd.DataFrame(rows).set_index("date_time")
+        if not rows:
+            logger.warning("No samples were successfully processed — returning empty DataFrame")
+            chem_cols = self._get_chem_cols()
+            empty = pd.DataFrame(columns=["date_time", "sample_type", "filename"] + chem_cols)
+            return empty.set_index("date_time")
+
+        return pd.DataFrame(rows).set_index("date_time").sort_index()
 
     def _generate_data(self) -> pd.DataFrame:
         """Generate a DataFrame of VOC concentrations for all samples."""

@@ -46,6 +46,23 @@ from autogc_validation.database.config import VOC_DATA as _VOC_DATA
 PLOT_CODES = frozenset(v["aqs_code"] for v in _VOC_DATA if v["column"] == "PLOT")
 BP_CODES = frozenset(v["aqs_code"] for v in _VOC_DATA if v["column"] == "BP")
 
+# Calibrant compound for each GC column.  Used by QC qualifier generation to
+# determine whether a whole-column LL/LK qualifier applies.
+COLUMN_CALIBRANTS: dict[ColumnType, int] = {
+    ColumnType.PLOT: CompoundAQSCode.C_PROPANE.value,  # Propane
+    ColumnType.BP:   CompoundAQSCode.C_TOLUENE.value,  # Toluene
+}
+
+# Reference compounds used for retention time outlier detection.  Other
+# compound RTs are locked relative to these, so a misidentification here
+# implies a systematic shift across the column.
+RT_REFERENCE_CODES: frozenset[int] = frozenset({
+    CompoundAQSCode.C_PROPANE.value,    # Propane   — PLOT anchor
+    CompoundAQSCode.C_N_PENTANE.value,  # n-Pentane — PLOT anchor
+    CompoundAQSCode.C_BENZENE.value,    # Benzene   — BP anchor
+    CompoundAQSCode.C_TOLUENE.value,    # Toluene   — BP anchor
+})
+
 
 # ---------------------------------------------------------------------------
 # Lookup helpers
@@ -57,7 +74,12 @@ def aqs_to_name(code: int) -> str:
 
 
 def name_to_aqs(name: str) -> int:
-    """Convert a compound name string to an AQS code integer."""
+    """Convert a compound name string to an AQS code integer.
+
+    The first character of *name* is automatically uppercased before lookup
+    so that e.g. ``"propane"`` and ``"Propane"`` both resolve correctly.
+    """
+    name = name.capitalize()
     return CompoundAQSCode[CompoundName(name).name].value
 
 
@@ -89,9 +111,23 @@ def get_codes_by_category(category: VOCCategory) -> list[int]:
         category: A VOCCategory enum member (e.g., VOCCategory.ALKANE).
 
     Returns:
-        List of AQS code integers.
+        List of AQS code integers in elution order.
     """
     return [v["aqs_code"] for v in _VOC_DATA if v["category"] == category.value]
+
+
+def get_codes_by_column(column: ColumnType) -> list[int]:
+    """Return AQS codes for all compounds on the given GC column, in elution order.
+
+    Derived from the static VOC_DATA config — does not require a database.
+
+    Args:
+        column: A ColumnType enum member (ColumnType.PLOT or ColumnType.BP).
+
+    Returns:
+        List of AQS code integers in elution order.
+    """
+    return [v["aqs_code"] for v in _VOC_DATA if v["column"] == column.value]
 
 
 def get_carbon_count(code: int) -> int:
@@ -129,9 +165,12 @@ __all__ = [
     "TARGET_CODES",
     "PLOT_CODES",
     "BP_CODES",
+    "COLUMN_CALIBRANTS",
+    "RT_REFERENCE_CODES",
     "aqs_to_name",
     "name_to_aqs",
     "get_column_type",
     "get_codes_by_category",
+    "get_codes_by_column",
     "get_carbon_count",
 ]

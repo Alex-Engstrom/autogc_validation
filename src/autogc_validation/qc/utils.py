@@ -68,13 +68,22 @@ def align_period_index(samples: pd.DataFrame, periods: pd.DataFrame) -> np.ndarr
     For each sample timestamp, finds the most recent period row whose index
     is <= the sample timestamp (backward fill).
 
+    Handles the case where the sample index is timezone-aware (MST, UTC-7,
+    no DST) and the period index is timezone-naive (as stored in SQLite).
+    The timezone is stripped from the sample index before comparison; both
+    sides represent wall-clock MST time so the comparison is correct.
+
     Args:
-        samples: DataFrame with DatetimeIndex.
-        periods: Date-indexed wide concentrations DataFrame (sorted ascending).
+        samples: DataFrame with DatetimeIndex (tz-aware or tz-naive).
+        periods: Date-indexed wide concentrations DataFrame (sorted ascending,
+            tz-naive).
 
     Returns:
         Integer array of length len(samples), values in [0, len(periods)-1].
     """
     period_dates = periods.index.sort_values()
-    positions = period_dates.searchsorted(samples.index, side="right") - 1
+    sample_dates = samples.index
+    if sample_dates.tz is not None and period_dates.tz is None:
+        sample_dates = sample_dates.tz_localize(None)
+    positions = period_dates.searchsorted(sample_dates, side="right") - 1
     return np.clip(positions, 0, len(periods) - 1)

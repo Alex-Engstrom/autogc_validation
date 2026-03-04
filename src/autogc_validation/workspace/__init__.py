@@ -385,6 +385,8 @@ def _generate_notebook(
             f'workspace_dir = Path(r"{workspace_dir}")\n'
             f'data_dir = Path(r"{result.data_dir}")\n'
             f'site_id = {site_code}\n'
+            f'year  = {year}\n'
+            f'month = {month}\n'
             f'database = Path(r"{_DBPATH}")\n'
             f'start_date = "{start_date_str}"\n'
             f'end_date   = "{end_date_str}"\n\n'
@@ -448,15 +450,100 @@ def _generate_notebook(
             "    compound_cols = [c for c in failures.columns if isinstance(c, int)]\n"
             "    n_fail = 0\n"
             "    for ts, row in failures.iterrows():\n"
-            "        failing = [aqs_to_name(c) for c in compound_cols if row[c] == 1]\n"
+            "        failing = [aqs_to_name(c) for c in compound_cols if row[c] != 0]\n"
             "        if failing:\n"
             "            n_fail += 1\n"
             f'            print(f"  {{ts:%Y-%m-%d %H:%M}}  {{row[\'filename\']}}  →  {{\', \'.join(failing)}}")\n'
             f'    print(f"{{label}}: {{n_fail}} / {{len(failures)}} samples with failures")'
         ),
 
+        # --- Monthly ambient compound plots ---
+        nbformat.v4.new_markdown_cell("## 3. Monthly ambient compound plots"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            f"plot_ambient_comparisons(ds.ambient, '{site}', {year}, {month})"
+        ),
+
+        # --- Monthly retention time validation ---
+        nbformat.v4.new_markdown_cell("## 4. Monthly retention time validation"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.rt import plot_rt\n"
+            "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
+            "from autogc_validation.qc.utils import get_compound_cols\n"
+            "from autogc_validation.database.enums import RT_REFERENCE_CODES\n\n"
+            "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
+            "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
+            f"plot_rt(ds.rt, ds.data, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers = detect_rt_outliers(ds.rt[ds.rt['sample_type'] == 's'], rt_ref_cols)\n"
+            'print(f"Monthly RT outliers: {len(rt_outliers)}")\n'
+            "rt_outliers"
+        ),
+
+        # --- Weekly method optimization ---
+        nbformat.v4.new_markdown_cell("## 5. Weekly method optimization"),
+
+        nbformat.v4.new_markdown_cell("### Week 1"),
+        nbformat.v4.new_code_cell(
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
+            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
+        ),
+        nbformat.v4.new_code_cell(
+            "rt_w1   = ds.rt.loc[weeks[1][0]:weeks[1][1]]\n"
+            "data_w1 = ds.data.loc[weeks[1][0]:weeks[1][1]]\n"
+            f"plot_rt(rt_w1, data_w1, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 1 RT outliers: {len(rt_outliers_w1)}")\n'
+            "rt_outliers_w1"
+        ),
+
+        nbformat.v4.new_markdown_cell("### Week 2"),
+        nbformat.v4.new_code_cell(
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
+            f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
+        ),
+        nbformat.v4.new_code_cell(
+            "rt_w2   = ds.rt.loc[weeks[2][0]:weeks[2][1]]\n"
+            "data_w2 = ds.data.loc[weeks[2][0]:weeks[2][1]]\n"
+            f"plot_rt(rt_w2, data_w2, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 2 RT outliers: {len(rt_outliers_w2)}")\n'
+            "rt_outliers_w2"
+        ),
+
+        nbformat.v4.new_markdown_cell("### Week 3"),
+        nbformat.v4.new_code_cell(
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
+            f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
+        ),
+        nbformat.v4.new_code_cell(
+            "rt_w3   = ds.rt.loc[weeks[3][0]:weeks[3][1]]\n"
+            "data_w3 = ds.data.loc[weeks[3][0]:weeks[3][1]]\n"
+            f"plot_rt(rt_w3, data_w3, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 3 RT outliers: {len(rt_outliers_w3)}")\n'
+            "rt_outliers_w3"
+        ),
+
+        nbformat.v4.new_markdown_cell("### Week 4"),
+        nbformat.v4.new_code_cell(
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
+            f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
+        ),
+        nbformat.v4.new_code_cell(
+            "rt_w4   = ds.rt.loc[weeks[4][0]:weeks[4][1]]\n"
+            "data_w4 = ds.data.loc[weeks[4][0]:weeks[4][1]]\n"
+            f"plot_rt(rt_w4, data_w4, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 4 RT outliers: {len(rt_outliers_w4)}")\n'
+            "rt_outliers_w4"
+        ),
+
         # --- Query MDL and canister periods ---
-        nbformat.v4.new_markdown_cell("## 3. Query MDL and canister concentration periods"),
+        nbformat.v4.new_markdown_cell("## 6. Query MDL and canister concentration periods"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.database.operations import (\n"
             "    get_mdl_periods, get_canister_periods\n"
@@ -471,7 +558,7 @@ def _generate_notebook(
         ),
 
         # --- Blank QC ---
-        nbformat.v4.new_markdown_cell("## 4. Blank check"),
+        nbformat.v4.new_markdown_cell("## 7. Blank check"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.blanks import compounds_above_mdl\n\n"
             "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n\n"
@@ -481,8 +568,13 @@ def _generate_notebook(
             'print_failures(threshold_failures, "Threshold exceedances")'
         ),
 
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.qc import plot_blank_concentrations\n\n"
+            f"plot_blank_concentrations(ds.blanks, mdl_failures, '{site}', {year}, {month})"
+        ),
+
         # --- Recovery QC ---
-        nbformat.v4.new_markdown_cell("## 5. QC recovery checks (CVS / LCS / RTS)"),
+        nbformat.v4.new_markdown_cell("## 8. QC recovery checks (CVS / LCS / RTS)"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.recovery import check_qc_recovery\n\n"
             "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
@@ -496,8 +588,91 @@ def _generate_notebook(
             'print_failures(rts_failures, "RTS")'
         ),
 
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.qc import plot_qc_recovery\n\n"
+            f"plot_qc_recovery(ds.cvs, cvs_periods, 'CVS', '{site}', {year}, {month})\n"
+            f"plot_qc_recovery(ds.lcs, lcs_periods, 'LCS', '{site}', {year}, {month})\n"
+            f"plot_qc_recovery(ds.rts, rts_periods, 'RTS', '{site}', {year}, {month})"
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.precision import check_cvs_precision\n\n"
+            "precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs)\n"
+            f'print(f"CVS precision pairs found: {{len(cvs_precision_pairs)}}")\n\n'
+            "compound_cols_p = [c for c in precision_failures.columns if isinstance(c, int)]\n"
+            "for ts, row in precision_failures.iterrows():\n"
+            "    failing = [aqs_to_name(c) for c in compound_cols_p if row[c] == 1]\n"
+            "    if failing:\n"
+            f'        print(f"  {{ts:%Y-%m-%d %H:%M}}  {{row[\'filename\']}}  →  {{\', \'.join(failing)}}")\n'
+            "n_fail_p = int((precision_failures[compound_cols_p] == 1).any(axis=1).sum())\n"
+            f'print(f"Precision failures: {{n_fail_p}} / {{len(cvs_precision_pairs)}} pairs")'
+        ),
+
+        # --- QC Review table ---
+        nbformat.v4.new_markdown_cell(
+            "## 9. QC Review table\n\n"
+            "Builds the human-readable QC summary table and writes it to the "
+            "'QC Review' sheet of the MDVR spreadsheet.\n\n"
+            "Set `blank_start_row`, `cvs_start_row`, `lcs_start_row`, and "
+            "`rts_start_row` to match the merged-cell row ranges in your MDVR template."
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports import (\n"
+            "    build_blank_qc_table, build_precision_qc_table,\n"
+            "    build_recovery_qc_table, write_qc_table_to_excel,\n"
+            ")\n\n"
+            f'mdvr_path = workspace_dir / "MDVR" / "{site}{yyyymm}_MDVR.xlsx"\n\n'
+            "# Adjust these start rows to match the merged-cell ranges in the MDVR template.\n"
+            "blank_start_row     = 73\n"
+            "cvs_start_row       = 22\n"
+            "lcs_start_row       = 15\n"
+            "rts_start_row       = 7\n"
+            "precision_start_row = 7\n\n"
+            "blank_table     = build_blank_qc_table(mdl_failures, threshold_failures)\n"
+            "cvs_table       = build_recovery_qc_table(cvs_failures, 'CVS')\n"
+            "lcs_table       = build_recovery_qc_table(lcs_failures, 'LCS')\n"
+            "rts_table       = build_recovery_qc_table(rts_failures, 'RTS')\n"
+            "precision_table = build_precision_qc_table(precision_failures)\n\n"
+            "write_qc_table_to_excel(blank_table,     mdvr_path, mdvr_path, 'Field Blank',    blank_start_row)\n"
+            "write_qc_table_to_excel(cvs_table,       mdvr_path, mdvr_path, 'CVS',            cvs_start_row)\n"
+            "write_qc_table_to_excel(lcs_table,       mdvr_path, mdvr_path, 'LCS',            lcs_start_row)\n"
+            "write_qc_table_to_excel(rts_table,       mdvr_path, mdvr_path, 'RTS',            rts_start_row)\n"
+            "write_qc_table_to_excel(precision_table, mdvr_path, mdvr_path, 'CVS Precision',  precision_start_row)\n"
+            f'print(f"QC Review table written to {{mdvr_path}}")'
+        ),
+
+        # --- Station temperature ---
+        nbformat.v4.new_markdown_cell(
+            "## 10. Station temperature check\n\n"
+            "Requires an AirVision database connection. "
+            "Hours where station temperature exceeds 30\u00b0C are nulled with flag AE."
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.room_temp import plot_station_temp\n"
+            "from autogc_validation.reports import build_temp_null_lines\n\n"
+            "# Temperature threshold for AE null qualification (°C).\n"
+            "temp_null_threshold = 30.0\n\n"
+            "# Optional: timestamps of the nearest temperature reading from adjacent months.\n"
+            "# Set if the first or last hour of the month exceeds the threshold.\n"
+            "prior_temp = None\n"
+            "next_temp  = None\n\n"
+            f"temp_result = plot_station_temp('{site}', {month}, {year}, upper_threshold=temp_null_threshold)\n"
+            "hourly_max = temp_result.temperatures.resample('h').max()\n"
+            "n_over = int((hourly_max > temp_null_threshold).sum())\n"
+            'print(f"Hours exceeding {temp_null_threshold}°C: {n_over}")'
+        ),
+        nbformat.v4.new_code_cell(
+            "temp_null_lines = build_temp_null_lines(\n"
+            "    temp_result.temperatures,\n"
+            "    threshold=temp_null_threshold,\n"
+            "    prior_temp=prior_temp,\n"
+            "    next_temp=next_temp,\n"
+            ")\n"
+            'print(f"Temperature null lines: {len(temp_null_lines)}")\n'
+            "temp_null_lines"
+        ),
+
         # --- Ambient screening ---
-        nbformat.v4.new_markdown_cell("## 6. Ambient screening"),
+        nbformat.v4.new_markdown_cell("## 11. Ambient screening"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
@@ -520,34 +695,82 @@ def _generate_notebook(
             "daily_tnmhc"
         ),
 
-        # --- MDVR ---
-        nbformat.v4.new_markdown_cell("## 7. MDVR qualifier generation"),
+        # --- Reprocess Plan ---
+        nbformat.v4.new_markdown_cell("## 12. Reprocess Plan"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.qc.mdvr import (\n"
+            "from autogc_validation.reports import fill_reprocess_plan\n\n"
+            "fill_reprocess_plan(\n"
+            "    ds.data, mdvr_path, mdvr_path, year, month,\n"
+            "    overrange=overrange, daily_tnmhc=daily_tnmhc,\n"
+            ")"
+        ),
+
+        # --- MDVR ---
+        nbformat.v4.new_markdown_cell("## 13. MDVR qualifier generation"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports import (\n"
             "    build_blank_qualifier_lines,\n"
+            "    build_precision_qualifier_lines,\n"
             "    build_qc_qualifier_lines,\n"
             "    write_mdvr_to_excel,\n"
             ")\n\n"
-            "blank_quals = build_blank_qualifier_lines(ds.data, mdl_failures)\n"
+            "# Optional: timestamps of the nearest blank/QC sample from adjacent months.\n"
+            "# Set these when the first or last sample of the month fails its check so\n"
+            "# that the flagged interval extends to the correct boundary rather than the\n"
+            "# dataset edge. Leave as None if not applicable.\n"
+            "prior_blank = None  # e.g. pd.Timestamp('2026-01-31 01:00')\n"
+            "next_blank  = None  # e.g. pd.Timestamp('2026-03-01 01:00')\n"
+            "prior_cvs   = None\n"
+            "next_cvs    = None\n"
+            "prior_lcs   = None\n"
+            "next_lcs    = None\n\n"
+            "blank_quals = build_blank_qualifier_lines(\n"
+            "    ds.data, mdl_failures, threshold_failures,\n"
+            "    prior_blank=prior_blank, next_blank=next_blank,\n"
+            ")\n"
             'print(f"Blank qualifier lines: {len(blank_quals)}")\n\n'
-            "cvs_quals = build_qc_qualifier_lines(ds.data, cvs_failures, 'c')\n"
-            "lcs_quals = build_qc_qualifier_lines(ds.data, lcs_failures, 'e')\n"
-            "rts_quals = build_qc_qualifier_lines(ds.data, rts_failures, 'q')\n"
-            'print(f"QC qualifier lines — CVS: {len(cvs_quals)}, LCS: {len(lcs_quals)}, RTS: {len(rts_quals)}")'
+            "cvs_quals = build_qc_qualifier_lines(\n"
+            "    ds.data, cvs_failures, 'c', prior_qc=prior_cvs, next_qc=next_cvs,\n"
+            ")\n"
+            "lcs_quals = build_qc_qualifier_lines(\n"
+            "    ds.data, lcs_failures, 'e', prior_qc=prior_lcs, next_qc=next_lcs,\n"
+            ")\n"
+            'print(f"QC qualifier lines — CVS: {len(cvs_quals)}, LCS: {len(lcs_quals)}")\n\n'
+            "precision_quals = build_precision_qualifier_lines(\n"
+            "    ds.data, precision_failures, cvs_precision_pairs,\n"
+            "    prior_qc=prior_cvs, next_qc=next_cvs,\n"
+            ")\n"
+            'print(f"Precision qualifier lines: {len(precision_quals)}")'
         ),
-        nbformat.v4.new_markdown_cell(
-            "### Export MDVR to Excel\n\n"
-            "Uncomment and set template/output paths to export."
+        nbformat.v4.new_markdown_cell("### Export qualifiers to Excel"),
+        nbformat.v4.new_code_cell(
+            "all_quals = pd.concat(\n"
+            "    [blank_quals, cvs_quals, lcs_quals, precision_quals, temp_null_lines],\n"
+            "    ignore_index=True,\n"
+            ")\n"
+            'print(f"Total qualifier lines: {len(all_quals)}")\n'
+            "all_quals"
         ),
         nbformat.v4.new_code_cell(
-            "all_quals = pd.concat([blank_quals, cvs_quals, lcs_quals, rts_quals], ignore_index=True)\n"
-            'print(f"Total qualifier lines: {len(all_quals)}")\n'
-            "all_quals\n\n"
-            "# write_mdvr_to_excel(\n"
-            "#     all_quals,\n"
-            '#     template_path=Path(r"path/to/template.xlsx"),\n'
-            f'#     output_path=workspace_dir / "MDVR" / "{site}{yyyymm}_MDVR.xlsx",\n'
-            "# )"
+            "write_mdvr_to_excel(all_quals, mdvr_path, mdvr_path)\n"
+            f'print(f"Qualifiers written to {{mdvr_path}}")'
+        ),
+
+        # --- Monthly report ---
+        nbformat.v4.new_markdown_cell(
+            "## 14. Monthly validation report\n\n"
+            "Run this cell once you have finished reviewing the full month and "
+            "are satisfied with the data qualification.  "
+            "The generated `.qmd` file can be rendered to a self-contained HTML "
+            "report with:\n\n"
+            "```\n"
+            f"quarto render {site}{yyyymm}_report.qmd\n"
+            "```"
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports.monthly_report import generate_monthly_report\n\n"
+            f"report_path = generate_monthly_report(result, '{site}', year, month)\n"
+            f'print(f"Report template written to {{report_path}}")'
         ),
     ]
 
@@ -587,6 +810,7 @@ def _generate_checklist(
 - [ ] Query MDLs and canister concentrations
 - [ ] Run blank QC checks
 - [ ] Run recovery checks (CVS, LCS, RTS)
+- [ ] Write QC Review table to MDVR spreadsheet
 - [ ] Run ambient screening (ratios, overrange, TNMHC)
 - [ ] Generate MDVR qualifiers
 - [ ] Submit AQS files

@@ -34,16 +34,21 @@ _UNID_NAME_MAP = {
 }
 
 
-def _map_peak_name(name: str) -> int:
+def _map_peak_name(name: str) -> int | None:
     """Map a peak name string from a CDF file to an AQS code.
 
-    Handles standard compounds via the CompoundAQSCode enum and
-    unidentified peaks via the _UNID_NAME_MAP.
+    Returns None for unrecognised compounds so callers can filter them out
+    rather than failing the entire file parse.
     """
-    capitalized = name.strip().capitalize()
+    stripped = name.strip()
+    capitalized = stripped.capitalize()  # for UNID lookup only
     if capitalized in _UNID_NAME_MAP:
         return _UNID_NAME_MAP[capitalized]
-    return name_to_aqs(capitalized)
+    try:
+        return name_to_aqs(stripped)  # name_to_aqs handles first-char uppercase
+    except (KeyError, ValueError):
+        logger.warning("Unrecognised compound name in CDF file: %r", stripped)
+        return None
 
 
 class Chromatogram:

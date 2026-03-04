@@ -22,6 +22,49 @@ RECOVERY_LOWER_BOUND = 0.70
 RECOVERY_UPPER_BOUND = 1.30
 
 
+def compute_recovery(
+    qc_samples: pd.DataFrame,
+    canister_periods: pd.DataFrame,
+) -> pd.DataFrame:
+    """Compute raw recovery percentages for QC samples.
+
+    Mirrors the logic of :func:`check_qc_recovery` but returns continuous
+    float values instead of pass/fail flags.  Useful for time-series and
+    distribution plots.
+
+    Args:
+        qc_samples: Typed QC DataFrame (Dataset.cvs, Dataset.lcs, etc.).
+        canister_periods: Expected concentrations from get_canister_periods.
+
+    Returns:
+        DataFrame with 'filename' + AQS code columns containing recovery
+        percentages (observed / expected × 100).  Values are NaN where the
+        observation or expected concentration is missing or zero.
+    """
+    if qc_samples.empty:
+        return pd.DataFrame(columns=["filename"])
+
+    compound_cols = get_compound_cols(qc_samples)
+    period_indices = align_period_index(qc_samples, canister_periods)
+
+    rows = []
+    for i, (_, row) in enumerate(qc_samples.iterrows()):
+        effective_conc = canister_periods.iloc[period_indices[i]]
+        result: dict = {"filename": row["filename"]}
+        for code in compound_cols:
+            obs = row[code]
+            exp = effective_conc.get(code)
+            if pd.isna(obs) or exp is None or pd.isna(exp) or float(exp) == 0:
+                result[code] = float("nan")
+            else:
+                result[code] = float(obs) / float(exp) * 100.0
+        rows.append(result)
+
+    df = pd.DataFrame(rows, index=qc_samples.index)
+    df.index.name = "date_time"
+    return df
+
+
 def check_qc_recovery(
     qc_samples: pd.DataFrame,
     canister_periods: pd.DataFrame,
@@ -49,8 +92,9 @@ def check_qc_recovery(
             get_canister_periods.
 
     Returns:
-        Wide boolean DataFrame — 1 where recovery is outside [70%, 130%],
-        0 otherwise. Columns: filename + AQS codes. Index: date_time.
+        Wide integer DataFrame — +1 where recovery exceeded 130% (high),
+        -1 where recovery was below 70% (low), 0 for passing samples.
+        Columns: filename + AQS codes. Index: date_time.
 
     Raises:
         ValueError: If qc_samples.attrs["sample_type"] is not a recognised
@@ -89,16 +133,19 @@ def check_qc_recovery(
                 continue
 
             recovery = float(observed) / float(expected)
-            flags[code] = int(
-                recovery < RECOVERY_LOWER_BOUND or recovery > RECOVERY_UPPER_BOUND
-            )
+            if recovery < RECOVERY_LOWER_BOUND:
+                flags[code] = -1
+            elif recovery > RECOVERY_UPPER_BOUND:
+                flags[code] = 1
+            else:
+                flags[code] = 0
 
         result_rows.append(flags)
 
     result = pd.DataFrame(result_rows, index=qc_samples.index)
     result.index.name = "date_time"
 
-    n_failures = (result.drop(columns="filename") > 0).any(axis=1).sum()
+    n_failures = (result.drop(columns="filename") != 0).any(axis=1).sum()
     logger.info(
         "Recovery check (%s): %d/%d samples had compound failures",
         sample_type, n_failures, len(qc_samples),
