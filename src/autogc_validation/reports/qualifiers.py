@@ -19,6 +19,7 @@ from autogc_validation.database.enums import (
     PLOT_CODES,
     BP_CODES,
     COLUMN_CALIBRANTS,
+    NULL_CODES,
     aqs_to_name,
 )
 
@@ -472,10 +473,6 @@ def build_temp_null_lines(
     n_hours = int(fail.sum())
     logger.info("Temperature check: %d hour(s) exceeded %.1f°C", n_hours, threshold)
     return _shift_and_combine(pd.DataFrame(rows))
-
-
-# Qualifier codes that null data (written to the "Null" section of the sheet).
-_NULL_CODES = frozenset({"AS", "AE"})
 
 
 def _write_rows(ws, df: pd.DataFrame, start_row: int) -> None:

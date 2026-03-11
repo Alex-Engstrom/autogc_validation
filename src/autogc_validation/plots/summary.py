@@ -7,11 +7,18 @@ data qualification and nullification summaries, and blank TNMTC/TNMHC
 time series.
 """
 
+import calendar
+
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from autogc_validation.database.enums import CompoundAQSCode, SampleType, aqs_to_name
+from autogc_validation.database.enums import (
+    CompoundAQSCode,
+    NULL_CODES,
+    SampleType,
+    aqs_to_name,
+)
 
 _TNMHC_CODE = CompoundAQSCode.C_TNMHC.value
 _TNMTC_CODE = CompoundAQSCode.C_TNMTC.value
@@ -27,12 +34,12 @@ _AXIS_STYLE = dict(
     tickcolor="black",
 )
 
-_LAYOUT_STYLE = dict(plot_bgcolor="white", paper_bgcolor="white")
+_LAYOUT_STYLE = dict(plot_bgcolor="white", paper_bgcolor="white", font=dict(color="black"))
 
 # Human-readable labels and colours for each sample type value.
 _SAMPLE_TYPE_META: dict[str, tuple[str, str]] = {
     SampleType.AMBIENT.value:           ("Valid Ambient",   "#2196F3"),
-    SampleType.BLANK.value:             ("Field Blank",     "#FF9800"),
+    SampleType.BLANK.value:             ("Blanks",          "#FF9800"),
     SampleType.CVS.value:               ("CVS",             "#4CAF50"),
     SampleType.LCS.value:               ("LCS",             "#8BC34A"),
     SampleType.RTS.value:               ("RTS",             "#CDDC39"),
@@ -41,88 +48,94 @@ _SAMPLE_TYPE_META: dict[str, tuple[str, str]] = {
     SampleType.EXPERIMENTAL.value:      ("PT/Experimental", "#795548"),
 }
 
-# Null qualifier codes (these nullify data, unlike flag qualifiers).
-_NULL_CODES = frozenset({"AS", "AE"})
-
-
-def _expand_null_hours(null_df: pd.DataFrame) -> set[pd.Timestamp]:
-    """Expand qualifier null intervals into a set of hourly timestamps."""
-    nulled: set[pd.Timestamp] = set()
-    for _, row in null_df.iterrows():
-        try:
-            start = pd.Timestamp(f"{row['startdate']} {row['starthour']}")
-            end = pd.Timestamp(f"{row['enddate']} {row['endhour']}")
-            for ts in pd.date_range(start, end, freq="h"):
-                nulled.add(ts)
-        except Exception:
-            pass
-    return nulled
+# Reverse map: human-readable label → SampleType value string.
+_LABEL_TO_ST_VAL: dict[str, str] = {
+    label: st_val for st_val, (label, _) in _SAMPLE_TYPE_META.items()
+}
 
 
 def plot_monthly_hours_summary(
     ds,
-    all_quals: pd.DataFrame,
     sitename: str,
     year: int,
     month: int,
+    nulled_hours: int = 0,
+    overrides: dict[str, int] | None = None,
 ) -> None:
     """Plot a donut chart breaking down sample hours by type for the month.
 
     Shows valid ambient, QC standards, PT/experimental, and nulled ambient
-    hours.  Nulled ambient hours are estimated by intersecting the null
-    qualifier intervals (AS/AE codes) with ambient sample timestamps.
+    hours.
 
     Args:
-        ds: Dataset object (must have .data and .ambient already loaded).
-        all_quals: Combined qualifier DataFrame from the MDVR workflow.
-            Must have columns: CODE, startdate, starthour, enddate, endhour.
+        ds: Dataset object (must have .data already loaded).
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+        nulled_hours: Number of ambient hours nulled this month. Subtracted
+            from the ambient count and shown as a separate "Nulled Ambient"
+            slice. Default 0.
+        overrides: Optional dict mapping sample-type label strings to integer
+            counts, replacing the values derived from *ds*.  Labels must match
+            keys in _SAMPLE_TYPE_META, e.g. ``{"CVS": 4, "Blanks": 2}``.
     """
-    counts = ds.data["sample_type"].value_counts()
+    raw_counts: dict = ds.data["sample_type"].value_counts().to_dict()
 
-    # Determine nulled ambient hours.
-    null_df = all_quals[all_quals["CODE"].isin(_NULL_CODES)] if not all_quals.empty else pd.DataFrame()
-    nulled_ts = _expand_null_hours(null_df)
-    ambient_ts = set(ds.ambient.index)
-    n_nulled = len(nulled_ts & ambient_ts)
-    n_valid_ambient = counts.get(SampleType.AMBIENT.value, 0) - n_nulled
+    if overrides:
+        for label, count in overrides.items():
+            st_val = _LABEL_TO_ST_VAL.get(label)
+            if st_val is not None:
+                raw_counts[st_val] = count
+
+    n_ambient = raw_counts.get(SampleType.AMBIENT.value, 0)
+    n_valid_ambient = max(n_ambient - nulled_hours, 0)
 
     labels, values, colors = [], [], []
 
     labels.append("Valid Ambient")
-    values.append(max(n_valid_ambient, 0))
+    values.append(n_valid_ambient)
     colors.append("#2196F3")
 
-    if n_nulled > 0:
+    if nulled_hours > 0:
         labels.append("Nulled Ambient")
-        values.append(n_nulled)
+        values.append(nulled_hours)
         colors.append("#F44336")
 
     for st_val, (label, color) in _SAMPLE_TYPE_META.items():
         if st_val == SampleType.AMBIENT.value:
             continue
-        n = counts.get(st_val, 0)
+        n = raw_counts.get(st_val, 0)
         if n > 0:
             labels.append(label)
             values.append(n)
             colors.append(color)
 
+    qc_hours = sum(
+        raw_counts.get(st_val, 0)
+        for st_val in _SAMPLE_TYPE_META
+        if st_val != SampleType.AMBIENT.value
+    )
+
+    total_hours_in_month = calendar.monthrange(year, month)[1] * 24
+    n_missing = total_hours_in_month - sum(values)
+    if n_missing > 0:
+        labels.append("Missing Data")
+        values.append(n_missing)
+        colors.append("#9E9E9E")
+
     fig = go.Figure(go.Pie(
         labels=labels,
         values=values,
-        marker=dict(colors=colors, line=dict(color="white", width=2)),
+        marker=dict(line=dict(color="white", width=2)),
         hole=0.45,
-        textinfo="label+percent",
+        texttemplate="%{label}: %{value}/%{percent:.1%}",
+        textfont=dict(color="black"),
         hovertemplate="<b>%{label}</b><br>Hours: %{value}<br>%{percent}<extra></extra>",
     ))
 
-    total = sum(values)
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} Sample Hours Summary",
         annotations=[dict(
-            text=f"{total}<br>hours",
+            text=f"{total_hours_in_month}<br>hours",
             x=0.5, y=0.5,
             font_size=16,
             showarrow=False,
@@ -131,6 +144,12 @@ def plot_monthly_hours_summary(
         paper_bgcolor="white",
     )
     fig.show()
+
+    completeness_raw = n_valid_ambient / total_hours_in_month * 100
+    denominator_qc_excl = total_hours_in_month - qc_hours
+    completeness_qc_excl = (n_valid_ambient / denominator_qc_excl * 100) if denominator_qc_excl > 0 else 0.0
+    print(f"Raw Data Completeness (QC included):  {completeness_raw:.1f}%")
+    print(f"Data Completeness (QC excluded):       {completeness_qc_excl:.1f}%")
 
 
 def plot_qual_summary(
@@ -168,7 +187,6 @@ def plot_qual_summary(
     ))
 
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} Data Qualification Summary",
         xaxis_title="Number of qualifier lines",
         yaxis_title="Qualifier code",
         height=max(300, 60 * len(code_counts)),
@@ -199,7 +217,7 @@ def plot_null_summary(
         year: Year for the plot title.
         month: Month number for the plot title.
     """
-    null_df = all_quals[all_quals["CODE"].isin(_NULL_CODES)] if not all_quals.empty else pd.DataFrame()
+    null_df = all_quals[all_quals["CODE"].isin(NULL_CODES)] if not all_quals.empty else pd.DataFrame()
 
     if null_df.empty:
         print("No null qualifiers found — no nulled hours to summarise.")
@@ -229,18 +247,15 @@ def plot_null_summary(
     )
 
     labels = [f"{r['code']}: {r['reason']}" for _, r in summary.iterrows()]
-    _CODE_COLOR = {"AS": "#FF9800", "AE": "#F44336"}
 
     fig = go.Figure(go.Bar(
         x=summary["hours"].tolist(),
         y=labels,
         orientation="h",
-        marker_color=[_CODE_COLOR.get(c, "#9E9E9E") for c in summary["code"]],
         hovertemplate="<b>%{y}</b><br>Nulled ambient hours: %{x}<extra></extra>",
     ))
 
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} Data Nullification Summary",
         xaxis_title="Nulled ambient hours",
         yaxis_title="",
         height=max(300, 60 * len(summary)),
@@ -248,6 +263,60 @@ def plot_null_summary(
     )
     fig.update_xaxes(**_AXIS_STYLE)
     fig.update_yaxes(**_AXIS_STYLE)
+    fig.show()
+
+
+def plot_null_donut(
+    nulled_by_code: dict[str, int],
+    sitename: str,
+    year: int,
+    month: int,
+) -> None:
+    """Plot a donut chart of nulled ambient hours by null qualifier code.
+
+    Each slice represents one qualifier code (e.g. AS, AE) and its associated
+    nulled ambient hours. If no codes have any hours, a message is printed and
+    the function returns without plotting.
+
+    Args:
+        nulled_by_code: Mapping of qualifier code → number of nulled ambient hours.
+            Zero-valued entries are silently skipped.
+        sitename: Site name string for the plot title.
+        year: Year for the plot title.
+        month: Month number for the plot title.
+    """
+    labels, values = [], []
+    for code, hrs in nulled_by_code.items():
+        if hrs > 0:
+            labels.append(code)
+            values.append(hrs)
+
+    if not labels:
+        print("No nulled hours to plot.")
+        return
+
+    total = sum(values)
+
+    fig = go.Figure(go.Pie(
+        labels=labels,
+        values=values,
+        marker=dict(line=dict(color="white", width=2)),
+        hole=0.45,
+        texttemplate="%{label}: %{value}/%{percent:.1%}",
+        textfont=dict(color="black"),
+        hovertemplate="<b>%{label}</b><br>Hours: %{value}<br>%{percent}<extra></extra>",
+    ))
+
+    fig.update_layout(
+        annotations=[dict(
+            text=f"{total}<br>nulled",
+            x=0.5, y=0.5,
+            font_size=14,
+            showarrow=False,
+        )],
+        height=420,
+        paper_bgcolor="white",
+    )
     fig.show()
 
 
@@ -306,7 +375,6 @@ def plot_blank_totals(
         ))
 
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} Blank Total Hydrocarbons",
         xaxis_title="Date",
         yaxis_title="Concentration (ppbC)",
         height=420,

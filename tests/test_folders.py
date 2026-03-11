@@ -29,9 +29,10 @@ class TestGenerateMonthlyFolderStructure:
         assert result.name == "RB202601v1"
         assert (result / "AQS").is_dir()
         assert (result / "FINAL").is_dir()
-        assert (result / "MDVR").is_dir()
-        assert (result / "Original").is_dir()
-        assert (result / "temp").is_dir()
+        assert (result / "OPERATION DOCS").is_dir()
+        assert (result / "VALIDATION DOCS").is_dir()
+        assert (result / "ORIGINAL").is_dir()
+        assert (result / "TEMP").is_dir()
 
     def test_final_contains_weeks(self, tmp_path):
         result = generate_monthly_folder_structure(tmp_path, "RB", 2026, 1)

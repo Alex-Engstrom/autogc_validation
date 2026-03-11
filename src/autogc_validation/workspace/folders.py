@@ -4,6 +4,7 @@ Monthly validation folder structure creation.
 """
 
 import logging
+import shutil
 from pathlib import Path
 from typing import Union
 
@@ -48,9 +49,10 @@ def generate_monthly_folder_structure(
         │   ├── week 2/
         │   ├── week 3/
         │   └── week 4/
-        ├── MDVR/
-        ├── Original/
-        └── temp/
+        ├── ORIGINAL/
+        ├── OPERATION DOCS/
+        ├── VALIDATION DOCS/
+        └── TEMP/
 
     Args:
         root_dir: Parent directory for the monthly folder.
@@ -70,7 +72,7 @@ def generate_monthly_folder_structure(
     base_dir = root_dir / f"{prefix}v{version}"
     base_dir.mkdir()
 
-    subdirs = ["AQS", "FINAL", "MDVR", "Original", "temp"]
+    subdirs = ["AQS", "FINAL", "ORIGINAL", "OPERATION DOCS", "VALIDATION DOCS", "TEMP"]
     weeks = [f"week {i}" for i in range(1, 5)]
 
     logger.info("Creating folder structure in %s", base_dir)
@@ -84,3 +86,68 @@ def generate_monthly_folder_structure(
 
     logger.info("Folder structure created successfully")
     return base_dir
+
+
+_TRANSFER_SUBDIRS = {"AQS", "FINAL", "ORIGINAL", "OPERATION DOCS", "VALIDATION DOCS"}
+
+
+def transfer_to_network(
+    workspace_dir: Union[str, Path],
+    network_root: Union[str, Path],
+) -> Path:
+    """Copy a monthly validation folder to a network drive.
+
+    Only the subfolders AQS, FINAL, ORIGINAL, OPERATION DOCS, and
+    VALIDATION DOCS are transferred — TEMP is excluded.  The destination
+    folder is created under *network_root* with the same name as the
+    source (e.g. ``EQ202503v1``).  Raises ``FileExistsError`` if the
+    destination already exists.
+
+    Args:
+        workspace_dir: Path to the local monthly validation folder
+            (e.g. ``/validation/EQ/EQ202503v1``).
+        network_root: Parent directory on the network drive where the
+            folder should be created.
+
+    Returns:
+        Path to the created destination folder on the network.
+
+    Raises:
+        FileNotFoundError: If *workspace_dir* does not exist.
+        FileExistsError: If the destination folder already exists.
+    """
+    workspace_dir = Path(workspace_dir)
+    network_root = Path(network_root)
+
+    if not workspace_dir.exists():
+        raise FileNotFoundError(f"Workspace directory not found: {workspace_dir}")
+
+    dest = network_root / workspace_dir.name
+    if dest.exists():
+        raise FileExistsError(
+            f"Destination already exists: {dest}\n"
+            "Delete it manually before transferring."
+        )
+
+    # Pre-flight: confirm nothing under network_root would be touched.
+    for subdir in _TRANSFER_SUBDIRS:
+        dest_subdir = dest / subdir
+        if dest_subdir.exists():
+            raise FileExistsError(
+                f"Destination subfolder already exists: {dest_subdir}\n"
+                "Delete it manually before transferring."
+            )
+
+    dest.mkdir(parents=True)
+    logger.info("Transferring %s → %s", workspace_dir.name, dest)
+
+    for subdir in _TRANSFER_SUBDIRS:
+        src = workspace_dir / subdir
+        if not src.exists():
+            logger.warning("Skipping missing subfolder: %s", subdir)
+            continue
+        shutil.copytree(src, dest / subdir, dirs_exist_ok=False)
+        logger.info("Copied %s", subdir)
+
+    logger.info("Transfer complete: %s", dest)
+    return dest

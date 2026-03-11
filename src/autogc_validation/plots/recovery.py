@@ -43,7 +43,7 @@ _AXIS_STYLE = dict(
     tickcolor="black",
 )
 
-_LAYOUT_STYLE = dict(plot_bgcolor="white", paper_bgcolor="white")
+_LAYOUT_STYLE = dict(plot_bgcolor="white", paper_bgcolor="white", font=dict(color="black"))
 
 
 def _apply_theme(fig: go.Figure) -> None:
@@ -174,10 +174,94 @@ def plot_recovery_timeseries(
 
     fig.update_xaxes(title_text="Date", row=n_panels, col=1)
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} {qc_type} Recovery — Key Compounds",
         height=380 * n_panels,
         hovermode="closest",
     )
+    _apply_theme(fig)
+    fig.show()
+
+
+def plot_combined_calibrant_timeseries(
+    qc_data: list[tuple[str, pd.DataFrame, pd.DataFrame]],
+    sitename: str,
+    year: int,
+    month: int,
+) -> None:
+    """Plot PLOT and BP calibrant recovery for CVS, LCS, and RTS on one figure.
+
+    Produces a two-panel figure (PLOT column / BP column).  Within each panel,
+    one trace per QC type shows recovery of the column calibrant (Propane for
+    PLOT, Toluene for BP) over the month.  Reference lines at 70 %, 100 %, and
+    130 % are drawn on every panel.
+
+    Args:
+        qc_data: List of (label, qc_df, canister_periods) tuples, one per QC
+            type.  *label* is the series name shown in the legend (e.g. 'CVS').
+        sitename: Site name string (unused in title, kept for API consistency).
+        year: Year (unused in title, kept for API consistency).
+        month: Month number (unused in title, kept for API consistency).
+    """
+    _PLOT_CALIBRANT_NAME = "Propane"
+    _BP_CALIBRANT_NAME   = "Toluene"
+    _QC_COLORS = {"CVS": "#1f77b4", "LCS": "#2ca02c", "RTS": "#9467bd"}
+
+    try:
+        plot_cal_code = name_to_aqs(_PLOT_CALIBRANT_NAME)
+        bp_cal_code   = name_to_aqs(_BP_CALIBRANT_NAME)
+    except (KeyError, ValueError) as exc:
+        print(f"Could not resolve calibrant AQS codes: {exc}")
+        return
+
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        subplot_titles=["PLOT column — Propane", "BP column — Toluene"],
+        vertical_spacing=0.12,
+    )
+
+    for label, qc_df, canister_periods in qc_data:
+        if qc_df.empty:
+            continue
+        recovery_df = compute_recovery(qc_df, canister_periods)
+        color = _QC_COLORS.get(label, "#7f7f7f")
+        timestamps = list(recovery_df.index)
+
+        for row, code, cal_name in [
+            (1, plot_cal_code, _PLOT_CALIBRANT_NAME),
+            (2, bp_cal_code,   _BP_CALIBRANT_NAME),
+        ]:
+            y = recovery_df[code].tolist() if code in recovery_df.columns else [None] * len(timestamps)
+            fig.add_trace(
+                go.Scatter(
+                    x=timestamps,
+                    y=y,
+                    mode="lines+markers",
+                    name=label,
+                    line=dict(color=color, width=1.8),
+                    marker=dict(size=7),
+                    legendgroup=label,
+                    showlegend=(row == 1),
+                    hovertemplate=(
+                        f"<b>{label} — {cal_name}</b><br>"
+                        "Date: %{x|%Y-%m-%d %H:%M}<br>"
+                        "Recovery: %{y:.1f}%<extra></extra>"
+                    ),
+                ),
+                row=row, col=1,
+            )
+
+    for row in (1, 2):
+        fig.add_hline(y=100, line_color="black", line_width=0.8, row=row, col=1)
+        for bound in (_RECOVERY_LOWER, _RECOVERY_UPPER):
+            fig.add_hline(y=bound, line_color="red", line_width=0.8,
+                          line_dash="dash", row=row, col=1)
+        fig.add_hrect(y0=_RECOVERY_LOWER, y1=_RECOVERY_UPPER,
+                      fillcolor="green", opacity=0.05,
+                      layer="below", line_width=0, row=row, col=1)
+        fig.update_yaxes(title_text="Recovery (%)", row=row, col=1)
+
+    fig.update_xaxes(title_text="Date", row=2, col=1)
+    fig.update_layout(height=600, hovermode="closest")
     _apply_theme(fig)
     fig.show()
 
@@ -240,14 +324,20 @@ def plot_recovery_boxplot(
     fig.add_hrect(y0=_RECOVERY_LOWER, y1=_RECOVERY_UPPER,
                   fillcolor="green", opacity=0.05, layer="below", line_width=0)
 
+    all_names = [aqs_to_name(c) for c in ordered]
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} {qc_type} Recovery Distribution",
         yaxis_title="Recovery (%)",
         xaxis_title="Compound (PLOT = blue, BP = orange)",
         height=500,
         showlegend=False,
         **_LAYOUT_STYLE,
     )
-    fig.update_xaxes(**_AXIS_STYLE)
+    fig.update_xaxes(
+        **_AXIS_STYLE,
+        tickmode="array",
+        tickvals=all_names,
+        ticktext=all_names,
+        tickangle=90,
+    )
     fig.update_yaxes(**_AXIS_STYLE)
     fig.show()

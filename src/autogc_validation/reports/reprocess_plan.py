@@ -40,6 +40,15 @@ def _solid(argb: str) -> PatternFill:
     return PatternFill("solid", fgColor=argb)
 
 
+def _cell_has_fill(cell, fill: PatternFill) -> bool:
+    """Return True if the cell already has this exact fill applied."""
+    cf = cell.fill
+    return (
+        cf.patternType == fill.patternType
+        and cf.fgColor.rgb == fill.fgColor.rgb
+    )
+
+
 _FILLS: dict[SampleType, PatternFill] = {
     SampleType.CVS:               _solid("FF0070C0"),  # blue
     SampleType.BLANK:             _solid("FF00B0F0"),  # light blue
@@ -268,14 +277,18 @@ def fill_reprocess_plan(
             if (day, hour) not in existing_hours:
                 col = col_start + hour
                 for offset in _COLOR_OFFSETS:
-                    ws.cell(row=cp_row + offset, column=col).fill = _MISSING_FILL
+                    c = ws.cell(row=cp_row + offset, column=col)
+                    if not _cell_has_fill(c, _MISSING_FILL):
+                        c.fill = _MISSING_FILL
                 missing_count += 1
 
         # Step 2 — yellow header rows for check hours.
         for _, hour in [(d, h) for d, h in yellow_full if d == day]:
             col = col_start + hour
             for offset in _HEADER_OFFSETS:
-                ws.cell(row=cp_row + offset, column=col).fill = _YELLOW_FILL
+                c = ws.cell(row=cp_row + offset, column=col)
+                if not _cell_has_fill(c, _YELLOW_FILL):
+                    c.fill = _YELLOW_FILL
 
         # Step 3 — sample-type colour on data rows + invalid text.
         for (d, hour), sample_type in qc_hours.items():
@@ -285,18 +298,24 @@ def fill_reprocess_plan(
             fill         = _FILLS[sample_type]
             invalid_text = _INVALID_TEXT[sample_type]
             for offset in _COLOR_OFFSETS:
-                ws.cell(row=cp_row + offset, column=col).fill = fill
-            ws.cell(row=cp_row + _INVALID_PLOT_OFFSET, column=col).value = invalid_text
-            ws.cell(row=cp_row + _INVALID_BP_OFFSET,   column=col).value = invalid_text
+                c = ws.cell(row=cp_row + offset, column=col)
+                if not _cell_has_fill(c, fill):
+                    c.fill = fill
+            for offset in (_INVALID_PLOT_OFFSET, _INVALID_BP_OFFSET):
+                c = ws.cell(row=cp_row + offset, column=col)
+                if c.value != invalid_text:
+                    c.value = invalid_text
             sample_count += 1
 
         # Step 4 — RPO rows: cyan "RP" across all 24 hours (applied last).
         for hour in range(24):
             col = col_start + hour
             for offset in _RPO_OFFSETS:
-                cell = ws.cell(row=cp_row + offset, column=col)
-                cell.fill  = _RPO_FILL
-                cell.value = "RP"
+                c = ws.cell(row=cp_row + offset, column=col)
+                if not _cell_has_fill(c, _RPO_FILL):
+                    c.fill = _RPO_FILL
+                if c.value != "RP":
+                    c.value = "RP"
 
         # Notes cell — overrange and TNMHC summary for this day.
         notes_text = _format_notes(day, overrange_by_day, tnmhc_by_day)

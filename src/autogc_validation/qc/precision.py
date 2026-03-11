@@ -17,8 +17,9 @@ _PRECISION_THRESHOLD = 25.0  # percent
 
 def check_cvs_precision(
     cvs_df: pd.DataFrame,
+    canister_periods: pd.DataFrame,
     threshold: float = _PRECISION_THRESHOLD,
-    max_gap_hours: float = 1.0,
+    max_gap_hours: float = 1.1,
 ) -> tuple[pd.DataFrame, list[tuple[pd.Timestamp, pd.Timestamp]]]:
     """Find back-to-back CVS runs and flag compounds with RPD > threshold.
 
@@ -32,6 +33,9 @@ def check_cvs_precision(
 
         RPD = |A − B| / ((A + B) / 2) × 100 %
 
+    Only compounds present in the CVS canister (i.e. with a non-NaN,
+    non-zero expected concentration in *canister_periods*) are evaluated.
+
     A compound is flagged (value = 1) when its RPD exceeds the threshold.
     Compounds where either sample is NaN, or where both values are zero,
     are left as 0 (not flagged).
@@ -39,9 +43,13 @@ def check_cvs_precision(
     Args:
         cvs_df: Dataset.cvs DataFrame — DatetimeIndex, integer AQS code
             columns, 'sample_type', and 'filename' columns.
+        canister_periods: Expected concentrations from get_canister_periods
+            for the CVS canister. Used to determine which compounds are
+            included in the standard.
         threshold: RPD threshold in percent. Default 25.0.
         max_gap_hours: Maximum hours between consecutive CVS samples to be
-            considered back-to-back. Default 1.0 (one hourly sample period).
+            considered back-to-back. Default 1.1 — slightly above one hour to
+            accommodate sub-minute timestamp variation in the CDF files.
 
     Returns:
         Tuple of:
@@ -51,7 +59,21 @@ def check_cvs_precision(
             pairs: List of (t1, t2) Timestamp tuples, one per back-to-back
                 pair, in chronological order.
     """
-    compound_cols = [c for c in cvs_df.columns if isinstance(c, int)]
+    all_compound_cols = [c for c in cvs_df.columns if isinstance(c, int)]
+
+    # Restrict to compounds that have a non-NaN, non-zero expected
+    # concentration in at least one canister period.
+    canister_int_cols = [c for c in canister_periods.columns if isinstance(c, int)]
+    canister_codes = {
+        c for c in canister_int_cols
+        if canister_periods[c].notna().any() and (canister_periods[c] != 0).any()
+    }
+    compound_cols = [c for c in all_compound_cols if c in canister_codes]
+
+    logger.debug(
+        "CVS precision: checking %d of %d compounds (canister subset)",
+        len(compound_cols), len(all_compound_cols),
+    )
     timestamps = cvs_df.index.sort_values().tolist()
 
     # Identify back-to-back pairs.  Consume both timestamps when a pair is

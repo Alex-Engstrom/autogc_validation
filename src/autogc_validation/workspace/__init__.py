@@ -157,7 +157,7 @@ def create_workspace(
     """Phase 1: Create the monthly folder structure.
 
     After this returns, copy zipped data files into
-    ``result.base_dir / "temp"`` before calling :func:`process_workspace`.
+    ``result.base_dir / "TEMP"`` before calling :func:`process_workspace`.
 
     Args:
         root_dir: Parent directory for the monthly folder.
@@ -217,8 +217,8 @@ def process_workspace(
         result.save()
 
     base_dir = result.base_dir
-    temp_dir = base_dir / "temp"
-    original_dir = base_dir / "Original"
+    temp_dir = base_dir / "TEMP"
+    original_dir = base_dir / "ORIGINAL"
     final_dir = base_dir / "FINAL"
 
     # Step 2: Unzip files in temp/
@@ -311,7 +311,7 @@ def process_workspace(
     if "convert_documents" not in result.steps_completed or force:
         logger.info("Step 6: Converting documents in temp/ to PDF")
         try:
-            documents_dir = base_dir / "MDVR"
+            documents_dir = base_dir / "OPERATION DOCS"
             converted = convert_folder_contents_to_pdf(temp_dir, documents_dir)
             result.documents = converted
             _record_step("convert_documents")
@@ -415,7 +415,7 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell(
             "## 1. Copy and process files\n\n"
             "Copy zipped `.zip` files from the network location into "
-            f"`{Path(workspace_dir).as_posix()}/temp`, then run the cell below."
+            f"`{Path(workspace_dir).as_posix()}/TEMP`, then run the cell below."
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace import process_workspace\n\n"
@@ -483,10 +483,12 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("## 5. Weekly method optimization"),
 
         nbformat.v4.new_markdown_cell("### Week 1"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
             "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
             f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
         ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
         nbformat.v4.new_code_cell(
             "rt_w1   = ds.rt.loc[weeks[1][0]:weeks[1][1]]\n"
             "data_w1 = ds.data.loc[weeks[1][0]:weeks[1][1]]\n"
@@ -496,12 +498,19 @@ def _generate_notebook(
             'print(f"Week 1 RT outliers: {len(rt_outliers_w1)}")\n'
             "rt_outliers_w1"
         ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+                                  'week_folder = workspace_dir / "FINAL" / "week 1"\n'
+                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
 
         nbformat.v4.new_markdown_cell("### Week 2"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
             "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
             f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
         ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
         nbformat.v4.new_code_cell(
             "rt_w2   = ds.rt.loc[weeks[2][0]:weeks[2][1]]\n"
             "data_w2 = ds.data.loc[weeks[2][0]:weeks[2][1]]\n"
@@ -511,12 +520,19 @@ def _generate_notebook(
             'print(f"Week 2 RT outliers: {len(rt_outliers_w2)}")\n'
             "rt_outliers_w2"
         ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+                                  'week_folder = workspace_dir / "FINAL" / "week 2"\n'
+                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
 
         nbformat.v4.new_markdown_cell("### Week 3"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
             "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
             f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
         ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
         nbformat.v4.new_code_cell(
             "rt_w3   = ds.rt.loc[weeks[3][0]:weeks[3][1]]\n"
             "data_w3 = ds.data.loc[weeks[3][0]:weeks[3][1]]\n"
@@ -526,12 +542,19 @@ def _generate_notebook(
             'print(f"Week 3 RT outliers: {len(rt_outliers_w3)}")\n'
             "rt_outliers_w3"
         ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+                                  'week_folder = workspace_dir / "FINAL" / "week 3"\n'
+                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
 
         nbformat.v4.new_markdown_cell("### Week 4"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
             "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
             f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
         ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
         nbformat.v4.new_code_cell(
             "rt_w4   = ds.rt.loc[weeks[4][0]:weeks[4][1]]\n"
             "data_w4 = ds.data.loc[weeks[4][0]:weeks[4][1]]\n"
@@ -541,6 +564,11 @@ def _generate_notebook(
             'print(f"Week 4 RT outliers: {len(rt_outliers_w4)}")\n'
             "rt_outliers_w4"
         ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+                                  'week_folder = workspace_dir / "FINAL" / "week 4"\n'
+                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
 
         # --- Query MDL and canister periods ---
         nbformat.v4.new_markdown_cell("## 6. Query MDL and canister concentration periods"),
@@ -596,7 +624,7 @@ def _generate_notebook(
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.precision import check_cvs_precision\n\n"
-            "precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs)\n"
+            "precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs, cvs_periods)\n"
             f'print(f"CVS precision pairs found: {{len(cvs_precision_pairs)}}")\n\n'
             "compound_cols_p = [c for c in precision_failures.columns if isinstance(c, int)]\n"
             "for ts, row in precision_failures.iterrows():\n"
@@ -620,19 +648,19 @@ def _generate_notebook(
             "    build_blank_qc_table, build_precision_qc_table,\n"
             "    build_recovery_qc_table, write_qc_table_to_excel,\n"
             ")\n\n"
-            f'mdvr_path = workspace_dir / "MDVR" / "{site}{yyyymm}_MDVR.xlsx"\n\n'
+            f'mdvr_path = workspace_dir / "VALIDATION DOCS" / "{site}{yyyymm}_MDVR.xlsx"\n\n'
             "# Adjust these start rows to match the merged-cell ranges in the MDVR template.\n"
             "blank_start_row     = 73\n"
             "cvs_start_row       = 22\n"
             "lcs_start_row       = 15\n"
             "rts_start_row       = 7\n"
-            "precision_start_row = 7\n\n"
+            "precision_start_row = 62\n\n"
             "blank_table     = build_blank_qc_table(mdl_failures, threshold_failures)\n"
             "cvs_table       = build_recovery_qc_table(cvs_failures, 'CVS')\n"
             "lcs_table       = build_recovery_qc_table(lcs_failures, 'LCS')\n"
             "rts_table       = build_recovery_qc_table(rts_failures, 'RTS')\n"
             "precision_table = build_precision_qc_table(precision_failures)\n\n"
-            "write_qc_table_to_excel(blank_table,     mdvr_path, mdvr_path, 'Field Blank',    blank_start_row)\n"
+            "write_qc_table_to_excel(blank_table,     mdvr_path, mdvr_path, 'Blanks',         blank_start_row)\n"
             "write_qc_table_to_excel(cvs_table,       mdvr_path, mdvr_path, 'CVS',            cvs_start_row)\n"
             "write_qc_table_to_excel(lcs_table,       mdvr_path, mdvr_path, 'LCS',            lcs_start_row)\n"
             "write_qc_table_to_excel(rts_table,       mdvr_path, mdvr_path, 'RTS',            rts_start_row)\n"
@@ -756,21 +784,55 @@ def _generate_notebook(
             f'print(f"Qualifiers written to {{mdvr_path}}")'
         ),
 
-        # --- Monthly report ---
+        # --- Monthly case narrative ---
         nbformat.v4.new_markdown_cell(
-            "## 14. Monthly validation report\n\n"
+            "## 14. Monthly case narrative\n\n"
             "Run this cell once you have finished reviewing the full month and "
             "are satisfied with the data qualification.  "
-            "The generated `.qmd` file can be rendered to a self-contained HTML "
-            "report with:\n\n"
+            "The generated `.qmd` file renders to both a self-contained HTML report "
+            "and a Word document. Word output requires `kaleido` (`pip install kaleido`) "
+            "and must be rendered from a **non-elevated** shell (not Run as Administrator).\n\n"
             "```\n"
-            f"quarto render {site}{yyyymm}_report.qmd\n"
+            f"quarto render VALIDATION\\ DOCS/{site}{yyyymm}_case_narrative.qmd\n"
             "```"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports.monthly_report import generate_monthly_report\n\n"
-            f"report_path = generate_monthly_report(result, '{site}', year, month)\n"
-            f'print(f"Report template written to {{report_path}}")'
+            "# Set to True when ready to generate the case narrative QMD.\n"
+            "_GENERATE = False\n\n"
+            "if _GENERATE:\n"
+            f"    qmd_path = generate_monthly_report(result, '{site}', year, month)\n"
+            f'    print(f"Case narrative written to {{qmd_path}}")\n'
+            "else:\n"
+            '    print("Skipped. Set _GENERATE = True to run.")'
+        ),
+        nbformat.v4.new_markdown_cell(
+            "Review and edit the `.qmd` file above before rendering. "
+            "When satisfied, run the cell below to render to HTML and Word."
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports.monthly_report import render_monthly_report\n\n"
+            "# Set to True when ready to render. Requires _GENERATE to have been run first.\n"
+            "_RENDER = False\n\n"
+            "if _RENDER:\n"
+            f"    docx_path = render_monthly_report(qmd_path, '{site}', year, month)\n"
+            f'    print(f"Word document: {{docx_path}}")\n'
+            "else:\n"
+            '    print("Skipped. Set _RENDER = True to run.")'
+        ),
+
+        # --- Transfer to network ---
+        nbformat.v4.new_markdown_cell(
+            "## 15. Transfer to network\n\n"
+            "Copies AQS, FINAL, ORIGINAL, OPERATION DOCS, and VALIDATION DOCS "
+            "to the network drive. The destination folder must not already exist — "
+            "delete it manually before re-running if you need to overwrite a previous transfer."
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.workspace.folders import transfer_to_network\n\n"
+            "network_root = Path(r\"\")  # ← set network drive path\n\n"
+            "dest = transfer_to_network(workspace_dir, network_root)\n"
+            'print(f"Transferred to {dest}")'
         ),
     ]
 
@@ -853,7 +915,8 @@ def _copy_mdvr_template(
     """Copy the site MDVR template into the workspace MDVR folder.
 
     Looks for ``templates/mdvr/{site}_MDVR_template.xlsx`` in the project
-    root. Logs a warning if the template does not exist rather than raising.
+    root and copies it to the VALIDATION DOCS folder. Logs a warning if the
+    template does not exist rather than raising.
     """
     yyyymm = f"{year}{month:02d}"
     template_path = project_dir / "templates" / "mdvr" / f"{site}_MDVR_template.xlsx"
@@ -862,7 +925,7 @@ def _copy_mdvr_template(
         logger.warning("MDVR template not found for site %s: %s", site, template_path)
         return
 
-    dest = result.base_dir / "MDVR" / f"{site}{yyyymm}_MDVR.xlsx"
+    dest = result.base_dir / "VALIDATION DOCS" / f"{site}{yyyymm}_MDVR.xlsx"
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(template_path, dest)
     logger.info("Copied MDVR template to %s", dest)

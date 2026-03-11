@@ -168,7 +168,6 @@ def plot_qc_recovery(
 
     fig.update_xaxes(title_text="Date", row=n_panels, col=1)
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} {qc_type} Recovery",
         height=420 * n_panels,
         hovermode="closest",
         legend=dict(tracegroupgap=0),
@@ -260,7 +259,6 @@ def plot_blank_concentrations(
     fig.update_yaxes(title_text="Concentration (ppbC)", secondary_y=False)
     fig.update_xaxes(title_text="Date")
     fig.update_layout(
-        title=f"{sitename} {year}-{month:02d} Blank Concentrations — compounds above MDL",
         height=500,
         hovermode="closest",
     )

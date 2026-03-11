@@ -126,10 +126,6 @@ def plot_rt(
             jitter=0.3, legend=True,
         )
         plt.xticks(rotation=90)
-        plt.title(
-            f"{sitename} {year}-{month:02d} "
-            f"Retention Time Distributions — {sampletype}"
-        )
         plt.legend(
             title="Concentration Percentile",
             bbox_to_anchor=(1.05, 1),

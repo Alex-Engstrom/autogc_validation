@@ -27,7 +27,7 @@ format:
   html:
     embed-resources: true
     toc: true
-    toc-depth: 2
+    toc-depth: 3
     theme: flatly
 execute:
   echo: false
@@ -40,6 +40,9 @@ jupyter: python3
 _SETUP_CELL = '''\
 ```{{python}}
 #| label: setup
+import plotly.io as pio
+pio.renderers.default = "plotly_mimetype+png"
+
 import pandas as pd
 from pathlib import Path
 
@@ -81,7 +84,7 @@ mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)
 cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)
 lcs_failures = check_qc_recovery(ds.lcs, lcs_periods)
 rts_failures = check_qc_recovery(ds.rts, rts_periods)
-precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs)
+precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs, cvs_periods)
 
 # ── Qualifier lines ────────────────────────────────────────────────────────────
 blank_quals     = build_blank_qualifier_lines(ds.data, mdl_failures, threshold_failures)
@@ -96,6 +99,7 @@ all_quals = pd.concat(
 ```
 '''
 
+# Section with a figure (has #| label and #| fig-cap).
 _SECTION_TEMPLATE = """\
 ## {heading}
 
@@ -109,86 +113,234 @@ _SECTION_TEMPLATE = """\
 
 """
 
+# Section with code output but no figure label/caption (e.g. text summaries).
+_CODE_SECTION_TEMPLATE = """\
+## {heading}
+
+{description}
+
+```{{python}}
+{code}
+```
+
+"""
+
+
+def _build_section(section: dict) -> str:
+    """Build a section string from a section dict.
+
+    The dict may contain:
+      heading, description — required
+      level                — heading level (default 2 → ##, use 3 for ###)
+      label, caption, code — for figure sections
+      code (no label)      — for code-output sections
+      pre_extra            — raw Quarto markdown inserted between description and code block
+      extra                — raw Quarto markdown appended after the main block
+    """
+    code = section.get("code")
+    pre_extra = section.get("pre_extra", "")
+    extra = section.get("extra", "")
+    hashes = "#" * section.get("level", 2)
+    heading_line = f"{hashes} {section['heading']}"
+    description = section["description"]
+    pre = f"{pre_extra}\n\n" if pre_extra else ""
+
+    if code is None:
+        s = f"{heading_line}\n\n{description}\n\n"
+    elif section.get("label"):
+        s = (
+            f"{heading_line}\n\n"
+            f"{description}\n\n"
+            f"{pre}"
+            f"```{{python}}\n"
+            f"#| label: {section['label']}\n"
+            f"#| fig-cap: \"{section['caption']}\"\n"
+            f"{code}\n"
+            f"```\n\n"
+        )
+    else:
+        s = (
+            f"{heading_line}\n\n"
+            f"{description}\n\n"
+            f"{pre}"
+            f"```{{python}}\n"
+            f"{code}\n"
+            f"```\n\n"
+        )
+
+    if extra:
+        s += extra + "\n\n"
+    return s
+
+
+_BLANK_BULLET_EXTRA = (
+    "\n```{python}\n"
+    "from IPython.display import display, Markdown\n"
+    "from autogc_validation.database.enums import aqs_to_name\n\n"
+    "bl_compound_cols = [c for c in mdl_failures.columns if isinstance(c, int)]\n"
+    "bl_lines = []\n"
+    "for c in bl_compound_cols:\n"
+    "    mdl_n    = int((mdl_failures[c] == 1).sum())\n"
+    "    thresh_n = int((threshold_failures[c] == 1).sum()) if c in threshold_failures.columns else 0\n"
+    "    if mdl_n > 0 or thresh_n > 0:\n"
+    "        pl_m  = 's' if mdl_n != 1 else ''\n"
+    "        pl_t  = 's' if thresh_n != 1 else ''\n"
+    "        cname = aqs_to_name(c)\n"
+    "        bl_lines.append(f'- **{cname}**: {mdl_n} MDL exceedance{pl_m}, {thresh_n} \u00d7 0.5\u00a0ppbC exceedance{pl_t}')\n"
+    "if bl_lines:\n"
+    '    display(Markdown("Blank failures for the month:\\n\\n" + "\\n".join(bl_lines)))\n'
+    "else:\n"
+    '    display(Markdown("No blank MDL or threshold exceedances this month."))\n'
+    "```\n"
+)
+
+_CVS_BULLET_EXTRA = (
+    "\n```{python}\n"
+    "from IPython.display import display, Markdown\n"
+    "from autogc_validation.database.enums import aqs_to_name\n\n"
+    "cvs_cmpd_cols = [c for c in cvs_failures.columns if isinstance(c, int)]\n"
+    "cvs_lines = []\n"
+    "for c in cvs_cmpd_cols:\n"
+    "    n = int((cvs_failures[c] != 0).sum())\n"
+    "    if n > 0:\n"
+    "        cvs_lines.append(f'- **{aqs_to_name(c)}**: {n} out of range result{\"s\" if n != 1 else \"\"}')\n"
+    "if cvs_lines:\n"
+    '    display(Markdown("Compounds with CVS failures during the month:\\n\\n" + "\\n".join(cvs_lines)))\n'
+    "else:\n"
+    '    display(Markdown("No CVS recovery failures this month."))\n'
+    "```\n"
+)
+
+_LCS_BULLET_EXTRA = (
+    "\n```{python}\n"
+    "from IPython.display import display, Markdown\n"
+    "from autogc_validation.database.enums import aqs_to_name\n\n"
+    "lcs_cmpd_cols = [c for c in lcs_failures.columns if isinstance(c, int)]\n"
+    "lcs_lines = []\n"
+    "for c in lcs_cmpd_cols:\n"
+    "    n = int((lcs_failures[c] != 0).sum())\n"
+    "    if n > 0:\n"
+    "        lcs_lines.append(f'- **{aqs_to_name(c)}**: {n} out of range result{\"s\" if n != 1 else \"\"}')\n"
+    "if lcs_lines:\n"
+    '    display(Markdown("Compounds with LCS failures during the month:\\n\\n" + "\\n".join(lcs_lines)))\n'
+    "else:\n"
+    '    display(Markdown("No LCS recovery failures this month."))\n'
+    "```\n"
+)
+
+_MDL_TEXT_CODE = (
+    "from IPython.display import display, Markdown\n\n"
+    "mdl_idx = mdl_periods.index.sort_values()\n"
+    "if len(mdl_idx) == 1:\n"
+    "    start = mdl_idx[0]\n"
+    "    display(Markdown(f'MDLs collected on {start.strftime(\"%Y-%m-%d\")} were applied for the full month.'))\n"
+    "else:\n"
+    "    lines = []\n"
+    "    for i, start in enumerate(mdl_idx):\n"
+    "        if i + 1 < len(mdl_idx):\n"
+    "            end_ts = mdl_idx[i + 1] - pd.Timedelta(hours=1)\n"
+    "            lines.append(f'MDLs collected on {start.strftime(\"%Y-%m-%d\")} were applied through {end_ts.strftime(\"%Y-%m-%d\")}.')\n"
+    "        else:\n"
+    "            lines.append(f'New MDLs collected on {start.strftime(\"%Y-%m-%d\")} were applied through end of month.')\n"
+    "    display(Markdown('  \\n'.join(lines)))\n"
+)
+
 _SECTIONS = [
     dict(
         heading="Monthly Summary",
-        description=(
-            "Breakdown of all sample hours collected during the month. "
-            "Valid ambient hours exclude samples nulled by data qualification "
-            "codes AS (concentration above threshold) and AE (equipment malfunction). "
-            "QC standards (blanks, CVS, LCS, RTS) and PT/experimental runs are "
-            "shown separately."
+        description=(" "
         ),
         label="fig-monthly-summary",
-        caption="Monthly sample hours breakdown.",
+        caption= "Breakdown of all sample hours collected during the month."
+        "Valid ambient hours exclude nulled ambient samples"
+        "QC standards (blanks, CVS, LCS, RTS) and PT/experimental runs are "
+        "shown separately.",
         code=(
-            "from autogc_validation.plots.summary import plot_monthly_hours_summary\n"
-            "plot_monthly_hours_summary(ds, all_quals, sitename, year, month)"
+            "from autogc_validation.plots.summary import plot_monthly_hours_summary\n\n"
+            "# ── Enter total nulled hours manually ─────────────────────────────────\n"
+            "nulled_hours = 0  # ← update this value\n\n"
+            "# ── Optional: override sample-type counts from the dataset ────────────\n"
+            "# overrides = {'CVS': 4, 'Blanks': 2}  # label strings from _SAMPLE_TYPE_META\n\n"
+            "plot_monthly_hours_summary(ds, sitename, year, month, nulled_hours=nulled_hours)\n"
+            "# plot_monthly_hours_summary(ds, sitename, year, month, nulled_hours=nulled_hours, overrides=overrides)"
+        ),
+    ),
+    dict(
+        heading="Data Nullification Summary",
+        description=(""
+            
+        ),
+        label="fig-null-donut",
+        caption="Ambient hours nulled during the month, broken down by nullification code.",
+        code=(
+            "import calendar\n"
+            "from autogc_validation.plots.summary import plot_null_donut\n\n"
+            "# ── Enter nulled hours by qualifier code ──────────────────────────────\n"
+            "# Add or remove codes as needed. See QUALIFIER_CODES for valid null codes.\n"
+            "nulled_hours_by_code = {\n"
+            '    "AE": 0,\n'
+            '    "AS": 0,\n'
+            "}\n\n"
+            "# ── Consistency check against Monthly Summary ─────────────────────────\n"
+            "total_hours_in_month = calendar.monthrange(year, month)[1] * 24\n"
+            "n_missing = total_hours_in_month - len(ds.data)\n"
+            "expected_total = nulled_hours + n_missing\n"
+            "actual_total = sum(nulled_hours_by_code.values())\n"
+            "if actual_total != expected_total:\n"
+            "    print(\n"
+            "        f'WARNING: entries sum to {actual_total} h, '\n"
+            "        f'expected {expected_total} '\n"
+            "        f'(nulled_hours={nulled_hours}, missing_hours={n_missing})'\n"
+            "    )\n\n"
+            "plot_null_donut(nulled_hours_by_code, sitename, year, month)"
         ),
     ),
     dict(
         heading="Data Qualification Summary",
         description=(
-            "Total number of qualifier lines issued this month, grouped by qualifier "
-            "code. Each qualifier line represents one compound–interval combination. "
-            "**LB** = blank above MDL; **AS** = blank above 0.5 ppbC threshold; "
-            "**QX** = QC recovery outside 70–130 %; **LL/LK** = calibrant recovery "
-            "low/high (whole-column flag); **AE** = equipment malfunction null."
+            "Summary of data qualifiers issued this month."
         ),
-        label="fig-qual-summary",
-        caption="Qualifier lines by code.",
-        code=(
-            "from autogc_validation.plots.summary import plot_qual_summary\n"
-            "plot_qual_summary(all_quals, sitename, year, month)"
-        ),
-    ),
-    dict(
-        heading="Data Nullification Summary",
-        description=(
-            "Ambient hours nulled during the month, broken down by nullification "
-            "reason. Nulled hours are estimated by intersecting the null qualifier "
-            "intervals with the ambient sample timestamps."
-        ),
-        label="fig-null-summary",
-        caption="Nulled ambient hours by reason.",
-        code=(
-            "from autogc_validation.plots.summary import plot_null_summary\n"
-            "plot_null_summary(all_quals, ds, sitename, year, month)"
-        ),
+        code=None,
     ),
     dict(
         heading="Blank Summary",
-        description=(
-            "TNMTC and TNMHC concentrations measured in field blank samples over "
-            "the month. Elevated values indicate potential contamination that may "
-            "affect ambient data quality."
+        description=(""
+            
+        
         ),
         label="fig-blank-totals",
-        caption="Blank TNMTC and TNMHC concentrations.",
+        caption="TNMTC and TNMHC concentrations measured in blank samples over the month.",
         code=(
             "from autogc_validation.plots.summary import plot_blank_totals\n"
             "plot_blank_totals(ds, sitename, year, month)"
         ),
+        pre_extra=_BLANK_BULLET_EXTRA,
     ),
     dict(
-        heading="CVS Recovery — Key Compounds",
-        description=(
-            "Recovery time series for the PLOT-column calibrant (Propane) and the "
-            "lightest and heaviest PLOT compounds (Ethane and 1-Hexene), and the "
-            "BP-column calibrant (Toluene) with N-Hexane and p-Diethylbenzene. "
-            "Reference lines at 70 %, 100 %, and 130 % are shown."
+        heading="Calibrant Recovery",
+        description=(""
+
         ),
-        label="fig-cvs-timeseries",
-        caption="CVS recovery time series for key PLOT and BP compounds.",
+        label="fig-calibrant-timeseries",
+        caption=            "Propane (PLOT column) and Toluene (BP column) recovery for CVS, LCS, "
+                    "and RTS standards over the month. Reference lines at 70 %, 100 %, and "
+                    "130 % are shown.",
         code=(
-            "from autogc_validation.plots.recovery import plot_recovery_timeseries\n"
-            "plot_recovery_timeseries(ds.cvs, cvs_periods, 'CVS', sitename, year, month)"
+            "from autogc_validation.plots.recovery import plot_combined_calibrant_timeseries\n"
+            "plot_combined_calibrant_timeseries(\n"
+            "    [\n"
+            "        ('CVS', ds.cvs, cvs_periods),\n"
+            "        ('LCS', ds.lcs, lcs_periods),\n"
+            "        ('RTS', ds.rts, rts_periods),\n"
+            "    ],\n"
+            "    sitename, year, month,\n"
+            ")"
         ),
     ),
     dict(
-        heading="CVS Recovery — All Compounds",
+        heading="CVS Recovery",
         description=(
-            "Distribution of CVS recovery across all compounds for the month. "
+            "Calibration verification standard (CVS) recovery results for the month. "
             "Each box shows the median, interquartile range, and full spread. "
             "Individual run values are overlaid as points. "
             "Blue boxes are PLOT-column compounds; orange are BP-column compounds."
@@ -199,24 +351,12 @@ _SECTIONS = [
             "from autogc_validation.plots.recovery import plot_recovery_boxplot\n"
             "plot_recovery_boxplot(ds.cvs, cvs_periods, 'CVS', sitename, year, month)"
         ),
+        pre_extra=_CVS_BULLET_EXTRA,
     ),
     dict(
-        heading="LCS Recovery — Key Compounds",
+        heading="LCS Recovery",
         description=(
-            "Recovery time series for LCS standards. Same compound selection as "
-            "the CVS time-series plot."
-        ),
-        label="fig-lcs-timeseries",
-        caption="LCS recovery time series for key PLOT and BP compounds.",
-        code=(
-            "from autogc_validation.plots.recovery import plot_recovery_timeseries\n"
-            "plot_recovery_timeseries(ds.lcs, lcs_periods, 'LCS', sitename, year, month)"
-        ),
-    ),
-    dict(
-        heading="LCS Recovery — All Compounds",
-        description=(
-            "Distribution of LCS recovery across all compounds for the month."
+            "Laboratory control standard (LCS) recovery results for the month."
         ),
         label="fig-lcs-boxplot",
         caption="LCS recovery distribution by compound.",
@@ -224,25 +364,13 @@ _SECTIONS = [
             "from autogc_validation.plots.recovery import plot_recovery_boxplot\n"
             "plot_recovery_boxplot(ds.lcs, lcs_periods, 'LCS', sitename, year, month)"
         ),
+        pre_extra=_LCS_BULLET_EXTRA,
     ),
     dict(
-        heading="RTS Recovery — Key Compounds",
+        heading="RTS Recovery",
         description=(
-            "Recovery time series for RTS standards. The BP panel shows Toluene "
-            "(calibrant), N-Hexane (lightest), and N-Dodecane (heaviest) — "
-            "reflecting the heavier compound range targeted by RTS canisters."
-        ),
-        label="fig-rts-timeseries",
-        caption="RTS recovery time series for key PLOT and BP compounds.",
-        code=(
-            "from autogc_validation.plots.recovery import plot_recovery_timeseries\n"
-            "plot_recovery_timeseries(ds.rts, rts_periods, 'RTS', sitename, year, month)"
-        ),
-    ),
-    dict(
-        heading="RTS Recovery — All Compounds",
-        description=(
-            "Distribution of RTS recovery across all compounds for the month."
+            "Retention time standard (RTS) recovery results for the month. "
+            "RTS failures are noted but do not result in data qualification."
         ),
         label="fig-rts-boxplot",
         caption="RTS recovery distribution by compound.",
@@ -267,68 +395,24 @@ _SECTIONS = [
     dict(
         heading="MDL Summary",
         description=(
-            "Method Detection Limits (MDLs) active during the month, shown in "
-            "compound elution order. PLOT-column compounds are shown in blue; "
-            "BP-column compounds in orange."
+            "Method Detection Limits (MDLs) applied during the month."
         ),
-        label="fig-mdl",
-        caption="Active MDL values by compound.",
-        code=(
-            "import plotly.graph_objects as go\n"
-            "from autogc_validation.database.enums import ColumnType, aqs_to_name, get_codes_by_column\n\n"
-            "# Use the first MDL period if multiple periods exist.\n"
-            "mdl_row = mdl_periods.iloc[0]\n"
-            "plot_set = set(get_codes_by_column(ColumnType.PLOT))\n"
-            "ordered = [\n"
-            "    c for c in get_codes_by_column(ColumnType.PLOT) + get_codes_by_column(ColumnType.BP)\n"
-            "    if c in mdl_row.index and not pd.isna(mdl_row[c])\n"
-            "]\n"
-            "fig_mdl = go.Figure(go.Bar(\n"
-            "    x=[aqs_to_name(c) for c in ordered],\n"
-            "    y=[mdl_row[c] for c in ordered],\n"
-            "    marker_color=['#1f77b4' if c in plot_set else '#ff7f0e' for c in ordered],\n"
-            "    hovertemplate='<b>%{x}</b><br>MDL: %{y:.4f} ppbC<extra></extra>',\n"
-            "))\n"
-            "fig_mdl.update_layout(\n"
-            "    title=f'{sitename} {year}-{month:02d} Method Detection Limits',\n"
-            "    yaxis_title='MDL (ppbC)',\n"
-            "    xaxis_title='Compound (PLOT = blue, BP = orange)',\n"
-            "    height=450,\n"
-            "    plot_bgcolor='white', paper_bgcolor='white',\n"
-            ")\n"
-            "fig_mdl.show()"
-        ),
+        code=_MDL_TEXT_CODE,
     ),
     dict(
-        heading="Data Quality Summary",
-        description=(
-            "Retention time distribution and ambient compound comparison plots "
-            "for the full month. Retention time outliers help identify potential "
-            "misidentifications. Compound scatter plots confirm expected chemical "
-            "relationships in the ambient air."
-        ),
-        label="fig-dq-rt",
-        caption="Retention time distribution — ambient samples.",
-        code=(
-            "from autogc_validation.plots.rt import plot_rt\n"
-            "from autogc_validation.database.enums import RT_REFERENCE_CODES\n"
-            "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
-            f"plot_rt(ds.rt, ds.data, sitename, year, month, samp_type='s')"
-        ),
+        heading="Proficiency Testing (PT)",
+        description="",
+        code=None,
     ),
     dict(
-        heading="Ambient Compound Comparisons",
-        description=(
-            "Scatter plots of key compound pairs and VOC category sums for "
-            "ambient samples. Deviations from expected relationships can indicate "
-            "contamination, instrument issues, or unusual source contributions."
-        ),
-        label="fig-dq-ambient",
-        caption="Ambient compound comparison scatter plots.",
-        code=(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n"
-            f"plot_ambient_comparisons(ds.ambient, sitename, year, month)"
-        ),
+        heading="Ambient Air Spikes",
+        description="",
+        code=None,
+    ),
+    dict(
+        heading="Nonconformances",
+        description="",
+        code=None,
     ),
 ]
 
@@ -370,7 +454,7 @@ def generate_monthly_report(
     data_dir = str(result.data_dir)
     start_date = f"{year}-{month:02d}-01 00:00"
     end_date = f"{year}-{month:02d}-{num_days} 23:59"
-    title = f"{site} {yyyymm} Monthly Validation Report"
+    title = f"{site} {yyyymm} Monthly Case Narrative"
     import datetime
     date_str = datetime.date.today().isoformat()
 
@@ -390,11 +474,43 @@ def generate_monthly_report(
     ]
 
     for section in _SECTIONS:
-        lines.append(_SECTION_TEMPLATE.format(**section))
+        lines.append(_build_section(section))
 
     content = "\n".join(lines)
 
-    report_path = result.base_dir / f"{site}{yyyymm}_report.qmd"
+    report_path = result.base_dir / "VALIDATION DOCS" / f"{site}{yyyymm}_case_narrative.qmd"
     report_path.write_text(content, encoding="utf-8")
     logger.info("Monthly report generated: %s", report_path)
     return report_path
+
+
+def render_monthly_report(qmd_path: Path) -> Path:
+    """Render a generated QMD file with Quarto.
+
+    Shells out to ``quarto render`` to produce HTML output.
+    Call :func:`generate_monthly_report` first to produce the ``.qmd`` file,
+    then call this function once you are satisfied with its contents.
+
+    Args:
+        qmd_path: Path to the ``.qmd`` file produced by
+            :func:`generate_monthly_report`.
+
+    Returns:
+        Path to the rendered ``.html`` file.
+
+    Raises:
+        RuntimeError: If ``quarto render`` exits with a non-zero return code.
+    """
+    import subprocess
+
+    logger.info("Running quarto render on %s", qmd_path)
+    proc = subprocess.run(
+        ["quarto", "render", str(qmd_path)],
+        capture_output=True,
+        text=True,
+        cwd=str(qmd_path.parent),
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"quarto render failed:\n{proc.stderr}")
+    logger.info("Quarto render complete")
+    return qmd_path.with_suffix(".html")

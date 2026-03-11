@@ -370,7 +370,8 @@ def rename_dattxt_files_to_txt(
         "Renamed %d .dat.tx1 files (%d overwritten) -> %s",
         counter, overwritten, dest,
     )
-    return counter
+    return {'written': counter,
+            'overwritten': overwritten}
 
 
 # ---------------------------------------------------------------------------

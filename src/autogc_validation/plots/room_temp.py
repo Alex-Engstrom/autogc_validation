@@ -11,7 +11,7 @@ def plot_station_temp(
     station_name: str,
     month: int,
     year: int,
-    upper_threshold: float = 25,
+    upper_threshold: float = 30,
     lower_threshold: float = 16,
 ) -> StationTempResult:
     result = check_station_temp(
