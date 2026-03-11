@@ -6,6 +6,10 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 !validation/.gitkeep
+validation/*/
+data/*/
+data/autogc.db
 !data/.gitkeep
 !data/autogc.sql
+ezchrom/*/
 !ezchrom/.gitkeep
