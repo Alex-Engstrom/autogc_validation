@@ -6,6 +6,8 @@ Provides a two-panel calibrant/endpoint time-series and a box-and-whisker
 distribution plot for CVS, LCS, and RTS recovery data.
 """
 
+import calendar
+
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -174,6 +176,7 @@ def plot_recovery_timeseries(
 
     fig.update_xaxes(title_text="Date", row=n_panels, col=1)
     fig.update_layout(
+        title=f"{sitename} {qc_type} Recovery — {calendar.month_name[month]} {year}",
         height=380 * n_panels,
         hovermode="closest",
     )
@@ -261,7 +264,11 @@ def plot_combined_calibrant_timeseries(
         fig.update_yaxes(title_text="Recovery (%)", row=row, col=1)
 
     fig.update_xaxes(title_text="Date", row=2, col=1)
-    fig.update_layout(height=600, hovermode="closest")
+    fig.update_layout(
+        title=f"{sitename} Calibrant Recovery — {calendar.month_name[month]} {year}",
+        height=600,
+        hovermode="closest",
+    )
     _apply_theme(fig)
     fig.show()
 
@@ -326,6 +333,7 @@ def plot_recovery_boxplot(
 
     all_names = [aqs_to_name(c) for c in ordered]
     fig.update_layout(
+        title=f"{sitename} {qc_type} Recovery — {calendar.month_name[month]} {year}",
         yaxis_title="Recovery (%)",
         xaxis_title="Compound (PLOT = blue, BP = orange)",
         height=500,

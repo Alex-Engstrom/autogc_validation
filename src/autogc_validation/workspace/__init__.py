@@ -457,15 +457,254 @@ def _generate_notebook(
             f'    print(f"{{label}}: {{n_fail}} / {{len(failures)}} samples with failures")'
         ),
 
+        # --- Weekly method optimization ---
+        nbformat.v4.new_markdown_cell("## 3. Weekly method optimization"),
+
+        nbformat.v4.new_markdown_cell("### Week 1"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
+            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
+        ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.rt import plot_rt\n"
+            "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
+            "from autogc_validation.database.enums import RT_REFERENCE_CODES\n\n"
+            "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
+            "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
+            "rt_w1   = ds.rt.loc[weeks[1][0]:weeks[1][1]]\n"
+            "data_w1 = ds.data.loc[weeks[1][0]:weeks[1][1]]\n"
+            f"plot_rt(rt_w1, data_w1, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 1 RT outliers: {len(rt_outliers_w1)}")\n'
+            "rt_outliers_w1"
+        ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+            'week_folder = workspace_dir / "FINAL" / "week 1"\n'
+            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+        ),
+        nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.screening import (\n"
+            "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
+            ")\n"
+            "from autogc_validation.reports import fill_reprocess_plan\n\n"
+            "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
+            "data_w1 = ds.data.loc[weeks[1][0]:weeks[1][1]]\n\n"
+            "# check_ratios requires mdl_periods — run section 6 first if needed.\n"
+            "try:\n"
+            "    ratios_w1 = check_ratios(data_w1, mdl_periods)\n"
+            '    print(f"Ratio flags: {len(ratios_w1)}")\n'
+            "    if not ratios_w1.empty:\n"
+            "        display(ratios_w1)\n"
+            "except NameError:\n"
+            '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
+            "overrange_w1 = check_overrange_values(data_w1)\n"
+            'print(f"Overrange values: {len(overrange_w1)}")\n'
+            "if not overrange_w1.empty:\n"
+            "    display(overrange_w1)\n\n"
+            "daily_tnmhc_w1 = check_daily_max_tnmhc(data_w1)\n"
+            'print("Daily max TNMHC:")\n'
+            "display(daily_tnmhc_w1)\n\n"
+            "fill_reprocess_plan(\n"
+            "    ds.data, mdvr_path, mdvr_path, year, month,\n"
+            "    overrange=overrange_w1, daily_tnmhc=daily_tnmhc_w1,\n"
+            "    start_date=weeks[1][0], end_date=weeks[1][1],\n"
+            ")"
+        ),
+
+        nbformat.v4.new_markdown_cell("### Week 2"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
+            f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
+        ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.rt import plot_rt\n"
+            "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
+            "from autogc_validation.database.enums import RT_REFERENCE_CODES\n\n"
+            "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
+            "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
+            "rt_w2   = ds.rt.loc[weeks[2][0]:weeks[2][1]]\n"
+            "data_w2 = ds.data.loc[weeks[2][0]:weeks[2][1]]\n"
+            f"plot_rt(rt_w2, data_w2, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 2 RT outliers: {len(rt_outliers_w2)}")\n'
+            "rt_outliers_w2"
+        ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+            'week_folder = workspace_dir / "FINAL" / "week 2"\n'
+            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+        ),
+        nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.screening import (\n"
+            "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
+            ")\n"
+            "from autogc_validation.reports import fill_reprocess_plan\n\n"
+            "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
+            "data_w2 = ds.data.loc[weeks[2][0]:weeks[2][1]]\n\n"
+            "# check_ratios requires mdl_periods — run section 6 first if needed.\n"
+            "try:\n"
+            "    ratios_w2 = check_ratios(data_w2, mdl_periods)\n"
+            '    print(f"Ratio flags: {len(ratios_w2)}")\n'
+            "    if not ratios_w2.empty:\n"
+            "        display(ratios_w2)\n"
+            "except NameError:\n"
+            '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
+            "overrange_w2 = check_overrange_values(data_w2)\n"
+            'print(f"Overrange values: {len(overrange_w2)}")\n'
+            "if not overrange_w2.empty:\n"
+            "    display(overrange_w2)\n\n"
+            "daily_tnmhc_w2 = check_daily_max_tnmhc(data_w2)\n"
+            'print("Daily max TNMHC:")\n'
+            "display(daily_tnmhc_w2)\n\n"
+            "fill_reprocess_plan(\n"
+            "    ds.data, mdvr_path, mdvr_path, year, month,\n"
+            "    overrange=overrange_w2, daily_tnmhc=daily_tnmhc_w2,\n"
+            "    start_date=weeks[2][0], end_date=weeks[2][1],\n"
+            ")"
+        ),
+
+        nbformat.v4.new_markdown_cell("### Week 3"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
+            f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
+        ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.rt import plot_rt\n"
+            "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
+            "from autogc_validation.database.enums import RT_REFERENCE_CODES\n\n"
+            "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
+            "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
+            "rt_w3   = ds.rt.loc[weeks[3][0]:weeks[3][1]]\n"
+            "data_w3 = ds.data.loc[weeks[3][0]:weeks[3][1]]\n"
+            f"plot_rt(rt_w3, data_w3, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 3 RT outliers: {len(rt_outliers_w3)}")\n'
+            "rt_outliers_w3"
+        ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+            'week_folder = workspace_dir / "FINAL" / "week 3"\n'
+            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+        ),
+        nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.screening import (\n"
+            "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
+            ")\n"
+            "from autogc_validation.reports import fill_reprocess_plan\n\n"
+            "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
+            "data_w3 = ds.data.loc[weeks[3][0]:weeks[3][1]]\n\n"
+            "# check_ratios requires mdl_periods — run section 6 first if needed.\n"
+            "try:\n"
+            "    ratios_w3 = check_ratios(data_w3, mdl_periods)\n"
+            '    print(f"Ratio flags: {len(ratios_w3)}")\n'
+            "    if not ratios_w3.empty:\n"
+            "        display(ratios_w3)\n"
+            "except NameError:\n"
+            '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
+            "overrange_w3 = check_overrange_values(data_w3)\n"
+            'print(f"Overrange values: {len(overrange_w3)}")\n'
+            "if not overrange_w3.empty:\n"
+            "    display(overrange_w3)\n\n"
+            "daily_tnmhc_w3 = check_daily_max_tnmhc(data_w3)\n"
+            'print("Daily max TNMHC:")\n'
+            "display(daily_tnmhc_w3)\n\n"
+            "fill_reprocess_plan(\n"
+            "    ds.data, mdvr_path, mdvr_path, year, month,\n"
+            "    overrange=overrange_w3, daily_tnmhc=daily_tnmhc_w3,\n"
+            "    start_date=weeks[3][0], end_date=weeks[3][1],\n"
+            ")"
+        ),
+
+        nbformat.v4.new_markdown_cell("### Week 4"),
+        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
+            f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
+        ),
+        nbformat.v4.new_markdown_cell("#### RT Checks"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.plots.rt import plot_rt\n"
+            "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
+            "from autogc_validation.database.enums import RT_REFERENCE_CODES\n\n"
+            "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
+            "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
+            "rt_w4   = ds.rt.loc[weeks[4][0]:weeks[4][1]]\n"
+            "data_w4 = ds.data.loc[weeks[4][0]:weeks[4][1]]\n"
+            f"plot_rt(rt_w4, data_w4, '{site}', {year}, {month}, samp_type='s')\n"
+            "rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_ref_cols)\n"
+            "# rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            'print(f"Week 4 RT outliers: {len(rt_outliers_w4)}")\n'
+            "rt_outliers_w4"
+        ),
+        nbformat.v4.new_markdown_cell("#### Convert txt"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
+            'week_folder = workspace_dir / "FINAL" / "week 4"\n'
+            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+        ),
+        nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.screening import (\n"
+            "    check_ratios, check_overrange_values, check_daily_max_tnmhc\n"
+            ")\n"
+            "from autogc_validation.reports import fill_reprocess_plan\n\n"
+            "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
+            "data_w4 = ds.data.loc[weeks[4][0]:weeks[4][1]]\n\n"
+            "# check_ratios requires mdl_periods — run section 6 first if needed.\n"
+            "try:\n"
+            "    ratios_w4 = check_ratios(data_w4, mdl_periods)\n"
+            '    print(f"Ratio flags: {len(ratios_w4)}")\n'
+            "    if not ratios_w4.empty:\n"
+            "        display(ratios_w4)\n"
+            "except NameError:\n"
+            '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
+            "overrange_w4 = check_overrange_values(data_w4)\n"
+            'print(f"Overrange values: {len(overrange_w4)}")\n'
+            "if not overrange_w4.empty:\n"
+            "    display(overrange_w4)\n\n"
+            "daily_tnmhc_w4 = check_daily_max_tnmhc(data_w4)\n"
+            'print("Daily max TNMHC:")\n'
+            "display(daily_tnmhc_w4)\n\n"
+            "fill_reprocess_plan(\n"
+            "    ds.data, mdvr_path, mdvr_path, year, month,\n"
+            "    overrange=overrange_w4, daily_tnmhc=daily_tnmhc_w4,\n"
+            "    start_date=weeks[4][0], end_date=weeks[4][1],\n"
+            ")"
+        ),
+
         # --- Monthly ambient compound plots ---
-        nbformat.v4.new_markdown_cell("## 3. Monthly ambient compound plots"),
+        nbformat.v4.new_markdown_cell("## 4. Monthly ambient compound plots"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
             f"plot_ambient_comparisons(ds.ambient, '{site}', {year}, {month})"
         ),
 
         # --- Monthly retention time validation ---
-        nbformat.v4.new_markdown_cell("## 4. Monthly retention time validation"),
+        nbformat.v4.new_markdown_cell("## 5. Monthly retention time validation"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.rt import plot_rt\n"
             "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
@@ -478,97 +717,6 @@ def _generate_notebook(
             'print(f"Monthly RT outliers: {len(rt_outliers)}")\n'
             "rt_outliers"
         ),
-
-        # --- Weekly method optimization ---
-        nbformat.v4.new_markdown_cell("## 5. Weekly method optimization"),
-
-        nbformat.v4.new_markdown_cell("### Week 1"),
-        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
-        nbformat.v4.new_code_cell(
-            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
-            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
-        ),
-        nbformat.v4.new_markdown_cell("#### RT Checks"),
-        nbformat.v4.new_code_cell(
-            "rt_w1   = ds.rt.loc[weeks[1][0]:weeks[1][1]]\n"
-            "data_w1 = ds.data.loc[weeks[1][0]:weeks[1][1]]\n"
-            f"plot_rt(rt_w1, data_w1, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
-            'print(f"Week 1 RT outliers: {len(rt_outliers_w1)}")\n'
-            "rt_outliers_w1"
-        ),
-        nbformat.v4.new_markdown_cell("#### Convert txt"),
-        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-                                  'week_folder = workspace_dir / "FINAL" / "week 1"\n'
-                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
-                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
-
-        nbformat.v4.new_markdown_cell("### Week 2"),
-        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
-        nbformat.v4.new_code_cell(
-            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
-            f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
-        ),
-        nbformat.v4.new_markdown_cell("#### RT Checks"),
-        nbformat.v4.new_code_cell(
-            "rt_w2   = ds.rt.loc[weeks[2][0]:weeks[2][1]]\n"
-            "data_w2 = ds.data.loc[weeks[2][0]:weeks[2][1]]\n"
-            f"plot_rt(rt_w2, data_w2, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
-            'print(f"Week 2 RT outliers: {len(rt_outliers_w2)}")\n'
-            "rt_outliers_w2"
-        ),
-        nbformat.v4.new_markdown_cell("#### Convert txt"),
-        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-                                  'week_folder = workspace_dir / "FINAL" / "week 2"\n'
-                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
-                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
-
-        nbformat.v4.new_markdown_cell("### Week 3"),
-        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
-        nbformat.v4.new_code_cell(
-            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
-            f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
-        ),
-        nbformat.v4.new_markdown_cell("#### RT Checks"),
-        nbformat.v4.new_code_cell(
-            "rt_w3   = ds.rt.loc[weeks[3][0]:weeks[3][1]]\n"
-            "data_w3 = ds.data.loc[weeks[3][0]:weeks[3][1]]\n"
-            f"plot_rt(rt_w3, data_w3, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
-            'print(f"Week 3 RT outliers: {len(rt_outliers_w3)}")\n'
-            "rt_outliers_w3"
-        ),
-        nbformat.v4.new_markdown_cell("#### Convert txt"),
-        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-                                  'week_folder = workspace_dir / "FINAL" / "week 3"\n'
-                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
-                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
-
-        nbformat.v4.new_markdown_cell("### Week 4"),
-        nbformat.v4.new_markdown_cell("#### Ambient Checks"),
-        nbformat.v4.new_code_cell(
-            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
-            f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
-        ),
-        nbformat.v4.new_markdown_cell("#### RT Checks"),
-        nbformat.v4.new_code_cell(
-            "rt_w4   = ds.rt.loc[weeks[4][0]:weeks[4][1]]\n"
-            "data_w4 = ds.data.loc[weeks[4][0]:weeks[4][1]]\n"
-            f"plot_rt(rt_w4, data_w4, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
-            'print(f"Week 4 RT outliers: {len(rt_outliers_w4)}")\n'
-            "rt_outliers_w4"
-        ),
-        nbformat.v4.new_markdown_cell("#### Convert txt"),
-        nbformat.v4.new_code_cell("from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-                                  'week_folder = workspace_dir / "FINAL" / "week 4"\n'
-                                  "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
-                                  'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'),
 
         # --- Query MDL and canister periods ---
         nbformat.v4.new_markdown_cell("## 6. Query MDL and canister concentration periods"),

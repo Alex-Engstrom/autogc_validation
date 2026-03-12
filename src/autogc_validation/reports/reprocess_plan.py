@@ -164,6 +164,8 @@ def fill_reprocess_plan(
     month: int,
     overrange: pd.DataFrame | None = None,
     daily_tnmhc: pd.Series | None = None,
+    start_date: "str | pd.Timestamp | None" = None,
+    end_date: "str | pd.Timestamp | None" = None,
 ) -> None:
     """Colour-code sample hours in the Reprocess Plan sheet.
 
@@ -177,7 +179,7 @@ def fill_reprocess_plan(
 
        - Each QC/blank/cal sample hour.
        - The hour immediately following each QC/blank/cal sample run.
-       - Hour 0 of the first day and hour 23 of the last day of the month.
+       - Hour 0 of the first day and hour 23 of the last day in the range.
        - Every hour flagged by *overrange* or *daily_tnmhc*.
 
     3. **Sample-type colour** on the four non-RPO data rows for QC/blank/cal
@@ -200,6 +202,13 @@ def fill_reprocess_plan(
             Columns: compound (int), value (float), compound_name (str).
         daily_tnmhc: Optional Series returned by ``check_daily_max_tnmhc``,
             indexed by the timestamp of each day's maximum TNMHC sample.
+        start_date: Optional start of the date range to fill (inclusive).
+            Accepts a string (``"2025-03-01"``) or ``pd.Timestamp``.
+            Days before this date are left untouched. Defaults to the first
+            day of the month.
+        end_date: Optional end of the date range to fill (inclusive).
+            Accepts a string or ``pd.Timestamp``.  Days after this date are
+            left untouched. Defaults to the last day of the month.
     """
     template_path = Path(template_path)
     output_path   = Path(output_path)
@@ -218,8 +227,12 @@ def fill_reprocess_plan(
 
     n_days = monthrange(year, month)[1]
 
-    # Exclude any extra day-31 panels present in templates for shorter months.
-    day_map = {d: v for d, v in day_map.items() if d <= n_days}
+    # Resolve date range to day-of-month integers.
+    start_day = pd.Timestamp(start_date).day if start_date is not None else 1
+    end_day   = pd.Timestamp(end_date).day   if end_date   is not None else n_days
+
+    # Exclude extra day-31 panels and days outside the requested range.
+    day_map = {d: v for d, v in day_map.items() if start_day <= d <= end_day}
 
     # Strip timezone from data_df index.
     data_index = _strip_tz(data_df.index)
@@ -251,9 +264,9 @@ def fill_reprocess_plan(
         if hour < 23:
             yellow_full.add((day, hour + 1))
 
-    # First hour of the first day and last hour of the last day.
-    yellow_full.add((1, 0))
-    yellow_full.add((n_days, 23))
+    # First hour of the range start and last hour of the range end.
+    yellow_full.add((start_day, 0))
+    yellow_full.add((end_day, 23))
 
     # Overrange and daily TNMHC max hours.
     overrange_index = _strip_tz(overrange.index) if overrange is not None and not overrange.empty else []
@@ -319,8 +332,7 @@ def fill_reprocess_plan(
 
         # Notes cell — overrange and TNMHC summary for this day.
         notes_text = _format_notes(day, overrange_by_day, tnmhc_by_day)
-        if notes_text:
-            ws.cell(row=cp_row + _NOTES_OFFSET, column=col_start).value = notes_text
+        ws.cell(row=cp_row + _NOTES_OFFSET, column=col_start).value = notes_text or None
 
     wb.save(output_path)
     print(
