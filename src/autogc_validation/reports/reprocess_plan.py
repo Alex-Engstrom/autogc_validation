@@ -49,6 +49,12 @@ def _cell_has_fill(cell, fill: PatternFill) -> bool:
     )
 
 
+def _cell_has_value(cell) -> bool:
+    """Return True if the cell contains a non-empty value."""
+    v = cell.value
+    return v is not None and str(v).strip() != ""
+
+
 _FILLS: dict[SampleType, PatternFill] = {
     SampleType.CVS:               _solid("FF0070C0"),  # blue
     SampleType.BLANK:             _solid("FF00B0F0"),  # light blue
@@ -291,7 +297,7 @@ def fill_reprocess_plan(
                 col = col_start + hour
                 for offset in _COLOR_OFFSETS:
                     c = ws.cell(row=cp_row + offset, column=col)
-                    if not _cell_has_fill(c, _MISSING_FILL):
+                    if not _cell_has_value(c) and not _cell_has_fill(c, _MISSING_FILL):
                         c.fill = _MISSING_FILL
                 missing_count += 1
 
@@ -312,11 +318,11 @@ def fill_reprocess_plan(
             invalid_text = _INVALID_TEXT[sample_type]
             for offset in _COLOR_OFFSETS:
                 c = ws.cell(row=cp_row + offset, column=col)
-                if not _cell_has_fill(c, fill):
+                if not _cell_has_value(c) and not _cell_has_fill(c, fill):
                     c.fill = fill
             for offset in (_INVALID_PLOT_OFFSET, _INVALID_BP_OFFSET):
                 c = ws.cell(row=cp_row + offset, column=col)
-                if c.value != invalid_text:
+                if not _cell_has_value(c):
                     c.value = invalid_text
             sample_count += 1
 

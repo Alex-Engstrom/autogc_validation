@@ -57,6 +57,7 @@ def _build_notes(mdl_row: pd.Series, thresh_row: pd.Series, codes: list[int]) ->
 def build_blank_qc_table(
     mdl_failures: pd.DataFrame,
     threshold_failures: pd.DataFrame,
+    nulled_filenames: "list[str] | None" = None,
 ) -> pd.DataFrame:
     """Build a blank QC summary table for the MDVR QC Review sheet.
 
@@ -68,6 +69,9 @@ def build_blank_qc_table(
             Columns: filename + integer AQS codes. Index name: date_time.
         threshold_failures: Wide boolean DataFrame — 1 where compound exceeded
             0.5 ppbC threshold. Same shape and index as mdl_failures.
+        nulled_filenames: Filenames of blank runs that were nulled. Failing
+            compounds are still recorded in plot_notes and bp_notes, but the
+            actions column is left blank for these runs.
 
     Returns:
         DataFrame with columns:
@@ -77,8 +81,10 @@ def build_blank_qc_table(
             plot_notes "Compounds above MDL: ...\\nCompounds above 0.5 ppbC: ..."
                        (empty string if no PLOT failures)
             bp_notes   same format for BP-column compounds
-            actions    blank actions message if any failure; "None taken." otherwise
+            actions    blank actions message if any failure; "None taken." otherwise;
+                       None if the run is in nulled_filenames (cell left untouched)
     """
+    nulled = set(nulled_filenames or [])
     compound_cols = [c for c in mdl_failures.columns if isinstance(c, int)]
     plot_cols = [c for c in compound_cols if c in PLOT_CODES]
     bp_cols = [c for c in compound_cols if c in BP_CODES]
@@ -90,11 +96,14 @@ def build_blank_qc_table(
         plot_notes = _build_notes(mdl_row, thresh_row, plot_cols)
         bp_notes = _build_notes(mdl_row, thresh_row, bp_cols)
 
-        any_failure = bool(
-            (mdl_row[compound_cols] == 1).any()
-            or (thresh_row[compound_cols] == 1).any()
-        )
-        actions = _BLANK_ACTIONS if any_failure else "None taken."
+        if mdl_row["filename"] in nulled:
+            actions = None
+        else:
+            any_failure = bool(
+                (mdl_row[compound_cols] == 1).any()
+                or (thresh_row[compound_cols] == 1).any()
+            )
+            actions = _BLANK_ACTIONS if any_failure else "None taken."
 
         rows.append({
             "date": timestamp.strftime("%m/%d/%Y"),
@@ -247,6 +256,7 @@ def _build_recovery_notes(fail_row: pd.Series, codes: list[int]) -> str:
 def build_recovery_qc_table(
     recovery_failures: pd.DataFrame,
     qc_type: str,
+    nulled_filenames: "list[str] | None" = None,
 ) -> pd.DataFrame:
     """Build a recovery QC summary table for the MDVR QC Review sheet.
 
@@ -260,6 +270,9 @@ def build_recovery_qc_table(
             Columns: filename + integer AQS codes. Index name: date_time.
             As returned by check_qc_recovery.
         qc_type: One of 'CVS', 'LCS', or 'RTS'. Determines the actions message.
+        nulled_filenames: Filenames of QC runs that were nulled. Failing
+            compounds are still recorded in plot_notes and bp_notes, but the
+            actions column is left blank for these runs.
 
     Returns:
         DataFrame with columns:
@@ -269,7 +282,8 @@ def build_recovery_qc_table(
             plot_notes "Failing compounds: name1, name2" for PLOT-column failures
                        (empty string if none)
             bp_notes   same format for BP-column failures
-            actions    calibrant-aware qualification sentence(s), or "None taken."
+            actions    calibrant-aware qualification sentence(s), "None taken.",
+                       or None if the run is in nulled_filenames (cell left untouched)
 
     Raises:
         ValueError: If qc_type is not 'CVS', 'LCS', or 'RTS'.
@@ -279,6 +293,7 @@ def build_recovery_qc_table(
             f"qc_type must be one of {sorted(_VALID_QC_TYPES)}, got {qc_type!r}"
         )
 
+    nulled = set(nulled_filenames or [])
     compound_cols = [c for c in recovery_failures.columns if isinstance(c, int)]
     plot_cols = [c for c in compound_cols if c in PLOT_CODES]
     bp_cols = [c for c in compound_cols if c in BP_CODES]
@@ -287,7 +302,11 @@ def build_recovery_qc_table(
     for timestamp, fail_row in recovery_failures.iterrows():
         plot_notes = _build_recovery_notes(fail_row, plot_cols)
         bp_notes = _build_recovery_notes(fail_row, bp_cols)
-        actions = _build_recovery_actions(fail_row, compound_cols, qc_type)
+
+        if fail_row["filename"] in nulled:
+            actions = None
+        else:
+            actions = _build_recovery_actions(fail_row, compound_cols, qc_type)
 
         rows.append({
             "date": timestamp.strftime("%m/%d/%Y"),
@@ -345,6 +364,7 @@ def write_qc_table_to_excel(
         ws.cell(row=r, column=4).value = row.filename
         ws.cell(row=r, column=5).value = row.plot_notes
         ws.cell(row=r, column=6).value = row.bp_notes
-        ws.cell(row=r, column=7).value = row.actions
+        if row.actions is not None:
+            ws.cell(row=r, column=7).value = row.actions
 
     wb.save(output_path)

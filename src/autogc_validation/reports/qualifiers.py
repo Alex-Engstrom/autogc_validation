@@ -195,6 +195,7 @@ def build_blank_qualifier_lines(
     threshold_failures: pd.DataFrame,
     prior_blank: pd.Timestamp | None = None,
     next_blank: pd.Timestamp | None = None,
+    nulled_filenames: "list[str] | None" = None,
 ) -> pd.DataFrame:
     """Build MDVR qualifier lines for blank failures.
 
@@ -214,10 +215,18 @@ def build_blank_qualifier_lines(
         next_blank: Timestamp of the first blank sample from the following
             month. Used as the right bound when the last blank of the month
             fails. Optional.
+        nulled_filenames: Filenames (filename_base strings) of blank runs that
+            were nulled and should be excluded from interval computation.
+            Treated as if those runs never occurred — neither pass nor fail.
+            Optional.
 
     Returns:
         DataFrame with MDVR qualifier columns ready for Excel export.
     """
+    if nulled_filenames:
+        mdl_failures = mdl_failures[~mdl_failures["filename"].isin(nulled_filenames)]
+        threshold_failures = threshold_failures[~threshold_failures["filename"].isin(nulled_filenames)]
+
     compound_cols = [c for c in mdl_failures.columns if isinstance(c, int)]
     rows = []
 
@@ -252,6 +261,7 @@ def build_qc_qualifier_lines(
     qc_type: str,
     prior_qc: pd.Timestamp | None = None,
     next_qc: pd.Timestamp | None = None,
+    nulled_filenames: "list[str] | None" = None,
 ) -> pd.DataFrame:
     """Build MDVR qualifier lines for QC recovery failures.
 
@@ -284,10 +294,17 @@ def build_qc_qualifier_lines(
         next_qc: Timestamp of the first QC sample from the following month.
             Used as the right bound when the last QC sample of the month fails.
             Optional.
+        nulled_filenames: Filenames (filename_base strings) of QC runs that
+            were nulled and should be excluded from interval computation.
+            Treated as if those runs never occurred — neither pass nor fail.
+            Optional.
 
     Returns:
         DataFrame with MDVR qualifier columns, or empty DataFrame for RTS.
     """
+    if nulled_filenames:
+        qc_failures = qc_failures[~qc_failures["filename"].isin(nulled_filenames)]
+
     if qc_type == "q":
         logger.info("RTS failures noted; no data qualification performed")
         return pd.DataFrame(columns=_MDVR_COLUMNS)

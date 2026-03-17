@@ -486,7 +486,8 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
             'week_folder = workspace_dir / "FINAL" / "week 1"\n'
-            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'output_folder = week_folder / "MAX upload"'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
             'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
@@ -544,8 +545,9 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("#### Convert txt"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-            'week_folder = workspace_dir / "FINAL" / "week 2"\n'
-            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'week_folder = workspace_dir / "FINAL" / "week 2"'
+            'output_folder = week_folder / "MAX upload"'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
             'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
@@ -603,8 +605,9 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("#### Convert txt"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-            'week_folder = workspace_dir / "FINAL" / "week 3"\n'
-            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'week_folder = workspace_dir / "FINAL" / "week 3"'
+            'output_folder = week_folder / "MAX upload"'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
             'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
@@ -662,8 +665,9 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("#### Convert txt"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-            'week_folder = workspace_dir / "FINAL" / "week 4"\n'
-            "files_renamed = rename_dattxt_files_to_txt(week_folder, week_folder)\n"
+            'week_folder = workspace_dir / "FINAL" / "week 4"'
+            'output_folder = week_folder / "MAX upload"'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
             'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
@@ -894,22 +898,31 @@ def _generate_notebook(
             "# Set these when the first or last sample of the month fails its check so\n"
             "# that the flagged interval extends to the correct boundary rather than the\n"
             "# dataset edge. Leave as None if not applicable.\n"
-            "prior_blank = None  # e.g. pd.Timestamp('2026-01-31 01:00')\n"
-            "next_blank  = None  # e.g. pd.Timestamp('2026-03-01 01:00')\n"
+            "prior_blank = None\n"
+            "next_blank  = None\n"
             "prior_cvs   = None\n"
             "next_cvs    = None\n"
             "prior_lcs   = None\n"
             "next_lcs    = None\n\n"
+            "# Optional: filenames of nulled QC runs to exclude from qualifier interval\n"
+            "# computation. Use ds.blanks['filename'], ds.cvs['filename'], etc. to look\n"
+            "# up the filename_base string for a given run.\n"
+            "nulled_blanks = []\n"
+            "nulled_cvs    = []\n"
+            "nulled_lcs    = []\n\n"
             "blank_quals = build_blank_qualifier_lines(\n"
             "    ds.data, mdl_failures, threshold_failures,\n"
             "    prior_blank=prior_blank, next_blank=next_blank,\n"
+            "    nulled_filenames=nulled_blanks or None,\n"
             ")\n"
             'print(f"Blank qualifier lines: {len(blank_quals)}")\n\n'
             "cvs_quals = build_qc_qualifier_lines(\n"
             "    ds.data, cvs_failures, 'c', prior_qc=prior_cvs, next_qc=next_cvs,\n"
+            "    nulled_filenames=nulled_cvs or None,\n"
             ")\n"
             "lcs_quals = build_qc_qualifier_lines(\n"
             "    ds.data, lcs_failures, 'e', prior_qc=prior_lcs, next_qc=next_lcs,\n"
+            "    nulled_filenames=nulled_lcs or None,\n"
             ")\n"
             'print(f"QC qualifier lines — CVS: {len(cvs_quals)}, LCS: {len(lcs_quals)}")\n\n'
             "precision_quals = build_precision_qualifier_lines(\n"
