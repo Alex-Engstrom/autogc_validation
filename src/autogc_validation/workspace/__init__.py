@@ -218,7 +218,7 @@ def process_workspace(
 
     base_dir = result.base_dir
     temp_dir = base_dir / "TEMP"
-    original_dir = base_dir / "ORIGINAL"
+    original_dir = base_dir / "Original"
     final_dir = base_dir / "FINAL"
 
     # Step 2: Unzip files in temp/
@@ -311,7 +311,7 @@ def process_workspace(
     if "convert_documents" not in result.steps_completed or force:
         logger.info("Step 6: Converting documents in temp/ to PDF")
         try:
-            documents_dir = base_dir / "OPERATION DOCS"
+            documents_dir = base_dir / "MDVR"
             converted = convert_folder_contents_to_pdf(temp_dir, documents_dir)
             result.documents = converted
             _record_step("convert_documents")
@@ -382,6 +382,7 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("## Configuration"),
         nbformat.v4.new_code_cell(
             "import pandas as pd\n\n"
+            "from autogc_validation.database.enums import aqs_to_name, name_to_aqs\n"
             f'workspace_dir = Path(r"{workspace_dir}")\n'
             f'data_dir = Path(r"{result.data_dir}")\n'
             f'site_id = {site_code}\n'
@@ -389,7 +390,8 @@ def _generate_notebook(
             f'month = {month}\n'
             f'database = Path(r"{_DBPATH}")\n'
             f'start_date = "{start_date_str}"\n'
-            f'end_date   = "{end_date_str}"\n\n'
+            f'end_date   = "{end_date_str}"\n'
+            f'mdvr_path = workspace_dir / "MDVR" / "{site}{yyyymm}_MDVR.xlsx"\n\n'
             f'# Week date ranges (boundaries: 1-7, 8-14, 15-21, 22-end)\n'
             f'weeks = {{\n'
             f'    1: (pd.Timestamp({year}, {month},  1), pd.Timestamp({year}, {month},  7, 23, 59, 59)),\n'
@@ -440,7 +442,23 @@ def _generate_notebook(
             "from autogc_validation.dataset import Dataset\n\n"
             "ds = Dataset(data_dir)\n"
             'print(f"Loaded {len(ds.samples)} samples")\n'
-            "ds.data.head()"
+            "display(ds.data.head())\n\n"
+            "ambient = ds.ambient\n"
+            "blank   = ds.blanks\n"
+            "cvs     = ds.cvs\n"
+            "lcs     = ds.lcs\n"
+            "rts     = ds.rts\n"
+            "exp     = ds.experimental\n"
+            "cal     = ds.calibration\n"
+            "mdl     = ds.mdl\n\n"
+            "samples = [ambient, blank, cvs, lcs, rts, exp, cal, mdl]\n"
+            "sample_amt = {sample.attrs['sample_type'].value: len(sample) for sample in samples}\n\n"
+            "qc = 0\n"
+            "for s, amt in sample_amt.items():\n"
+            '    if s not in ["s", "x"]:\n'
+            "        qc += amt\n\n"
+            "for sample in samples:\n"
+            "    print(f\"{sample.attrs['sample_type'].value}: {len(sample)}\")"
         ),
         nbformat.v4.new_code_cell(
             "# Helper: print a day-by-day failure summary from a boolean wide DataFrame\n"
@@ -486,9 +504,9 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
             'week_folder = workspace_dir / "FINAL" / "week 1"\n'
-            'output_folder = week_folder / "MAX upload"'
-            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
-            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+            'output_folder = week_folder / "MAX upload"\n'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)\n'
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")\n'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
         nbformat.v4.new_code_cell(
@@ -506,7 +524,8 @@ def _generate_notebook(
             "        display(ratios_w1)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "overrange_w1 = check_overrange_values(data_w1)\n"
+            "upper_cal_point_w1 = None  # ← set to upper calibration point value\n"
+            "overrange_w1 = check_overrange_values(data_w1, upper_cal_point_w1)\n"
             'print(f"Overrange values: {len(overrange_w1)}")\n'
             "if not overrange_w1.empty:\n"
             "    display(overrange_w1)\n\n"
@@ -545,10 +564,10 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("#### Convert txt"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-            'week_folder = workspace_dir / "FINAL" / "week 2"'
-            'output_folder = week_folder / "MAX upload"'
-            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
-            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+            'week_folder = workspace_dir / "FINAL" / "week 2"\n'
+            'output_folder = week_folder / "MAX upload"\n'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)\n'
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")\n'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
         nbformat.v4.new_code_cell(
@@ -566,7 +585,8 @@ def _generate_notebook(
             "        display(ratios_w2)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "overrange_w2 = check_overrange_values(data_w2)\n"
+            "upper_cal_point_w2 = None  # ← set to upper calibration point value\n"
+            "overrange_w2 = check_overrange_values(data_w2, upper_cal_point_w2)\n"
             'print(f"Overrange values: {len(overrange_w2)}")\n'
             "if not overrange_w2.empty:\n"
             "    display(overrange_w2)\n\n"
@@ -605,10 +625,10 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("#### Convert txt"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-            'week_folder = workspace_dir / "FINAL" / "week 3"'
-            'output_folder = week_folder / "MAX upload"'
-            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
-            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+            'week_folder = workspace_dir / "FINAL" / "week 3"\n'
+            'output_folder = week_folder / "MAX upload"\n'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)\n'
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")\n'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
         nbformat.v4.new_code_cell(
@@ -626,7 +646,8 @@ def _generate_notebook(
             "        display(ratios_w3)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "overrange_w3 = check_overrange_values(data_w3)\n"
+            "upper_cal_point_w3 = None  # ← set to upper calibration point value\n"
+            "overrange_w3 = check_overrange_values(data_w3, upper_cal_point_w3)\n"
             'print(f"Overrange values: {len(overrange_w3)}")\n'
             "if not overrange_w3.empty:\n"
             "    display(overrange_w3)\n\n"
@@ -665,10 +686,10 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("#### Convert txt"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.workspace.files import rename_dattxt_files_to_txt\n"
-            'week_folder = workspace_dir / "FINAL" / "week 4"'
-            'output_folder = week_folder / "MAX upload"'
-            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)'
-            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")'
+            'week_folder = workspace_dir / "FINAL" / "week 4"\n'
+            'output_folder = week_folder / "MAX upload"\n'
+            'files_renamed = rename_dattxt_files_to_txt(week_folder, output_folder)\n'
+            'print(f"Renamed {files_renamed[\'written\']} file(s), {files_renamed[\'overwritten\']} overwritten")\n'
         ),
         nbformat.v4.new_markdown_cell("#### Screening and Reprocess Plan"),
         nbformat.v4.new_code_cell(
@@ -686,7 +707,8 @@ def _generate_notebook(
             "        display(ratios_w4)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "overrange_w4 = check_overrange_values(data_w4)\n"
+            "upper_cal_point_w4 = None  # ← set to upper calibration point value\n"
+            "overrange_w4 = check_overrange_values(data_w4, upper_cal_point_w4)\n"
             'print(f"Overrange values: {len(overrange_w4)}")\n'
             "if not overrange_w4.empty:\n"
             "    display(overrange_w4)\n\n"
@@ -735,6 +757,19 @@ def _generate_notebook(
             'lcs_periods = get_canister_periods(database, site_id, "LCS", start_date, end_date, ConcentrationUnit.PPBC)\n'
             'rts_periods = get_canister_periods(database, site_id, "RTS", start_date, end_date, ConcentrationUnit.PPBC)\n'
             'print(f"Canister periods — CVS: {len(cvs_periods)}, LCS: {len(lcs_periods)}, RTS: {len(rts_periods)}")'
+        ),
+
+        # --- Nulled QC runs ---
+        nbformat.v4.new_markdown_cell(
+            "## 6a. Nulled QC runs\n\n"
+            "List the filename stems of any nulled QC runs to exclude from qualifier "
+            "interval computation. Use `ds.blanks['filename']`, `ds.cvs['filename']`, "
+            "etc. to look up the filename stem for a given run."
+        ),
+        nbformat.v4.new_code_cell(
+            "nulled_blanks = []\n"
+            "nulled_cvs    = []\n"
+            "nulled_lcs    = []"
         ),
 
         # --- Blank QC ---
@@ -800,7 +835,6 @@ def _generate_notebook(
             "    build_blank_qc_table, build_precision_qc_table,\n"
             "    build_recovery_qc_table, write_qc_table_to_excel,\n"
             ")\n\n"
-            f'mdvr_path = workspace_dir / "VALIDATION DOCS" / "{site}{yyyymm}_MDVR.xlsx"\n\n'
             "# Adjust these start rows to match the merged-cell ranges in the MDVR template.\n"
             "blank_start_row     = 73\n"
             "cvs_start_row       = 22\n"
@@ -904,12 +938,6 @@ def _generate_notebook(
             "next_cvs    = None\n"
             "prior_lcs   = None\n"
             "next_lcs    = None\n\n"
-            "# Optional: filenames of nulled QC runs to exclude from qualifier interval\n"
-            "# computation. Use ds.blanks['filename'], ds.cvs['filename'], etc. to look\n"
-            "# up the filename_base string for a given run.\n"
-            "nulled_blanks = []\n"
-            "nulled_cvs    = []\n"
-            "nulled_lcs    = []\n\n"
             "blank_quals = build_blank_qualifier_lines(\n"
             "    ds.data, mdl_failures, threshold_failures,\n"
             "    prior_blank=prior_blank, next_blank=next_blank,\n"
@@ -985,7 +1013,7 @@ def _generate_notebook(
         # --- Transfer to network ---
         nbformat.v4.new_markdown_cell(
             "## 15. Transfer to network\n\n"
-            "Copies AQS, FINAL, ORIGINAL, OPERATION DOCS, and VALIDATION DOCS "
+            "Copies AQS, FINAL, Original, and MDVR "
             "to the network drive. The destination folder must not already exist — "
             "delete it manually before re-running if you need to overwrite a previous transfer."
         ),
@@ -1076,7 +1104,7 @@ def _copy_mdvr_template(
     """Copy the site MDVR template into the workspace MDVR folder.
 
     Looks for ``templates/mdvr/{site}_MDVR_template.xlsx`` in the project
-    root and copies it to the VALIDATION DOCS folder. Logs a warning if the
+    root and copies it to the MDVR folder. Logs a warning if the
     template does not exist rather than raising.
     """
     yyyymm = f"{year}{month:02d}"
@@ -1086,7 +1114,7 @@ def _copy_mdvr_template(
         logger.warning("MDVR template not found for site %s: %s", site, template_path)
         return
 
-    dest = result.base_dir / "VALIDATION DOCS" / f"{site}{yyyymm}_MDVR.xlsx"
+    dest = result.base_dir / "MDVR" / f"{site}{yyyymm}_MDVR.xlsx"
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(template_path, dest)
     logger.info("Copied MDVR template to %s", dest)

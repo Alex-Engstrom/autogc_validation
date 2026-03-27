@@ -49,9 +49,8 @@ def generate_monthly_folder_structure(
         │   ├── week 2/
         │   ├── week 3/
         │   └── week 4/
-        ├── ORIGINAL/
-        ├── OPERATION DOCS/
-        ├── VALIDATION DOCS/
+        ├── Original/
+        ├── MDVR/
         └── TEMP/
 
     Args:
@@ -72,7 +71,7 @@ def generate_monthly_folder_structure(
     base_dir = root_dir / f"{prefix}v{version}"
     base_dir.mkdir()
 
-    subdirs = ["AQS", "FINAL", "ORIGINAL", "OPERATION DOCS", "VALIDATION DOCS", "TEMP"]
+    subdirs = ["AQS", "FINAL", "Original", "MDVR", "TEMP"]
     weeks = [f"week {i}" for i in range(1, 5)]
 
     logger.info("Creating folder structure in %s", base_dir)
@@ -88,7 +87,7 @@ def generate_monthly_folder_structure(
     return base_dir
 
 
-_TRANSFER_SUBDIRS = {"AQS", "FINAL", "ORIGINAL", "OPERATION DOCS", "VALIDATION DOCS"}
+_TRANSFER_SUBDIRS = {"AQS", "FINAL", "Original", "MDVR"}
 
 
 def transfer_to_network(
@@ -97,8 +96,8 @@ def transfer_to_network(
 ) -> Path:
     """Copy a monthly validation folder to a network drive.
 
-    Only the subfolders AQS, FINAL, ORIGINAL, OPERATION DOCS, and
-    VALIDATION DOCS are transferred — TEMP is excluded.  The destination
+    Only the subfolders AQS, FINAL, Original, and MDVR are transferred —
+    TEMP is excluded.  The destination
     folder is created under *network_root* with the same name as the
     source (e.g. ``EQ202503v1``).  Raises ``FileExistsError`` if the
     destination already exists.

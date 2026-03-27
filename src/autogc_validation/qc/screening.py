@@ -152,7 +152,7 @@ def check_ratios(
 
 def check_overrange_values(
     data: pd.DataFrame,
-    upper_cal_point: float = 30.0,
+    upper_cal_point: float,
     exclude_compounds: Set[Union[str, int]] = None,
 ) -> pd.DataFrame:
     """Flag ambient samples where compounds exceed the upper calibration limit.

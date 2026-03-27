@@ -12,6 +12,8 @@ import os
 import shutil
 import subprocess
 import zipfile
+import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, Union
@@ -502,3 +504,9 @@ def convert_folder_contents_to_pdf(
 
     logger.info("Converted %d/%d files to PDF", len(converted), len(convertible))
     return converted
+
+
+    
+    
+    
+    

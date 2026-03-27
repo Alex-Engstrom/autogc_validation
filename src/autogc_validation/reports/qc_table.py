@@ -364,7 +364,7 @@ def write_qc_table_to_excel(
         ws.cell(row=r, column=4).value = row.filename
         ws.cell(row=r, column=5).value = row.plot_notes
         ws.cell(row=r, column=6).value = row.bp_notes
-        if row.actions is not None:
+        if not pd.isna(row.actions):
             ws.cell(row=r, column=7).value = row.actions
 
     wb.save(output_path)

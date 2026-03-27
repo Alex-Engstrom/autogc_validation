@@ -10,7 +10,7 @@ Created on Tue Jan 13 14:11:32 2026
 
 from pydantic.dataclasses import dataclass
 from pydantic import field_validator
-from autogc_validation.database.enums import CanisterType, ConcentrationUnit
+from autogc_validation.database.enums import CanisterType, ConcentrationUnit, Sites
 from typing import Optional
 from autogc_validation.database.models.base import BaseModel
 
@@ -142,7 +142,7 @@ class SiteCanister(BaseModel):
         date_off: Date canister was removed (None if still active)
     """
     site_canister_id: str
-    site_id: int
+    site_id: Sites
     primary_canister_id: str
     dilution_ratio: float
     date_on: str

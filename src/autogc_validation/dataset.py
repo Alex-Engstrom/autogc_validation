@@ -28,10 +28,10 @@ class Dataset:
         rt: Retention time DataFrame, all sample types, indexed by datetime.
 
     Typed concentration properties (filter data by sample type):
-        ambient, blanks, cvs, rts, lcs, mdl_points, calibration, experimental
+        ambient, blanks, cvs, rts, lcs, mdl, calibration, experimental
 
     Typed retention time properties (filter rt by sample type):
-        ambient_rt, blanks_rt, cvs_rt, rts_rt, lcs_rt, mdl_points_rt,
+        ambient_rt, blanks_rt, cvs_rt, rts_rt, lcs_rt, mdl_rt,
         calibration_rt, experimental_rt
     """
 
@@ -91,7 +91,7 @@ class Dataset:
         return self._get_typed(SampleType.LCS)
 
     @property
-    def mdl_points(self) -> pd.DataFrame:
+    def mdl(self) -> pd.DataFrame:
         """Concentration data for method detection limit samples."""
         return self._get_typed(SampleType.MDL_POINT)
 
@@ -135,7 +135,7 @@ class Dataset:
         return self._get_typed(SampleType.LCS, use_rt=True)
 
     @property
-    def mdl_points_rt(self) -> pd.DataFrame:
+    def mdl_rt(self) -> pd.DataFrame:
         """Retention time data for method detection limit samples."""
         return self._get_typed(SampleType.MDL_POINT, use_rt=True)
 

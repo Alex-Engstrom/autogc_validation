@@ -546,8 +546,8 @@ def write_mdvr_to_excel(
         logger.warning("Output directory does not exist: %s", output_path.parent)
         return
 
-    null_df = qual_df[qual_df["CODE"].isin(_NULL_CODES)]
-    flag_df = qual_df[~qual_df["CODE"].isin(_NULL_CODES)]
+    null_df = qual_df[qual_df["CODE"].isin(NULL_CODES)]
+    flag_df = qual_df[~qual_df["CODE"].isin(NULL_CODES)]
 
     wb = load_workbook(template_path)
     ws = wb["QUALIFIERS_NULL "]
