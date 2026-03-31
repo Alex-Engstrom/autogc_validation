@@ -13,3 +13,4 @@ data/autogc.db
 !data/autogc.sql
 ezchrom/*/
 !ezchrom/.gitkeep
+docs/gc_files

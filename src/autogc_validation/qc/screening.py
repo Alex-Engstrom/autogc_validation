@@ -7,8 +7,9 @@ detection, and daily maximum TNMHC reporting.
 """
 
 import logging
-from typing import Dict, Set, Union
+from typing import Dict, Optional, Set, Union
 
+import numpy as np
 import pandas as pd
 
 from autogc_validation.database.enums import (
@@ -208,6 +209,80 @@ def check_overrange_values(
     )
 
     return exceedances
+
+
+def check_lognormal_outliers(
+    data: pd.DataFrame,
+    mdls: Optional[Dict[Union[str, int], float]] = None,
+    k: float = 3.0,
+) -> pd.DataFrame:
+    """Flag ambient samples that are upper outliers under a log-normal model.
+
+    For each compound, values are log-transformed after substituting
+    below-MDL readings with MDL/2 (EPA convention for censored data).
+    The log-normal parameters μ and σ are estimated from all ambient
+    samples in the period. A sample is flagged if its concentration
+    exceeds exp(μ_log + k·σ_log).
+
+    Args:
+        data: Dataset.data DataFrame.
+        mdls: MDL values keyed by AQS code or compound name, or a
+            period-indexed MDL DataFrame (first period used). If None,
+            or if a compound's MDL is zero, a floor of 0.25 is used.
+        k: Log-scale standard deviations above the mean defining the
+            upper threshold. Defaults to 3.0.
+
+    Returns:
+        DataFrame indexed by sample timestamp with columns:
+        compound (AQS code), compound_name, value, threshold.
+    """
+    if mdls is not None:
+        mdl_series = to_aqs_indexed_series(mdls)
+        mdl_series.index = mdl_series.index.map(int)
+    else:
+        mdl_series = pd.Series(dtype=float)
+
+    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].copy()
+    compound_cols = [
+        c for c in ambient_df.columns
+        if isinstance(c, int) and c not in TOTAL_CODES
+    ]
+    ambient_df[compound_cols] = ambient_df[compound_cols].apply(
+        pd.to_numeric, errors="coerce"
+    )
+
+    records = []
+    for code in compound_cols:
+        col = ambient_df[code].dropna()
+        if len(col) < 3:
+            continue
+
+        mdl = mdl_series.get(code, None)
+        floor = (mdl / 2.0) if (mdl is not None and mdl > 0) else 0.25
+
+        log_vals = np.log(col.clip(lower=floor))
+        mu = log_vals.mean()
+        sigma = log_vals.std()
+        if sigma == 0:
+            continue
+
+        threshold = np.exp(mu + k * sigma)
+        for ts, val in col[col > threshold].items():
+            records.append({
+                "timestamp": ts,
+                "compound": code,
+                "compound_name": aqs_to_name(code),
+                "value": val,
+                "threshold": round(threshold, 4),
+            })
+
+    if not records:
+        return pd.DataFrame(columns=["compound", "compound_name", "value", "threshold"])
+
+    result = pd.DataFrame(records).set_index("timestamp")
+    result.index.name = None
+    logger.info("Lognormal outlier screening: %d flagged values", len(result))
+    return result.sort_index()
 
 
 def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:

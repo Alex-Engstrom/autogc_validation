@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from autogc_validation.database.models import Site, MDL, SiteCanister
 from autogc_validation.database.models.base import BaseModel
+from autogc_validation.database.enums import ConcentrationUnit, Sites
 
 
 class TestSiteValidation:
@@ -73,14 +74,15 @@ class TestMDLDateOff:
         """MDL with no date_off represents a currently-active MDL."""
         mdl = MDL(
             site_id=1, aqs_code=45201, concentration=0.05,
-            date_on="2025-01-01 00:00:00",
+            units=ConcentrationUnit.PPBC, date_on="2025-01-01 00:00:00",
         )
         assert mdl.date_off is None
 
     def test_retired_mdl_with_date_off(self):
         mdl = MDL(
             site_id=1, aqs_code=45201, concentration=0.05,
-            date_on="2025-01-01 00:00:00", date_off="2026-01-01 00:00:00",
+            units=ConcentrationUnit.PPBC, date_on="2025-01-01 00:00:00",
+            date_off="2026-01-01 00:00:00",
         )
         assert mdl.date_off == "2026-01-01 00:00:00"
 
@@ -95,18 +97,17 @@ class TestMDLDateOff:
 class TestSiteCanisterIsActive:
     def test_active_when_no_date_off(self):
         sc = SiteCanister(
-            site_canister_id="SC-001", site_id=1,
+            site_canister_id="SC-001", site_id=Sites.HW,
             primary_canister_id="CAN-001", dilution_ratio=0.5,
-            blend_date="2025-01-01 00:00:00", date_on="2025-01-01 00:00:00",
+            date_on="2025-01-01 00:00:00",
         )
         assert sc.is_active is True
 
     def test_inactive_when_date_off_set(self):
         sc = SiteCanister(
-            site_canister_id="SC-001", site_id=1,
+            site_canister_id="SC-001", site_id=Sites.HW,
             primary_canister_id="CAN-001", dilution_ratio=0.5,
-            blend_date="2025-01-01 00:00:00", date_on="2025-01-01 00:00:00",
-            date_off="2026-01-01 00:00:00",
+            date_on="2025-01-01 00:00:00", date_off="2026-01-01 00:00:00",
         )
         assert sc.is_active is False
 

@@ -8,7 +8,14 @@ from typing import Dict, Union
 import numpy as np
 import pandas as pd
 
-from autogc_validation.database.enums import name_to_aqs, UNID_CODES, TOTAL_CODES
+from autogc_validation.database.enums import (
+    ColumnType,
+    get_codes_by_column,
+    name_to_aqs,
+    UNID_CODES,
+    TOTAL_CODES,
+)
+
 
 
 def _safe_name_to_aqs(key):
@@ -52,6 +59,15 @@ def to_aqs_indexed_series(
     if not all(isinstance(k, int) for k in series.index):
         series.index = series.index.map(_safe_name_to_aqs)
     return series.dropna()
+
+
+def get_ordered_codes(available: set[int]) -> list[int]:
+    """Return *available* codes in PLOT-then-BP elution order."""
+    return [
+        c for c in
+        get_codes_by_column(ColumnType.PLOT) + get_codes_by_column(ColumnType.BP)
+        if c in available
+    ]
 
 
 def get_compound_cols(df: pd.DataFrame) -> list[int]:

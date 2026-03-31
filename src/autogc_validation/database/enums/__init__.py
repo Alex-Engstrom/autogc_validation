@@ -5,6 +5,7 @@ Created on Fri Jan 23 12:00:54 2026
 @author: aengstrom
 """
 
+from autogc_core import aqs_to_name, name_to_aqs
 from .canister_type import CanisterType
 from .qualifier_code import (
     QualifierCodeInfo,
@@ -74,21 +75,6 @@ RT_REFERENCE_CODES: frozenset[int] = frozenset({
 # ---------------------------------------------------------------------------
 # Lookup helpers
 # ---------------------------------------------------------------------------
-
-def aqs_to_name(code: int) -> str:
-    """Convert an AQS code integer to a compound name string."""
-    return CompoundName[CompoundAQSCode(code).name].value
-
-
-def name_to_aqs(name: str) -> int:
-    """Convert a compound name string to an AQS code integer.
-
-    The first character of *name* is automatically uppercased before lookup
-    so that e.g. ``"propane"`` and ``"Propane"`` both resolve correctly.
-    """
-    name = name.capitalize()
-    return CompoundAQSCode[CompoundName(name).name].value
-
 
 def get_column_type(code: int) -> ColumnType:
     """Return the GC column type (PLOT or BP) for a given AQS code.

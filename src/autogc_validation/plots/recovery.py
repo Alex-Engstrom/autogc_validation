@@ -19,7 +19,7 @@ from autogc_validation.database.enums import (
     name_to_aqs,
 )
 from autogc_validation.qc.recovery import compute_recovery
-from autogc_validation.qc.utils import get_compound_cols
+from autogc_validation.qc.utils import get_compound_cols, get_ordered_codes
 
 # Highlight compounds shown in the recovery time-series.
 # Format: (calibrant, lightest, heaviest) — looked up via name_to_aqs at call time.
@@ -69,14 +69,6 @@ def _resolve_highlight_codes(
             pass
     return result
 
-
-def _ordered_codes(available: set[int]) -> list[int]:
-    """Return *available* codes in PLOT-then-BP elution order."""
-    return [
-        c for c in
-        get_codes_by_column(ColumnType.PLOT) + get_codes_by_column(ColumnType.BP)
-        if c in available
-    ]
 
 
 def plot_recovery_timeseries(
@@ -301,7 +293,7 @@ def plot_recovery_boxplot(
 
     recovery_df = compute_recovery(qc_df, canister_periods)
     compound_cols = set(get_compound_cols(recovery_df))
-    ordered = _ordered_codes(compound_cols)
+    ordered = get_ordered_codes(compound_cols)
 
     if not ordered:
         print(f"No compounds to plot for {qc_type}.")

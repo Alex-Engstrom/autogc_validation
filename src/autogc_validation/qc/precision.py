@@ -20,6 +20,7 @@ def check_cvs_precision(
     canister_periods: pd.DataFrame,
     threshold: float = _PRECISION_THRESHOLD,
     max_gap_hours: float = 1.1,
+    nulled_filenames: "list[str] | None" = None,
 ) -> tuple[pd.DataFrame, list[tuple[pd.Timestamp, pd.Timestamp]]]:
     """Find back-to-back CVS runs and flag compounds with RPD > threshold.
 
@@ -50,12 +51,16 @@ def check_cvs_precision(
         max_gap_hours: Maximum hours between consecutive CVS samples to be
             considered back-to-back. Default 1.1 — slightly above one hour to
             accommodate sub-minute timestamp variation in the CDF files.
+        nulled_filenames: Filenames of CVS runs that were nulled. These runs
+            are excluded when searching for back-to-back pairs, so a nulled
+            run cannot form a pair with an adjacent run.
 
     Returns:
         Tuple of:
             precision_failures: DataFrame indexed by the first-run timestamp
-                of each back-to-back pair. Columns: 'filename' (first run) +
-                integer AQS codes. Values: 1 if RPD > threshold, 0 otherwise.
+                of each back-to-back pair. Columns: 'filename' (first run),
+                'filename2' (second run) + integer AQS codes.
+                Values: 1 if RPD > threshold, 0 otherwise.
             pairs: List of (t1, t2) Timestamp tuples, one per back-to-back
                 pair, in chronological order.
     """
@@ -74,7 +79,9 @@ def check_cvs_precision(
         "CVS precision: checking %d of %d compounds (canister subset)",
         len(compound_cols), len(all_compound_cols),
     )
-    timestamps = cvs_df.index.sort_values().tolist()
+    nulled = set(nulled_filenames or [])
+    active_df = cvs_df[~cvs_df["filename"].isin(nulled)] if nulled else cvs_df
+    timestamps = active_df.index.sort_values().tolist()
 
     # Identify back-to-back pairs.  Consume both timestamps when a pair is
     # found so that runs of 3+ consecutive samples form (T1,T2) with T3 left
@@ -91,7 +98,7 @@ def check_cvs_precision(
 
     if not pairs:
         logger.info("No back-to-back CVS pairs found")
-        empty = pd.DataFrame(columns=["filename"] + compound_cols)
+        empty = pd.DataFrame(columns=["filename", "filename2"] + compound_cols)
         empty.index.name = "date_time"
         return empty, []
 
@@ -99,8 +106,8 @@ def check_cvs_precision(
 
     rows = []
     for t1, t2 in pairs:
-        row1 = cvs_df.loc[t1]
-        row2 = cvs_df.loc[t2]
+        row1 = active_df.loc[t1]
+        row2 = active_df.loc[t2]
 
         # Guard against a duplicate index returning a DataFrame instead of Series.
         if isinstance(row1, pd.DataFrame):
@@ -108,7 +115,7 @@ def check_cvs_precision(
         if isinstance(row2, pd.DataFrame):
             row2 = row2.iloc[0]
 
-        fail_dict: dict = {"filename": row1["filename"]}
+        fail_dict: dict = {"filename": row1["filename"], "filename2": row2["filename"]}
         for code in compound_cols:
             a = row1[code]
             b = row2[code]

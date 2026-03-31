@@ -60,13 +60,13 @@ class TestCheckQcRecovery:
         assert result.iloc[0][benzene] == 1
 
     def test_low_recovery_flagged(self, make_typed_df, sample_canister_conc, canister_periods):
-        """Compound at 60% recovery → flag = 1."""
+        """Compound at 60% recovery → flag = -1."""
         values = {int(k): v for k, v in sample_canister_conc.items()}
         benzene = int(CompoundAQSCode.C_BENZENE)
         values[benzene] = sample_canister_conc[CompoundAQSCode.C_BENZENE] * 0.6
         qc = make_typed_df(SampleType.CVS, values=values)
         result = check_qc_recovery(qc, canister_periods)
-        assert result.iloc[0][benzene] == 1
+        assert result.iloc[0][benzene] == -1
 
     def test_exactly_at_lower_bound_not_flagged(self, make_typed_df, sample_canister_conc, canister_periods):
         """Compound at exactly 70% recovery → NOT flagged (boundary inclusive)."""
@@ -159,8 +159,8 @@ class TestCheckQcRecovery:
         qc.attrs["sample_type"] = SampleType.CVS
 
         result = check_qc_recovery(qc, two_periods)
-        assert result.iloc[0][benzene] == 0  # Jan 5: 80% against period-1 → pass
-        assert result.iloc[1][benzene] == 1  # Jan 20: 40% against period-2 → fail
+        assert result.iloc[0][benzene] == 0   # Jan 5: 80% against period-1 → pass
+        assert result.iloc[1][benzene] == -1  # Jan 20: 40% against period-2 → fail
 
     # ------------------------------------------------------------------
     # Edge cases

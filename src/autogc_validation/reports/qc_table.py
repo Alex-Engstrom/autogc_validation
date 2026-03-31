@@ -143,6 +143,7 @@ def _build_precision_notes(fail_row: pd.Series, codes: list[int]) -> str:
 
 def build_precision_qc_table(
     precision_failures: pd.DataFrame,
+    nulled_filenames: "list[str] | None" = None,
 ) -> pd.DataFrame:
     """Build a CVS precision QC summary table for the MDVR QC Review sheet.
 
@@ -152,6 +153,10 @@ def build_precision_qc_table(
         precision_failures: DataFrame from check_cvs_precision.
             Index: first-run timestamp. Columns: 'filename' + integer AQS codes.
             Values: 1 if RPD exceeded threshold, 0 otherwise.
+        nulled_filenames: Filenames of CVS runs that were nulled. Failing
+            compounds are still recorded in plot_notes and bp_notes, but the
+            actions column is left blank when either run of the pair is in
+            this list.
 
     Returns:
         DataFrame with columns:
@@ -160,8 +165,11 @@ def build_precision_qc_table(
             filename   filename of the first run in the pair
             plot_notes "Failing compounds: name1, name2" or empty string
             bp_notes   same for BP-column compounds
-            actions    precision actions message or "None taken."
+            actions    precision actions message, "None taken.", or None if
+                       either run of the pair is in nulled_filenames (cell
+                       left untouched)
     """
+    nulled = set(nulled_filenames or [])
     compound_cols = [c for c in precision_failures.columns if isinstance(c, int)]
     plot_cols = [c for c in compound_cols if c in PLOT_CODES]
     bp_cols = [c for c in compound_cols if c in BP_CODES]
@@ -170,8 +178,12 @@ def build_precision_qc_table(
     for timestamp, fail_row in precision_failures.iterrows():
         plot_notes = _build_precision_notes(fail_row, plot_cols)
         bp_notes = _build_precision_notes(fail_row, bp_cols)
-        any_failure = any(fail_row.get(c, 0) == 1 for c in compound_cols)
-        actions = _PRECISION_ACTIONS if any_failure else "None taken."
+
+        if fail_row["filename"] in nulled or fail_row.get("filename2", "") in nulled:
+            actions = None
+        else:
+            any_failure = any(fail_row.get(c, 0) == 1 for c in compound_cols)
+            actions = _PRECISION_ACTIONS if any_failure else "None taken."
 
         rows.append({
             "date": timestamp.strftime("%m/%d/%Y"),
@@ -364,7 +376,6 @@ def write_qc_table_to_excel(
         ws.cell(row=r, column=4).value = row.filename
         ws.cell(row=r, column=5).value = row.plot_notes
         ws.cell(row=r, column=6).value = row.bp_notes
-        if not pd.isna(row.actions):
-            ws.cell(row=r, column=7).value = row.actions
+        ws.cell(row=r, column=7).value = "Nulled" if pd.isna(row.actions) else row.actions
 
     wb.save(output_path)

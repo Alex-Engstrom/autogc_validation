@@ -19,6 +19,8 @@ from .qualifiers import (
 from .monthly_report import generate_monthly_report
 from .reprocess_plan import fill_reprocess_plan
 
+from .aqs import compare_aqs_to_dataset
+
 __all__ = [
     "generate_monthly_report",
     "build_blank_qc_table",
@@ -31,4 +33,5 @@ __all__ = [
     "build_temp_null_lines",
     "write_mdvr_to_excel",
     "fill_reprocess_plan",
+    "compare_aqs_to_dataset"
 ]

@@ -18,7 +18,7 @@ from autogc_validation.database.operations.canister_info import (
 from autogc_validation.database.operations.mdl_info import (
     get_active_mdls, get_mdl_periods,
 )
-from autogc_validation.database.enums import CompoundAQSCode, ConcentrationUnit
+from autogc_validation.database.enums import CompoundAQSCode, ConcentrationUnit, Sites
 from autogc_validation.database.conn import transaction
 
 
@@ -124,7 +124,7 @@ class TestGetActiveCanisterConcentrations:
     def _seed_canister_data(self, temp_db):
         """Insert a site, canister type, primary canister, concentrations, and site canister."""
         insert(temp_db, Site(
-            site_id=1, name_short="HW", name_long="Hawthorne",
+            site_id=Sites.HW, name_short="HW", name_long="Hawthorne",
             lat=33.9, long=-118.3, date_started="2020-01-01 00:00:00",
         ))
         insert(temp_db, CanisterTypes(canister_type="CVS"))
@@ -136,15 +136,15 @@ class TestGetActiveCanisterConcentrations:
             concentration=20.0, units="ppbv", canister_type="CVS",
         ))
         insert(temp_db, SiteCanister(
-            site_canister_id="SC-001", site_id=1,
+            site_canister_id="SC-001", site_id=Sites.HW,
             primary_canister_id="CAN-001", dilution_ratio=0.5,
-            blend_date="2025-01-01 00:00:00", date_on="2025-01-01 00:00:00",
+            date_on="2025-01-01 00:00:00",
         ))
 
     def test_returns_diluted_concentrations(self, temp_db):
         self._seed_canister_data(temp_db)
         result = get_active_canister_concentrations(
-            temp_db, site_id=1, canister_type="CVS",
+            temp_db, site_id=Sites.HW, canister_type="CVS",
             date="2026-01-15 12:00:00", output_unit=ConcentrationUnit.PPBV,
         )
         # 20.0 * 0.5 dilution_ratio = 10.0
@@ -153,7 +153,7 @@ class TestGetActiveCanisterConcentrations:
     def test_empty_for_wrong_canister_type(self, temp_db):
         self._seed_canister_data(temp_db)
         result = get_active_canister_concentrations(
-            temp_db, site_id=1, canister_type="LCS",
+            temp_db, site_id=Sites.HW, canister_type="LCS",
             date="2026-01-15 12:00:00", output_unit=ConcentrationUnit.PPBV,
         )
         assert len(result.columns) == 0 or result.empty
@@ -166,7 +166,7 @@ class TestGetActiveCanisterConcentrations:
                 ("2025-06-01 00:00:00", "SC-001"),
             )
         result = get_active_canister_concentrations(
-            temp_db, site_id=1, canister_type="CVS",
+            temp_db, site_id=Sites.HW, canister_type="CVS",
             date="2026-01-15 12:00:00", output_unit=ConcentrationUnit.PPBV,
         )
         assert result.empty
@@ -248,7 +248,7 @@ class TestGetMdlPeriods:
 class TestGetCanisterPeriods:
     def _seed_canister_data(self, temp_db):
         insert(temp_db, Site(
-            site_id=1, name_short="HW", name_long="Hawthorne",
+            site_id=Sites.HW, name_short="HW", name_long="Hawthorne",
             lat=33.9, long=-118.3, date_started="2020-01-01 00:00:00",
         ))
         insert(temp_db, CanisterTypes(canister_type="CVS"))
@@ -260,15 +260,15 @@ class TestGetCanisterPeriods:
             concentration=20.0, units="ppbv", canister_type="CVS",
         ))
         insert(temp_db, SiteCanister(
-            site_canister_id="SC-001", site_id=1,
+            site_canister_id="SC-001", site_id=Sites.HW,
             primary_canister_id="CAN-001", dilution_ratio=0.5,
-            blend_date="2025-01-01 00:00:00", date_on="2025-01-01 00:00:00",
+            date_on="2025-01-01 00:00:00",
         ))
 
     def test_single_period_returns_one_row(self, temp_db):
         self._seed_canister_data(temp_db)
         result = get_canister_periods(
-            temp_db, site_id=1, canister_type="CVS",
+            temp_db, site_id=Sites.HW, canister_type="CVS",
             start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
             output_unit=ConcentrationUnit.PPBV,
         )
@@ -290,12 +290,12 @@ class TestGetCanisterPeriods:
             concentration=25.0, units="ppbv", canister_type="CVS",
         ))
         insert(temp_db, SiteCanister(
-            site_canister_id="SC-002", site_id=1,
+            site_canister_id="SC-002", site_id=Sites.HW,
             primary_canister_id="CAN-002", dilution_ratio=0.5,
-            blend_date="2026-01-15 00:00:00", date_on="2026-01-15 00:00:00",
+            date_on="2026-01-15 00:00:00",
         ))
         result = get_canister_periods(
-            temp_db, site_id=1, canister_type="CVS",
+            temp_db, site_id=Sites.HW, canister_type="CVS",
             start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
             output_unit=ConcentrationUnit.PPBV,
         )
@@ -305,7 +305,7 @@ class TestGetCanisterPeriods:
     def test_returns_wide_dataframe_with_aqs_columns(self, temp_db):
         self._seed_canister_data(temp_db)
         result = get_canister_periods(
-            temp_db, site_id=1, canister_type="CVS",
+            temp_db, site_id=Sites.HW, canister_type="CVS",
             start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
             output_unit=ConcentrationUnit.PPBV,
         )
@@ -314,7 +314,7 @@ class TestGetCanisterPeriods:
     def test_units_stored_in_attrs(self, temp_db):
         self._seed_canister_data(temp_db)
         result = get_canister_periods(
-            temp_db, site_id=1, canister_type="CVS",
+            temp_db, site_id=Sites.HW, canister_type="CVS",
             start_date="2026-01-01 00:00", end_date="2026-01-31 23:59",
             output_unit=ConcentrationUnit.PPBV,
         )

@@ -19,7 +19,7 @@ from autogc_validation.database.enums import (
     aqs_to_name,
     get_codes_by_column,
 )
-from autogc_validation.qc.utils import align_period_index, get_compound_cols
+from autogc_validation.qc.utils import align_period_index, get_compound_cols, get_ordered_codes
 
 _TNMHC_CODE = CompoundAQSCode.C_TNMHC
 _COLORS = plotly.colors.qualitative.Light24
@@ -47,13 +47,6 @@ def _apply_theme(fig: go.Figure) -> None:
     fig.update_yaxes(**_AXIS_STYLE)
     fig.update_layout(**_LAYOUT_STYLE)
 
-
-def _ordered_codes(available: set[int]) -> list[int]:
-    """Return *available* codes in PLOT-then-BP elution order."""
-    return [
-        c for c in get_codes_by_column(ColumnType.PLOT) + get_codes_by_column(ColumnType.BP)
-        if c in available
-    ]
 
 
 def _split_by_column(codes: list[int]) -> tuple[list[int], list[int]]:
@@ -104,7 +97,7 @@ def plot_qc_recovery(
         if isinstance(c, int) and canister_periods[c].notna().any()
     }
     data_codes = set(get_compound_cols(qc_df))
-    plot_codes = _ordered_codes(canister_codes & data_codes)
+    plot_codes = get_ordered_codes(canister_codes & data_codes)
 
     if not plot_codes:
         print(f"No compounds in common between {qc_type} data and canister standard.")
@@ -211,7 +204,7 @@ def plot_blank_concentrations(
         print("No MDL exceedances found — nothing to plot.")
         return
 
-    plot_codes = _ordered_codes(fail_codes & set(blank_df.columns))
+    plot_codes = get_ordered_codes(fail_codes & set(blank_df.columns))
     has_tnmhc = _TNMHC_CODE in blank_df.columns
     timestamps = list(blank_df.index)
 

@@ -136,10 +136,26 @@ def _build_tnmhc_lookup(
     return {ts.day: (ts.hour, float(val)) for ts, val in zip(idx, daily_tnmhc.values)}
 
 
+def _build_outlier_lookup(
+    outliers: pd.DataFrame | None,
+) -> dict[int, list[tuple[int, str, float, float]]]:
+    """Return {day: [(hour, compound_name, value, threshold), ...]} from outliers df."""
+    if outliers is None or outliers.empty:
+        return {}
+    idx = _strip_tz(outliers.index)
+    result: dict[int, list] = {}
+    for ts, row in zip(idx, outliers.itertuples()):
+        result.setdefault(ts.day, []).append(
+            (ts.hour, row.compound_name, float(row.value), float(row.threshold))
+        )
+    return result
+
+
 def _format_notes(
     day: int,
     overrange_by_day: dict[int, list],
     tnmhc_by_day: dict[int, tuple],
+    outlier_by_day: dict[int, list] | None = None,
 ) -> str:
     """Build the Notes cell text for a single day."""
     lines = []
@@ -154,6 +170,15 @@ def _format_notes(
     if day in tnmhc_by_day:
         hour, val = tnmhc_by_day[day]
         lines.append(f"Daily max TNMHC: {val:.1f} ppbC ({hour:02d}:00)")
+
+    if outlier_by_day:
+        by_hour_out: dict[int, list[str]] = {}
+        for hour, cname, val, thr in sorted(
+            outlier_by_day.get(day, []), key=lambda x: (x[0], x[1])
+        ):
+            by_hour_out.setdefault(hour, []).append(f"{cname} {val:.2f} (thr: {thr:.2f})")
+        for hour, entries in sorted(by_hour_out.items()):
+            lines.append(f"Outlier ({hour:02d}:00): {', '.join(entries)} ppbC")
 
     return "\n".join(lines)
 
@@ -170,6 +195,7 @@ def fill_reprocess_plan(
     month: int,
     overrange: pd.DataFrame | None = None,
     daily_tnmhc: pd.Series | None = None,
+    outliers: pd.DataFrame | None = None,
     start_date: "str | pd.Timestamp | None" = None,
     end_date: "str | pd.Timestamp | None" = None,
 ) -> None:
@@ -208,6 +234,10 @@ def fill_reprocess_plan(
             Columns: compound (int), value (float), compound_name (str).
         daily_tnmhc: Optional Series returned by ``check_daily_max_tnmhc``,
             indexed by the timestamp of each day's maximum TNMHC sample.
+        outliers: Optional DataFrame returned by ``check_lognormal_outliers``.
+            Columns: compound (int), compound_name (str), value (float),
+            threshold (float). Flagged hours receive yellow header treatment
+            and a summary line in the Notes cell.
         start_date: Optional start of the date range to fill (inclusive).
             Accepts a string (``"2025-03-01"``) or ``pd.Timestamp``.
             Days before this date are left untouched. Defaults to the first
@@ -257,6 +287,7 @@ def fill_reprocess_plan(
 
     overrange_by_day = _build_overrange_lookup(overrange)
     tnmhc_by_day     = _build_tnmhc_lookup(daily_tnmhc)
+    outlier_by_day   = _build_outlier_lookup(outliers)
 
     # Hours that receive yellow header treatment.
     yellow_full: set[tuple[int, int]] = set()
@@ -281,6 +312,10 @@ def fill_reprocess_plan(
 
     tnmhc_index = _strip_tz(daily_tnmhc.index) if daily_tnmhc is not None and not daily_tnmhc.empty else []
     for ts in tnmhc_index:
+        yellow_full.add((ts.day, ts.hour))
+
+    outlier_index = _strip_tz(outliers.index) if outliers is not None and not outliers.empty else []
+    for ts in outlier_index:
         yellow_full.add((ts.day, ts.hour))
 
     # ------------------------------------------------------------------
@@ -337,7 +372,7 @@ def fill_reprocess_plan(
                     c.value = "RP"
 
         # Notes cell — overrange and TNMHC summary for this day.
-        notes_text = _format_notes(day, overrange_by_day, tnmhc_by_day)
+        notes_text = _format_notes(day, overrange_by_day, tnmhc_by_day, outlier_by_day)
         ws.cell(row=cp_row + _NOTES_OFFSET, column=col_start).value = notes_text or None
 
     wb.save(output_path)

@@ -7,11 +7,14 @@ import numpy as np
 import pytest
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, TOTAL_CODES, UNID_CODES
+from autogc_validation.database.enums import (
+    CompoundAQSCode, ColumnType, TOTAL_CODES, UNID_CODES, get_codes_by_column,
+)
 from autogc_validation.qc.utils import (
     to_aqs_indexed_series,
     _safe_name_to_aqs,
     get_compound_cols,
+    get_ordered_codes,
     align_period_index,
 )
 
@@ -143,3 +146,45 @@ class TestAlignPeriodIndex:
         result = align_period_index(samples, periods)
         assert result.min() >= 0
         assert result.max() <= len(periods) - 1
+
+
+class TestGetOrderedCodes:
+    def test_returns_list(self):
+        codes = {int(CompoundAQSCode.C_ETHANE), int(CompoundAQSCode.C_BENZENE)}
+        result = get_ordered_codes(codes)
+        assert isinstance(result, list)
+
+    def test_empty_set_returns_empty(self):
+        assert get_ordered_codes(set()) == []
+
+    def test_unknown_code_excluded(self):
+        """A code not in PLOT or BP column is not returned."""
+        result = get_ordered_codes({9999999})
+        assert 9999999 not in result
+
+    def test_only_available_codes_returned(self):
+        """Only codes present in the input set appear in the result."""
+        plot_codes = get_codes_by_column(ColumnType.PLOT)
+        # Use just the first two PLOT codes
+        subset = set(plot_codes[:2])
+        result = get_ordered_codes(subset)
+        assert set(result) == subset
+
+    def test_plot_codes_before_bp_codes(self):
+        """PLOT-column codes precede BP-column codes in the result."""
+        plot_set = set(get_codes_by_column(ColumnType.PLOT))
+        bp_set = set(get_codes_by_column(ColumnType.BP))
+        # Pick one code from each column
+        plot_code = next(iter(plot_set))
+        bp_code = next(iter(bp_set))
+        result = get_ordered_codes({plot_code, bp_code})
+        assert len(result) == 2
+        assert result.index(plot_code) < result.index(bp_code)
+
+    def test_all_standard_codes_returned_when_all_available(self):
+        """Passing every PLOT+BP code returns all of them."""
+        plot_codes = get_codes_by_column(ColumnType.PLOT)
+        bp_codes = get_codes_by_column(ColumnType.BP)
+        all_codes = set(plot_codes + bp_codes)
+        result = get_ordered_codes(all_codes)
+        assert set(result) == all_codes

@@ -10,6 +10,7 @@ from .recovery import (
     plot_recovery_boxplot,
     plot_combined_calibrant_timeseries,
 )
+from .distribution import plot_ambient_boxplot
 from .rt import plot_rt
 from .summary import (
     plot_monthly_hours_summary,
@@ -32,4 +33,5 @@ __all__ = [
     "plot_null_summary",
     "plot_null_donut",
     "plot_blank_totals",
+    "plot_ambient_boxplot"
 ]
