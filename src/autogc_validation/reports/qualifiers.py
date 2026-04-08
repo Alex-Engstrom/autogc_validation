@@ -156,7 +156,7 @@ def _shift_and_combine(df: pd.DataFrame) -> pd.DataFrame:
     return df_combined.drop(columns=["start_dt", "end_dt"])[_MDVR_COLUMNS]
 
 
-def _make_row(code: int, reason: str, flag: str, start, end) -> dict:
+def make_row(code: int, reason: str, flag: str, start, end) -> dict:
     start = pd.Timestamp(start)
     end = pd.Timestamp(end)
     return {
@@ -172,8 +172,8 @@ def _make_row(code: int, reason: str, flag: str, start, end) -> dict:
     }
 
 
-def _make_col_row(label: str, reason: str, flag: str, start, end) -> dict:
-    """Like _make_row but accepts a free-text label instead of an AQS code."""
+def make_col_row(label: str, reason: str, flag: str, start, end, justification = None) -> dict:
+    """Like make_row but accepts a free-text label instead of an AQS code."""
     start = pd.Timestamp(start)
     end = pd.Timestamp(end)
     return {
@@ -185,7 +185,7 @@ def _make_col_row(label: str, reason: str, flag: str, start, end) -> dict:
         "-": "-",
         "enddate": end.strftime("%m/%d/%Y"),
         "endhour": end.strftime("%H:00"),
-        "Justification": reason,
+        "Justification": justification if justification else reason,
     }
 
 
@@ -235,7 +235,7 @@ def build_blank_qualifier_lines(
             all_data, mdl_failures[code], prior_blank, next_blank
         )
         for start, end in merged:
-            rows.append(_make_row(
+            rows.append(make_row(
                 code, "Blank(s) above respective MDL(s)", "LB", start, end
             ))
 
@@ -245,7 +245,7 @@ def build_blank_qualifier_lines(
             all_data, threshold_failures[code], prior_blank, next_blank
         )
         for start, end in merged:
-            rows.append(_make_row(
+            rows.append(make_row(
                 code, "Blank(s) above 0.5 ppbC threshold", "AS", start, end
             ))
 
@@ -347,7 +347,7 @@ def build_qc_qualifier_lines(
             for start, end in compute_failure_intervals(
                 all_data, cal_mask, prior_qc, next_qc
             ):
-                rows.append(_make_col_row(col_label, reason, flag_code, start, end))
+                rows.append(make_col_row(col_label, reason, flag_code, start, end))
 
         # Individual compound failures when the column calibrant passed.
         qx_reason = f"{qc_name} recovery outside acceptable bounds"
@@ -356,7 +356,7 @@ def build_qc_qualifier_lines(
             for start, end in compute_failure_intervals(
                 all_data, qx_mask, prior_qc, next_qc
             ):
-                rows.append(_make_row(code, qx_reason, "QX", start, end))
+                rows.append(make_row(code, qx_reason, "QX", start, end))
 
     if not rows:
         return pd.DataFrame(columns=_MDVR_COLUMNS)
@@ -426,7 +426,7 @@ def build_precision_qualifier_lines(
 
         for code in compound_cols:
             if fail_row.get(code, 0) == 1:
-                rows.append(_make_row(code, reason, "QX", left, right))
+                rows.append(make_row(code, reason, "QX", left, right))
 
     if not rows:
         return pd.DataFrame(columns=_MDVR_COLUMNS)
@@ -437,8 +437,6 @@ def build_precision_qualifier_lines(
 def build_temp_null_lines(
     temperatures: pd.Series,
     threshold: float = 30.0,
-    prior_temp: pd.Timestamp | None = None,
-    next_temp: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
     """Build MDVR null lines for hours where station temperature exceeds the threshold.
 
@@ -451,12 +449,6 @@ def build_temp_null_lines(
         temperatures: Minutely (or any frequency) temperature Series with
             DatetimeIndex, as returned by check_station_temp().temperatures.
         threshold: Station temperature threshold in °C. Default 30.0.
-        prior_temp: Timestamp of the last temperature reading from the
-            preceding month. Used as the left bound when the first hour of
-            the month exceeds the threshold. Optional.
-        next_temp: Timestamp of the first temperature reading from the
-            following month. Used as the right bound when the last hour of
-            the month exceeds the threshold. Optional.
 
     Returns:
         DataFrame with MDVR qualifier columns (code AE) ready for Excel export.
@@ -470,7 +462,7 @@ def build_temp_null_lines(
         return pd.DataFrame(columns=_MDVR_COLUMNS)
 
     proxy = pd.DataFrame(index=hourly.index)
-    intervals = compute_failure_intervals(proxy, fail, prior_temp, next_temp)
+    intervals = compute_failure_intervals(proxy, fail, None, None)
 
     reason = f"Station temperature exceeded {threshold}\u00b0C"
     rows = []

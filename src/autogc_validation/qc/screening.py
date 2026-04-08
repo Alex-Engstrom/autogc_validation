@@ -296,6 +296,10 @@ def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:
     """
     ambient_df = data[data["sample_type"] == SampleType.AMBIENT].sort_index()
 
+    if CompoundAQSCode.C_TNMHC not in ambient_df.columns:
+        logger.warning("check_daily_max_tnmhc: TNMHC column not found in data")
+        return pd.Series(dtype=float)
+
     s = ambient_df[CompoundAQSCode.C_TNMHC]
 
     timestamps_of_daily_max = s.groupby(s.index.date).idxmax()

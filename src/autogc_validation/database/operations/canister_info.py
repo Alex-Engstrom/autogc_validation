@@ -61,7 +61,10 @@ def get_active_canister_concentrations(
         df = pd.DataFrame(rows, columns=columns)
 
     if df.empty:
-        wide = pd.DataFrame()
+        logger.warning(
+            "No canister concentrations found for type=%s on %s", canister_type, date
+        )
+        wide = pd.DataFrame([{}])
         wide.attrs["units"] = output_unit
         return wide
 

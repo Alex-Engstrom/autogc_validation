@@ -211,15 +211,17 @@ def _generate_notebook(
             "rt_w1   = ds.rt.loc[weeks[1][0]:weeks[1][1]]\n"
             "data_w1 = ds.data.loc[weeks[1][0]:weeks[1][1]]\n"
             f"plot_rt(rt_w1, data_w1, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            "rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_ref_cols, concentrations=data_w1, mdl_periods=mdl_periods)\n"
+            "# rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_compound_cols, concentrations=data_w1, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 1 RT outliers: {len(rt_outliers_w1)}")\n'
             "rt_outliers_w1"
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w1[name_to_aqs('n-pentane')] == 0) | (ambient_w1[name_to_aqs('propane')] == 0) | (ambient_w1[name_to_aqs('toluene')] == 0) | (ambient_w1[name_to_aqs('benzene')] == 0)\n"
-            "misided = ambient_w1[mask]\n"
+            "misided = ambient_w1[reference][mask]\n"
+            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -248,11 +250,12 @@ def _generate_notebook(
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
             "upper_cal_point_w1 = None  # ← set to upper calibration point value\n"
+            "k = 3.5\n"
             "overrange_w1 = check_overrange_values(data_w1, upper_cal_point_w1)\n"
             'print(f"Overrange values: {len(overrange_w1)}")\n'
             "if not overrange_w1.empty:\n"
             "    display(overrange_w1)\n\n"
-            "outliers_w1 = check_lognormal_outliers(data_w1, mdl_periods)\n"
+            "outliers_w1 = check_lognormal_outliers(data_w1, mdl_periods, k=k)\n"
             'print(f"Lognormal outliers: {len(outliers_w1)}")\n'
             "if not outliers_w1.empty:\n"
             "    display(outliers_w1)\n\n"
@@ -287,15 +290,17 @@ def _generate_notebook(
             "rt_w2   = ds.rt.loc[weeks[2][0]:weeks[2][1]]\n"
             "data_w2 = ds.data.loc[weeks[2][0]:weeks[2][1]]\n"
             f"plot_rt(rt_w2, data_w2, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            "rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_ref_cols, concentrations=data_w2, mdl_periods=mdl_periods)\n"
+            "# rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_compound_cols, concentrations=data_w2, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 2 RT outliers: {len(rt_outliers_w2)}")\n'
             "rt_outliers_w2"
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w2[name_to_aqs('n-pentane')] == 0) | (ambient_w2[name_to_aqs('propane')] == 0) | (ambient_w2[name_to_aqs('toluene')] == 0) | (ambient_w2[name_to_aqs('benzene')] == 0)\n"
-            "misided = ambient_w2[mask]\n"
+            "misided = ambient_w2[reference][mask]\n"
+            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -324,11 +329,12 @@ def _generate_notebook(
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
             "upper_cal_point_w2 = None  # ← set to upper calibration point value\n"
+            "k = 3.5\n"
             "overrange_w2 = check_overrange_values(data_w2, upper_cal_point_w2)\n"
             'print(f"Overrange values: {len(overrange_w2)}")\n'
             "if not overrange_w2.empty:\n"
             "    display(overrange_w2)\n\n"
-            "outliers_w2 = check_lognormal_outliers(data_w2, mdl_periods)\n"
+            "outliers_w2 = check_lognormal_outliers(data_w2, mdl_periods, k=k)\n"
             'print(f"Lognormal outliers: {len(outliers_w2)}")\n'
             "if not outliers_w2.empty:\n"
             "    display(outliers_w2)\n\n"
@@ -363,15 +369,17 @@ def _generate_notebook(
             "rt_w3   = ds.rt.loc[weeks[3][0]:weeks[3][1]]\n"
             "data_w3 = ds.data.loc[weeks[3][0]:weeks[3][1]]\n"
             f"plot_rt(rt_w3, data_w3, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            "rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_ref_cols, concentrations=data_w3, mdl_periods=mdl_periods)\n"
+            "# rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_compound_cols, concentrations=data_w3, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 3 RT outliers: {len(rt_outliers_w3)}")\n'
             "rt_outliers_w3"
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w3[name_to_aqs('n-pentane')] == 0) | (ambient_w3[name_to_aqs('propane')] == 0) | (ambient_w3[name_to_aqs('toluene')] == 0) | (ambient_w3[name_to_aqs('benzene')] == 0)\n"
-            "misided = ambient_w3[mask]\n"
+            "misided = ambient_w3[reference][mask]\n"
+            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -400,11 +408,12 @@ def _generate_notebook(
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
             "upper_cal_point_w3 = None  # ← set to upper calibration point value\n"
+            "k = 3.5\n"
             "overrange_w3 = check_overrange_values(data_w3, upper_cal_point_w3)\n"
             'print(f"Overrange values: {len(overrange_w3)}")\n'
             "if not overrange_w3.empty:\n"
             "    display(overrange_w3)\n\n"
-            "outliers_w3 = check_lognormal_outliers(data_w3, mdl_periods)\n"
+            "outliers_w3 = check_lognormal_outliers(data_w3, mdl_periods, k=k)\n"
             'print(f"Lognormal outliers: {len(outliers_w3)}")\n'
             "if not outliers_w3.empty:\n"
             "    display(outliers_w3)\n\n"
@@ -439,15 +448,17 @@ def _generate_notebook(
             "rt_w4   = ds.rt.loc[weeks[4][0]:weeks[4][1]]\n"
             "data_w4 = ds.data.loc[weeks[4][0]:weeks[4][1]]\n"
             f"plot_rt(rt_w4, data_w4, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_ref_cols)\n"
-            "# rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_compound_cols)  # all compounds\n"
+            "rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_ref_cols, concentrations=data_w4, mdl_periods=mdl_periods)\n"
+            "# rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_compound_cols, concentrations=data_w4, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 4 RT outliers: {len(rt_outliers_w4)}")\n'
             "rt_outliers_w4"
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w4[name_to_aqs('n-pentane')] == 0) | (ambient_w4[name_to_aqs('propane')] == 0) | (ambient_w4[name_to_aqs('toluene')] == 0) | (ambient_w4[name_to_aqs('benzene')] == 0)\n"
-            "misided = ambient_w4[mask]\n"
+            "misided = ambient_w4[reference][mask]\n"
+            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -476,11 +487,12 @@ def _generate_notebook(
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
             "upper_cal_point_w4 = None  # ← set to upper calibration point value\n"
+            "k = 3.5\n"
             "overrange_w4 = check_overrange_values(data_w4, upper_cal_point_w4)\n"
             'print(f"Overrange values: {len(overrange_w4)}")\n'
             "if not overrange_w4.empty:\n"
             "    display(overrange_w4)\n\n"
-            "outliers_w4 = check_lognormal_outliers(data_w4, mdl_periods)\n"
+            "outliers_w4 = check_lognormal_outliers(data_w4, mdl_periods, k=k)\n"
             'print(f"Lognormal outliers: {len(outliers_w4)}")\n'
             "if not outliers_w4.empty:\n"
             "    display(outliers_w4)\n\n"
@@ -515,7 +527,7 @@ def _generate_notebook(
             "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
             "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
             f"plot_rt(ds.rt, ds.data, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers = detect_rt_outliers(ds.rt[ds.rt['sample_type'] == 's'], rt_ref_cols)\n"
+            "rt_outliers = detect_rt_outliers(ds.rt[ds.rt['sample_type'] == 's'], rt_ref_cols, concentrations=ds.data, mdl_periods=mdl_periods)\n"
             'print(f"Monthly RT outliers: {len(rt_outliers)}")\n'
             "rt_outliers"
         ),
@@ -528,7 +540,10 @@ def _generate_notebook(
             'print("--- Compounds exceeding MDL ---")\n'
             'print_failures(mdl_failures, "MDL exceedances")\n\n'
             'print("\\n--- Compounds exceeding 0.5 ppbC ---")\n'
-            'print_failures(threshold_failures, "Threshold exceedances")'
+            'print_failures(threshold_failures, "Threshold exceedances")\n'
+            'mdl_sum = mdl_failures.iloc[:,1:].sum(axis=0)\n'
+            'mdl_sum_text = [f"{aqs_to_name(col).lower()} ({count} exceedances)" for col, count in mdl_sum.items() if count > 1]'
+            
         ),
 
         nbformat.v4.new_code_cell(
@@ -649,12 +664,13 @@ def _generate_notebook(
             "    display(ratios)\n\n"
             "# Overrange detection\n"
             "upper_cal_point = None  # ← set to upper calibration point value\n"
+            "k = 3.5\n"
             "overrange = check_overrange_values(ds.data, upper_cal_point)\n"
             'print(f"\\nOverrange values: {len(overrange)}")\n'
             "if not overrange.empty:\n"
             "    display(overrange)\n\n"
             "# Log-normal outlier detection\n"
-            "outliers = check_lognormal_outliers(ds.data, mdl_periods)\n"
+            "outliers = check_lognormal_outliers(ds.data, mdl_periods, k=k)\n"
             'print(f"\\nLognormal outliers: {len(outliers)}")\n'
             "if not outliers.empty:\n"
             "    display(outliers)\n\n"
@@ -718,29 +734,15 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("### Static monthly qualifiers"),
         nbformat.v4.new_code_cell(
-            "# Static qualifiers applied to every month regardless of QC results.\n"
+            "#Manual entry for qualifier/null rows.\n"
+            "from autogc_validation.reports import make_col_row\n"
             "_month_start = pd.Timestamp(start_date)\n"
             "_month_end   = pd.Timestamp(end_date)\n\n"
-            "def _static_row(name: str, reason: str, justification: str) -> dict:\n"
-            "    return {\n"
-            "        'Parameter(s)': aqs_to_name(name_to_aqs(name)),\n"
-            "        'COMPOUND(S) or WHOLE HOUR(S) - REASON': reason,\n"
-            "        'CODE': 'LJ',\n"
-            "        'startdate': _month_start.strftime('%m/%d/%Y'),\n"
-            "        'starthour': _month_start.strftime('%H:00'),\n"
-            "        '-': '-',\n"
-            "        'enddate': _month_end.strftime('%m/%d/%Y'),\n"
-            "        'endhour': _month_end.strftime('%H:00'),\n"
-            "        'Justification': justification,\n"
-            "    }\n\n"
+
             "static_quals = pd.DataFrame([\n"
-            "    _static_row('alpha-pinene',     'No QC gas available',           'No QC gas available'),\n"
-            "    _static_row('beta-pinene',      'No QC gas available',           'No QC gas available'),\n"
-            "    _static_row('isoprene',         'Inaccuracy in measurements',    'Due to uncertainty in measurements at the end of the column'),\n"
-            "    _static_row('1-hexene',         'Inaccuracy in measurements',    'Due to uncertainty in measurements at the end of the column'),\n"
-            "    _static_row('n-dodecane',       'Inaccuracy in measurements',    'Due to uncertainty in measurements at the end of the column'),\n"
-            "    _static_row('m-diethylbenzene', 'Peak misidentification issues', 'Due to potential issues in peak identification at low levels'),\n"
-            "    _static_row('p-diethylbenzene', 'Peak misidentification issues', 'Due to potential issues in peak identification at low levels'),\n"
+            "    make_col_row('alpha-pinene, beta-pinene, 2-methyl-1-pentene',   'No QC gas available','LJ', _month_start, _month_end, 'No QC gas available'),\n"
+            "    make_col_row('isoprene, 1-hexene, n-dodecane',          'Inaccuracy in measurements', 'LJ', _month_start, _month_end,  'Due to uncertainty in measurements at the end of the column'),\n"
+            "    make_col_row('m-diethylbenzene, p-diethylbenzene', 'Peak misidentification issues', 'LJ', _month_start, _month_end, 'Due to potential issues in peak identification at low levels'),\n"
             "])\n"
             "static_quals"
         ),

@@ -22,6 +22,7 @@ from typing import Optional, Union
 
 from autogc_validation.workspace.folders import generate_monthly_folder_structure
 from autogc_validation.workspace.notebook import _generate_notebook
+from autogc_validation.workspace.checklist import _generate_checklist
 from autogc_validation.workspace.files import (
     unzip_files,
     move_dat_files,
@@ -332,67 +333,7 @@ def process_workspace(
     return result
 
 
-def _generate_checklist(
-    result: WorkspaceResult,
-    site: str,
-    year: int,
-    month: int,
-) -> Path:
-    """Generate a monthly validation checklist inside the workspace.
 
-    Creates a Markdown file with checkbox sections for each week and
-    for month-level tasks.
-
-    Args:
-        result: WorkspaceResult from create_workspace (must have base_dir set).
-        site: Site name code (e.g. "RB").
-        year: Year.
-        month: Month number (1-12).
-
-    Returns:
-        Path to the created checklist file.
-    """
-    yyyymm = f"{year}{month:02d}"
-
-    content = f"""# {site} {yyyymm} Validation Checklist
-
-## Monthly
-- [ ] Import and process data files
-- [ ] Load dataset and verify sample counts
-- [ ] Query MDLs and canister concentrations
-- [ ] Run blank QC checks
-- [ ] Run recovery checks (CVS, LCS, RTS)
-- [ ] Write QC Review table to MDVR spreadsheet
-- [ ] Run ambient screening (ratios, overrange, TNMHC)
-- [ ] Generate MDVR qualifiers
-- [ ] Submit AQS files
-- [ ] File MDVR
-
-## Week 1
-- [ ] Review data completeness
-- [ ] Check for missing or corrupted files
-- [ ] Notes:
-
-## Week 2
-- [ ] Review data completeness
-- [ ] Check for missing or corrupted files
-- [ ] Notes:
-
-## Week 3
-- [ ] Review data completeness
-- [ ] Check for missing or corrupted files
-- [ ] Notes:
-
-## Week 4
-- [ ] Review data completeness
-- [ ] Check for missing or corrupted files
-- [ ] Notes:
-"""
-
-    checklist_path = result.base_dir / f"{site}{yyyymm}_checklist.md"
-    checklist_path.write_text(content)
-    logger.info("Checklist created: %s", checklist_path)
-    return checklist_path
 
 
 def _copy_mdvr_template(
@@ -476,3 +417,5 @@ def start_month(
         logger.info("Site %s setup complete", site)
 
     return results
+
+

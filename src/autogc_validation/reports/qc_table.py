@@ -15,13 +15,23 @@ from autogc_validation.database.enums import (
     PLOT_CODES,
     BP_CODES,
     COLUMN_CALIBRANTS,
+    CompoundAQSCode,
     aqs_to_name,
 )
 
-_BLANK_ACTIONS = (
+_TNMHC_CODE = int(CompoundAQSCode.C_TNMHC)
+
+_LB_ACTION = (
     "Compounds above their respective MDLs qualified with flag LB forward and "
-    "backward to the nearest passing blank. Compounds above 0.5 ppbC nulled with "
-    "flag AS forward and backward to the nearest passing blank."
+    "backward to the nearest passing blank."
+)
+_AS_ACTION = (
+    "Compounds above 0.5 ppbC nulled with flag AS forward and backward to the "
+    "nearest passing blank."
+)
+_TNMHC_ACTION = (
+    "TNMHC above 10 ppbC. TNMHC nulled with flag AS forward and backward to the "
+    "nearest passing blank."
 )
 
 _RTS_ACTIONS = "Failures noted, no data qualification performed."
@@ -86,8 +96,10 @@ def build_blank_qc_table(
     """
     nulled = set(nulled_filenames or [])
     compound_cols = [c for c in mdl_failures.columns if isinstance(c, int)]
-    plot_cols = [c for c in compound_cols if c in PLOT_CODES]
-    bp_cols = [c for c in compound_cols if c in BP_CODES]
+    non_tnmhc_cols = [c for c in compound_cols if c != _TNMHC_CODE]
+    plot_cols = [c for c in non_tnmhc_cols if c in PLOT_CODES]
+    bp_cols = [c for c in non_tnmhc_cols if c in BP_CODES]
+    has_tnmhc = _TNMHC_CODE in compound_cols
 
     rows = []
     for i, (timestamp, mdl_row) in enumerate(mdl_failures.iterrows()):
@@ -99,11 +111,14 @@ def build_blank_qc_table(
         if mdl_row["filename"] in nulled:
             actions = None
         else:
-            any_failure = bool(
-                (mdl_row[compound_cols] == 1).any()
-                or (thresh_row[compound_cols] == 1).any()
-            )
-            actions = _BLANK_ACTIONS if any_failure else "None taken."
+            action_parts = []
+            if (mdl_row[non_tnmhc_cols] == 1).any():
+                action_parts.append(_LB_ACTION)
+            if (thresh_row[non_tnmhc_cols] == 1).any():
+                action_parts.append(_AS_ACTION)
+            if has_tnmhc and thresh_row.get(_TNMHC_CODE, 0) == 1:
+                action_parts.append(_TNMHC_ACTION)
+            actions = " ".join(action_parts) if action_parts else "None taken."
 
         rows.append({
             "date": timestamp.strftime("%m/%d/%Y"),

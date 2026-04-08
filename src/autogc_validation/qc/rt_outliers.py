@@ -6,6 +6,7 @@ Retention time outlier detection using Median Absolute Deviation (MAD).
 import pandas as pd
 
 from autogc_validation.database.enums import aqs_to_name
+from autogc_validation.qc.utils import align_period_index
 
 
 def detect_rt_outliers(
@@ -17,12 +18,20 @@ def detect_rt_outliers(
     direction: str = "both",
     min_abs_shift: float | None = None,
     min_group_size: int = 5,
+    concentrations: pd.DataFrame | None = None,
+    mdl_periods: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Detect retention time outliers using Median Absolute Deviation (MAD).
 
     For each sample type group and compound, computes the median RT and MAD,
     then flags samples whose deviation exceeds k * MAD (optionally also
     requiring a minimum absolute shift).
+
+    When both concentrations and mdl_periods are provided, flagged rows are
+    additionally filtered to only include samples where the compound
+    concentration exceeds its period-aligned MDL. This suppresses RT outlier
+    flags for samples near or below the detection limit where RT values are
+    unreliable.
 
     Args:
         df: Dataset.rt DataFrame — DatetimeIndex, integer AQS code columns,
@@ -33,7 +42,7 @@ def detect_rt_outliers(
             'sample_type'.
         filename_col: Column name for sample filenames. Default 'filename'.
         k: MAD sensitivity multiplier. Higher values flag only larger
-            deviations. Default 5.0.
+            deviations. Default 10.0.
         direction: 'both' to flag high and low outliers, 'high' for only
             positive deviations, 'low' for only negative. Default 'both'.
         min_abs_shift: Optional minimum absolute RT shift (same units as the
@@ -41,6 +50,14 @@ def detect_rt_outliers(
             MAD threshold.
         min_group_size: Minimum number of samples in a group before MAD is
             computed. Groups smaller than this are skipped. Default 5.
+        concentrations: Optional concentration DataFrame (e.g. ds.data) with
+            the same DatetimeIndex as df. When provided alongside mdl_periods,
+            flagged rows are dropped if the compound concentration is at or
+            below its period-aligned MDL.
+        mdl_periods: Optional wide MDL DataFrame with DatetimeIndex (one row
+            per MDL period) and AQS codes as columns, as returned by
+            get_mdl_periods. Required alongside concentrations to enable the
+            MDL filter.
 
     Returns:
         DataFrame of flagged outliers with columns:
@@ -53,6 +70,16 @@ def detect_rt_outliers(
     """
     if direction not in ("both", "high", "low"):
         raise ValueError("direction must be 'both', 'high', or 'low'")
+
+    above_mdl = None
+    if concentrations is not None and mdl_periods is not None:
+        period_indices = align_period_index(concentrations, mdl_periods)
+        effective_mdl_df = mdl_periods.iloc[period_indices].set_index(concentrations.index)
+        common_cols = [
+            c for c in compound_cols
+            if c in concentrations.columns and c in effective_mdl_df.columns
+        ]
+        above_mdl = concentrations[common_cols] > effective_mdl_df[common_cols]
 
     flagged_rows = []
 
@@ -85,6 +112,9 @@ def detect_rt_outliers(
                 mask = delta < -threshold
 
             for idx in values[mask].index:
+                if above_mdl is not None and compound in above_mdl.columns:
+                    if idx not in above_mdl.index or not above_mdl.loc[idx, compound]:
+                        continue
                 flagged_rows.append({
                     "date_time": idx,
                     "sample_type": sample_type,

@@ -10,18 +10,21 @@ import logging
 
 import pandas as pd
 
-from autogc_validation.database.enums import SampleType
+from autogc_validation.database.enums import CompoundAQSCode, SampleType
 from autogc_validation.qc.utils import get_compound_cols, align_period_index
 
 logger = logging.getLogger(__name__)
 
 _THRESHOLD_PPBC = 0.5
+_TNMHC_THRESHOLD_PPBC = 10.0
+_TNMHC_CODE = int(CompoundAQSCode.C_TNMHC)
 
 
 def compounds_above_mdl(
     blanks: pd.DataFrame,
     mdl_periods: pd.DataFrame,
     threshold_ppbc: float = _THRESHOLD_PPBC,
+    tnmhc_threshold_ppbc: float = _TNMHC_THRESHOLD_PPBC,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Check blank samples against MDLs and a fixed concentration threshold.
 
@@ -29,19 +32,27 @@ def compounds_above_mdl(
     wide MDL DataFrame (from get_mdl_periods). Internally aligns each sample
     to the MDL period that was active on its collection date.
 
+    TNMHC is checked separately against tnmhc_threshold_ppbc (default 10.0
+    ppbC). It is always 0 in mdl_failures (no MDL for a computed total) and
+    flagged in threshold_failures when its value exceeds the threshold.
+
     Args:
         blanks: Dataset.blanks DataFrame — DatetimeIndex, AQS code columns,
             filename column. Must have attrs["sample_type"] == SampleType.BLANK.
         mdl_periods: Wide DataFrame with DatetimeIndex (one row per MDL period)
             and AQS codes as columns, as returned by get_mdl_periods.
-        threshold_ppbc: Fixed concentration threshold (ppbC). Default 0.5.
+        threshold_ppbc: Fixed concentration threshold for individual compounds
+            (ppbC). Default 0.5.
+        tnmhc_threshold_ppbc: Threshold for TNMHC (ppbC). Default 10.0.
 
     Returns:
         Tuple of (mdl_failures, threshold_failures):
             mdl_failures: Wide boolean DataFrame — 1 where compound > MDL,
                 0 otherwise. Columns: filename + AQS codes. Index: date_time.
+                TNMHC is always 0 (no MDL applies).
             threshold_failures: Wide boolean DataFrame — 1 where compound
                 > threshold_ppbc, 0 otherwise. Same shape as mdl_failures.
+                TNMHC uses tnmhc_threshold_ppbc instead of threshold_ppbc.
 
     Raises:
         ValueError: If blanks.attrs["sample_type"] is not SampleType.BLANK.
@@ -58,7 +69,8 @@ def compounds_above_mdl(
         empty = pd.DataFrame(columns=["filename"])
         return empty, empty
 
-    compound_cols = get_compound_cols(blanks)
+    compound_cols = get_compound_cols(blanks)  # excludes TNMHC
+    has_tnmhc = _TNMHC_CODE in blanks.columns
     period_indices = align_period_index(blanks, mdl_periods)
 
     mdl_rows = []
@@ -83,6 +95,13 @@ def compounds_above_mdl(
             )
             threshold_flags[code] = int(value > threshold_ppbc)
 
+        if has_tnmhc:
+            tnmhc_val = row[_TNMHC_CODE]
+            mdl_flags[_TNMHC_CODE] = 0
+            threshold_flags[_TNMHC_CODE] = (
+                0 if pd.isna(tnmhc_val) else int(tnmhc_val > tnmhc_threshold_ppbc)
+            )
+
         mdl_rows.append(mdl_flags)
         threshold_rows.append(threshold_flags)
 
@@ -93,9 +112,12 @@ def compounds_above_mdl(
 
     n_mdl = (mdl_failures.drop(columns="filename") > 0).any(axis=1).sum()
     n_thresh = (threshold_failures.drop(columns="filename") > 0).any(axis=1).sum()
+    n_tnmhc = int(threshold_failures[_TNMHC_CODE].sum()) if has_tnmhc else 0
     logger.info(
-        "Blank check: %d/%d samples exceeded MDL; %d/%d exceeded %.1f ppbC threshold",
+        "Blank check: %d/%d samples exceeded MDL; %d/%d exceeded %.1f ppbC threshold; "
+        "%d/%d exceeded TNMHC threshold of %.1f ppbC",
         n_mdl, len(blanks), n_thresh, len(blanks), threshold_ppbc,
+        n_tnmhc, len(blanks), tnmhc_threshold_ppbc,
     )
 
     return mdl_failures, threshold_failures

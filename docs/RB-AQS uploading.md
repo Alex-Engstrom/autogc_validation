@@ -69,16 +69,18 @@
 - [x] Zip folder
 
 ## December
-- [] Double check RFs and canister info in MDVR
-- [] Check case narrative dates and values are correct.
-- [] Remove "peer reviewed by... from header"
-- [] Check crosstab pre-processed
-- [] Check against data completeness report
-- [] Generate AQS files from MAX
-- [] Fill in AQS upload info and archive file info in MDVR sheet
-- [] Update MDVR format to be PDFable
-- [] Convert case narrative and MDVR to PDF
-- [] Upload AQS files
-- [] Generate PDFs of AQS update emails
-- [] Update GC google sheet
-- [] Zip folder
+- [x] Add TNMHC over 10 ppbC into MAX with null code AS
+- [x] Add EH to MDVR
+- [x] Double check RFs and canister info in MDVR
+- [x] Check case narrative dates and values are correct.
+- [x] Remove "peer reviewed by... from header"
+- [x] Check crosstab pre-processed
+- [x] Check against data completeness report
+- [x] Generate AQS files from MAX
+- [x] Fill in AQS upload info and archive file info in MDVR sheet
+- [x] Update MDVR format to be PDFable
+- [x] Convert case narrative and MDVR to PDF
+- [x] Upload AQS files
+- [x] Generate PDFs of AQS update emails
+- [x] Update GC google sheet
+- [x] Zip folder

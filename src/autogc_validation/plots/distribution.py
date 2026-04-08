@@ -166,4 +166,5 @@ def plot_lognormal_boxplot(
         tickangle=90,
     )
     fig.update_yaxes(**_AXIS_STYLE)
+    fig.add_hline(y=np.log(0.5), line_dash="dash", line_color="red", line_width=1)
     fig.show()

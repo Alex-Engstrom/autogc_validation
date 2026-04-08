@@ -176,9 +176,16 @@ class Dataset:
             cache[sample_type] = df
         return cache[sample_type]
 
-    def _get_chem_cols(self) -> List[int]:
-        """AQS codes to use as DataFrame columns (excludes UnID)."""
-        return [code for code in CompoundAQSCode if code not in UNID_CODES]
+    def _get_chem_cols(self, include_totals: bool = True) -> List[int]:
+        """AQS codes to use as DataFrame columns.
+
+        Args:
+            include_totals: If True (default), include TOTAL_CODES (TNMHC,
+                TNMTC). Pass False for the RT frame where totals are never
+                populated.
+        """
+        exclude = UNID_CODES if include_totals else UNID_CODES | TOTAL_CODES
+        return [code for code in CompoundAQSCode if code not in exclude]
 
     def _filter_targets(self, df: pd.DataFrame) -> pd.DataFrame:
         """Remove UnID and total codes from a peak table."""
@@ -232,15 +239,17 @@ class Dataset:
         if "peak_name" not in df or "peak_amount" not in df:
             raise ValueError(f"Malformed peakamounts table in {filename}")
 
-    def _generate_frame(self, attr: str, builder) -> pd.DataFrame:
+    def _generate_frame(self, attr: str, builder, include_totals: bool = True) -> pd.DataFrame:
         """Generate a DataFrame by extracting an attribute from each sample.
 
         Args:
             attr: Chromatogram property name ('peakamounts' or 'peaklocations').
             builder: Method that converts front/back DataFrames into a
                 {AQS code: value} dict (e.g. _build_amount_dict or _build_rt_dict).
+            include_totals: Passed to _get_chem_cols — False for the RT frame
+                where TNMHC/TNMTC are never populated.
         """
-        chem_cols = self._get_chem_cols()
+        chem_cols = self._get_chem_cols(include_totals=include_totals)
         rows = []
         errors = 0
 
@@ -290,7 +299,7 @@ class Dataset:
 
         if not rows:
             logger.warning("No samples were successfully processed — returning empty DataFrame")
-            chem_cols = self._get_chem_cols()
+            chem_cols = self._get_chem_cols(include_totals=include_totals)
             empty = pd.DataFrame(columns=["date_time", "sample_type", "filename"] + chem_cols)
             return empty.set_index("date_time")
 
@@ -302,7 +311,7 @@ class Dataset:
 
     def _generate_rt(self) -> pd.DataFrame:
         """Generate a DataFrame of retention times for all samples."""
-        return self._generate_frame("peaklocations", self._build_rt_dict)
+        return self._generate_frame("peaklocations", self._build_rt_dict, include_totals=False)
 
     def __repr__(self):
         return f"Dataset({self.folder}, n_samples={len(self.samples)})"
