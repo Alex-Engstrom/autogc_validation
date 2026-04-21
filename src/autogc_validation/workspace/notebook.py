@@ -416,7 +416,7 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc,\n"
-            "    check_lognormal_outliers,\n"
+            "    check_lognormal_outliers, compare_tnmtc_tnmhc\n"
             ")\n"
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
@@ -442,6 +442,12 @@ def _generate_notebook(
             "daily_tnmhc_w3 = check_daily_max_tnmhc(data_w3)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w3)\n\n"
+            "tchc_diff_w3, tchc_ratio_w3 = compare_tnmtc_tnmhc(data_w3)\n"
+            'print("TNMHC - TNMTC:")\n'
+            "display(tchc_diff_w3)"
+            'print("TNMHC / TNMTC:")\n'
+            "display(tchc_ratio_w3)"
+            
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
             "    overrange=overrange_w3, daily_tnmhc=daily_tnmhc_w3, outliers=outliers_w3,\n"

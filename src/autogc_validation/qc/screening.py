@@ -305,3 +305,34 @@ def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:
     timestamps_of_daily_max = s.groupby(s.index.date).idxmax()
 
     return s.loc[timestamps_of_daily_max]
+
+def compare_tnmtc_tnmhc(data: pd.DataFrame, 
+                        diff_thresh: float = .001, 
+                        ratio_thresh: float = 0.5) -> pd.Series:
+    """ """
+    data = data.sort_index()
+    if CompoundAQSCode.C_TNMHC not in data.columns or CompoundAQSCode.C_TNMTC not in data.columns:
+        logger.warning("compare_tnmtc_tnmhc: TNMHC or TNMTC column not found in data")
+        return pd.Series(dtype=float)
+    
+    s = data[[CompoundAQSCode.C_TNMTC, CompoundAQSCode.C_TNMHC]]
+    d = s.copy()
+    d["diff"] = d[CompoundAQSCode.C_TNMHC] - d[CompoundAQSCode.C_TNMTC]
+    diff_mask = d["diff"] < diff_thresh
+    diff = d[diff_mask]
+    
+    r = s.copy()
+    r["ratio"] = r[CompoundAQSCode.C_TNMTC] / r[CompoundAQSCode.C_TNMHC] 
+    ratio_mask = r["ratio"] < ratio_thresh
+    ratio = r[ratio_mask] 
+
+
+    
+    return diff, ratio
+
+
+    
+
+    
+    
+    
