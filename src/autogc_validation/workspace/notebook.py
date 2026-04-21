@@ -120,8 +120,30 @@ def _generate_notebook(
             '    print(f"Week counts: {result.week_counts}")'
         ),
 
+        # --- Query MDL and canister periods ---
+        nbformat.v4.new_markdown_cell("## 2. Query MDL and canister concentration periods"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.database.operations import (\n"
+            "    get_mdl_periods, get_canister_periods\n"
+            ")\n"
+            "from autogc_validation.database.enums import ConcentrationUnit\n\n"
+            "mdl_periods = get_mdl_periods(database, site_id, start_date, end_date, ConcentrationUnit.PPBC)\n"
+            'print(f"MDL periods: {len(mdl_periods)} (changes on: {list(mdl_periods.index.date)})")\n\n'
+            'cvs_periods = get_canister_periods(database, site_id, "CVS", start_date, end_date, ConcentrationUnit.PPBC)\n'
+            'lcs_periods = get_canister_periods(database, site_id, "LCS", start_date, end_date, ConcentrationUnit.PPBC)\n'
+            'rts_periods = get_canister_periods(database, site_id, "RTS", start_date, end_date, ConcentrationUnit.PPBC)\n'
+            'print(f"Canister periods — CVS: {len(cvs_periods)}, LCS: {len(lcs_periods)}, RTS: {len(rts_periods)}")'
+        ),
+
+        # --- Populate MDVR ---
+        nbformat.v4.new_markdown_cell("## 3. Populate MDVR"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports import add_month_to_mdvr\n\n"
+            "add_month_to_mdvr(mdvr_path, month, year)"
+        ),
+
         # --- Load dataset ---
-        nbformat.v4.new_markdown_cell("## 2. Load dataset"),
+        nbformat.v4.new_markdown_cell("## 4. Load dataset"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.dataset import Dataset\n\n"
             "ds = Dataset(data_dir)\n"
@@ -142,7 +164,21 @@ def _generate_notebook(
             '    if s not in ["s", "x"]:\n'
             "        qc += amt\n\n"
             "for sample in samples:\n"
-            "    print(f\"{sample.attrs['sample_type'].value}: {len(sample)}\")"
+            "    print(f\"{sample.attrs['sample_type'].value}: {len(sample)}\")\n\n"
+            "# --- Filename hour alignment check ---\n"
+            "hour_mismatches = ds.check_filename_hour_alignment()\n"
+            "if hour_mismatches.empty:\n"
+            '    print("Filename hour alignment: OK (no mismatches)")\n'
+            "else:\n"
+            '    print(f"WARNING: {len(hour_mismatches)} filename hour mismatches:")\n'
+            "    display(hour_mismatches)\n\n"
+            "# --- Sample type consistency check ---\n"
+            "type_mismatches = ds.check_long_and_letter_sample_types()\n"
+            "if type_mismatches.empty:\n"
+            '    print("Sample type consistency: OK (no mismatches)")\n'
+            "else:\n"
+            '    print(f"WARNING: {len(type_mismatches)} sample type mismatches:")\n'
+            "    display(type_mismatches)"
         ),
         nbformat.v4.new_code_cell(
             "# Helper: print a day-by-day failure summary from a boolean wide DataFrame\n"
@@ -159,24 +195,9 @@ def _generate_notebook(
             f'    print(f"{{label}}: {{n_fail}} / {{len(failures)}} samples with failures")'
         ),
 
-        # --- Query MDL and canister periods ---
-        nbformat.v4.new_markdown_cell("## 3. Query MDL and canister concentration periods"),
-        nbformat.v4.new_code_cell(
-            "from autogc_validation.database.operations import (\n"
-            "    get_mdl_periods, get_canister_periods\n"
-            ")\n"
-            "from autogc_validation.database.enums import ConcentrationUnit\n\n"
-            "mdl_periods = get_mdl_periods(database, site_id, start_date, end_date, ConcentrationUnit.PPBC)\n"
-            'print(f"MDL periods: {len(mdl_periods)} (changes on: {list(mdl_periods.index.date)})")\n\n'
-            'cvs_periods = get_canister_periods(database, site_id, "CVS", start_date, end_date, ConcentrationUnit.PPBC)\n'
-            'lcs_periods = get_canister_periods(database, site_id, "LCS", start_date, end_date, ConcentrationUnit.PPBC)\n'
-            'rts_periods = get_canister_periods(database, site_id, "RTS", start_date, end_date, ConcentrationUnit.PPBC)\n'
-            'print(f"Canister periods — CVS: {len(cvs_periods)}, LCS: {len(lcs_periods)}, RTS: {len(rts_periods)}")'
-        ),
-
         # --- Nulled QC runs ---
         nbformat.v4.new_markdown_cell(
-            "## 3a. Nulled QC runs\n\n"
+            "## 4a. Nulled QC runs\n\n"
             "List the filename stems of any nulled QC runs to exclude from qualifier "
             "interval computation. Use `ds.blanks['filename']`, `ds.cvs['filename']`, "
             "etc. to look up the filename stem for a given run."
@@ -184,11 +205,12 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "nulled_blanks = []\n"
             "nulled_cvs    = []\n"
-            "nulled_lcs    = []"
+            "nulled_lcs    = []\n"
+            "nulled_rts    = []\n"
         ),
 
         # --- Weekly method optimization ---
-        nbformat.v4.new_markdown_cell("## 4. Weekly method optimization"),
+        nbformat.v4.new_markdown_cell("## 5. Weekly method optimization"),
 
         nbformat.v4.new_markdown_cell("### Week 1"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
@@ -507,7 +529,7 @@ def _generate_notebook(
         ),
 
         # --- Monthly ambient compound plots ---
-        nbformat.v4.new_markdown_cell("## 5. Monthly ambient compound plots"),
+        nbformat.v4.new_markdown_cell("## 6. Monthly ambient compound plots"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
             f"plot_ambient_comparisons(ds.ambient, '{site}', {year}, {month})"
@@ -518,7 +540,7 @@ def _generate_notebook(
         ),
 
         # --- Monthly retention time validation ---
-        nbformat.v4.new_markdown_cell("## 6. Monthly retention time validation"),
+        nbformat.v4.new_markdown_cell("## 7. Monthly retention time validation"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.rt import plot_rt\n"
             "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
@@ -533,7 +555,7 @@ def _generate_notebook(
         ),
 
         # --- Blank QC ---
-        nbformat.v4.new_markdown_cell("## 7. Blank check"),
+        nbformat.v4.new_markdown_cell("## 8. Blank check"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.blanks import compounds_above_mdl\n\n"
             "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n\n"
@@ -552,7 +574,7 @@ def _generate_notebook(
         ),
 
         # --- Recovery QC ---
-        nbformat.v4.new_markdown_cell("## 8. QC recovery checks (CVS / LCS / RTS)"),
+        nbformat.v4.new_markdown_cell("## 9. QC recovery checks (CVS / LCS / RTS)"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.recovery import check_qc_recovery\n\n"
             "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
@@ -563,7 +585,14 @@ def _generate_notebook(
             'print("\\n--- LCS ---")\n'
             'print_failures(lcs_failures, "LCS")\n\n'
             'print("\\n--- RTS ---")\n'
-            'print_failures(rts_failures, "RTS")'
+            'print_failures(rts_failures, "RTS")\n\n'
+            "# Number of failing hours for each QC run, by compound (excluding nulled runs)\n"
+            'qc_summary = {"CVS": (nulled_cvs, cvs_failures), "LCS": (nulled_lcs, lcs_failures), "RTS": (nulled_rts, rts_failures)}\n\n'
+            "for qc, (nulls, fails) in qc_summary.items():\n"
+            "    null = ~fails['filename'].isin(nulls)\n"
+            "    total = fails[null].iloc[:, 1:].sum(axis=0)\n"
+            '    sum_text = [f"{aqs_to_name(col).lower()} ({abs(count)} failures)" for col, count in total.items() if abs(count) > 1]\n'
+            '    print(f"{qc}: {", ".join(sum_text) if sum_text else \"no failures\"}")\n'
         ),
 
         nbformat.v4.new_code_cell(
@@ -587,7 +616,7 @@ def _generate_notebook(
 
         # --- QC Review table ---
         nbformat.v4.new_markdown_cell(
-            "## 9. QC Review table\n\n"
+            "## 10. QC Review table\n\n"
             "Builds the human-readable QC summary table and writes it to the "
             "'QC Review' sheet of the MDVR spreadsheet.\n\n"
             "Set `blank_start_row`, `cvs_start_row`, `lcs_start_row`, and "
@@ -619,7 +648,7 @@ def _generate_notebook(
 
         # --- Station temperature ---
         nbformat.v4.new_markdown_cell(
-            "## 10. Station temperature check\n\n"
+            "## 11. Station temperature check\n\n"
             "Requires an AirVision database connection. "
             "Hours where station temperature exceeds 30\u00b0C are nulled with flag AE."
         ),
@@ -649,7 +678,7 @@ def _generate_notebook(
         ),
 
         # --- Ambient screening ---
-        nbformat.v4.new_markdown_cell("## 11. Ambient screening"),
+        nbformat.v4.new_markdown_cell("## 12. Ambient screening"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc,\n"
@@ -681,7 +710,7 @@ def _generate_notebook(
         ),
 
         # --- Reprocess Plan ---
-        nbformat.v4.new_markdown_cell("## 12. Reprocess Plan"),
+        nbformat.v4.new_markdown_cell("## 13. Reprocess Plan"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "fill_reprocess_plan(\n"
@@ -691,7 +720,7 @@ def _generate_notebook(
         ),
 
         # --- MDVR ---
-        nbformat.v4.new_markdown_cell("## 13. MDVR qualifier generation"),
+        nbformat.v4.new_markdown_cell("## 14. MDVR qualifier generation"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import (\n"
             "    build_blank_qualifier_lines,\n"
@@ -761,7 +790,7 @@ def _generate_notebook(
         ),
 
         # --- AQS verification ---
-        nbformat.v4.new_markdown_cell("## 14. AQS upload verification"),
+        nbformat.v4.new_markdown_cell("## 15. AQS upload verification"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports.aqs import compare_aqs_to_dataset\n\n"
             f"aqs_file = r\"\"  # ← set path to AQS RD upload file\n\n"
@@ -772,7 +801,7 @@ def _generate_notebook(
 
         # --- Monthly case narrative ---
         nbformat.v4.new_markdown_cell(
-            "## 15. Monthly case narrative\n\n"
+            "## 16. Monthly case narrative\n\n"
             "Run this cell once you have finished reviewing the full month and "
             "are satisfied with the data qualification.  "
             "The generated `.qmd` file renders to both a self-contained HTML report "
@@ -809,7 +838,7 @@ def _generate_notebook(
 
         # --- Transfer to network ---
         nbformat.v4.new_markdown_cell(
-            "## 16. Transfer to network\n\n"
+            "## 17. Transfer to network\n\n"
             "Copies AQS, FINAL, Original, and MDVR "
             "to the network drive. The destination folder must not already exist — "
             "delete it manually before re-running if you need to overwrite a previous transfer."

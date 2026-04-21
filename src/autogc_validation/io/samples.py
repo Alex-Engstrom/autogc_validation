@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from autogc_validation.database.enums import SampleType
+from autogc_validation.database.enums import SampleTypeLetter, SampleTypeLong
 from autogc_validation.io.cdf import Chromatogram
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class Sample:
     """A paired front/back chromatogram with metadata."""
     front: Chromatogram
     back: Chromatogram
-    sample_type: SampleType
+    sample_type_letter: SampleTypeLetter
     site: str
     month: str
     day: str
@@ -35,6 +35,45 @@ class Sample:
     def datetime(self):
         """Return datetime from front chromatogram."""
         return self.front.datetime
+
+    @property
+    def sample_type_long(self) -> SampleTypeLong | None:
+        """Long-form sample type read from the CDF ``sample_id`` attribute.
+
+        Reads from the front chromatogram lazily (opens the file on first
+        access). Returns None and logs a warning if the value is not
+        a recognised ``SampleTypeLong`` member.
+
+        If the front and back chromatograms report different ``sample_id``
+        values a warning is logged and the front value is used.
+        """
+        front_raw = self.front.sampletype
+        back_raw  = self.back.sampletype
+        if front_raw != back_raw:
+            logger.warning(
+                "%s: front/back sample_id mismatch (%r vs %r) — using front",
+                self.filename_base, front_raw, back_raw,
+            )
+        try:
+            return SampleTypeLong(front_raw)
+        except ValueError:
+            logger.warning(
+                "%s: unrecognised sample_id %r", self.filename_base, front_raw
+            )
+            return None
+
+    @property
+    def filename_hour(self) -> int | None:
+        """Integer hour (0-23) encoded in the filename letter (a=0 … x=23).
+
+        Returns None if the letter is outside the expected a-x range.
+        Note: this is the hour that was programmed into the GC sequence before
+        the run, which may not match the actual injection time if the sequence
+        was configured incorrectly. Use check_filename_hour_alignment() to
+        compare against the injection-derived sample hour.
+        """
+        val = ord(self.hour.lower()) - ord("a")
+        return val if 0 <= val <= 23 else None
 
 
 _FILENAME_PATTERN = re.compile(
@@ -51,7 +90,7 @@ _FILENAME_PATTERN = re.compile(
 def parse_filename_metadata(filename: Path) -> Optional[Dict[str, str]]:
     """Parse an AutoGC CDF filename to extract run metadata.
 
-    Expected pattern: {site}{sample_type}{month}{day}{hour}...-{column}.cdf
+    Expected pattern: {site}{sample_type_letter}{month}{day}{hour}...-{column}.cdf
     Example: RBSJ01A...-Front Signal.cdf
 
     Returns:
@@ -113,7 +152,7 @@ def load_samples_from_folder(folder: Path) -> List[Sample]:
 
         site, sample_type_char, month, day, hour = run_key
         try:
-            sample_type = SampleType(sample_type_char.lower())
+            sample_type_letter = SampleTypeLetter(sample_type_char.lower())
         except ValueError:
             logger.warning("Unknown sample type '%s' for run %s", sample_type_char, run_key)
             continue
@@ -121,13 +160,16 @@ def load_samples_from_folder(folder: Path) -> List[Sample]:
         sample = Sample(
             front=Chromatogram(front_path),
             back=Chromatogram(back_path),
-            sample_type=sample_type,
+            sample_type_letter=sample_type_letter,
             site=site,
             month=month,
             day=day,
             hour=hour,
             filename_base=f"{site}{sample_type_char}{month}{day}{hour}",
         )
+        # sample_type_long is a lazy property — not set at construction time.
         samples.append(sample)
 
     return samples
+
+

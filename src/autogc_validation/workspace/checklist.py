@@ -4,7 +4,11 @@ Created on Tue Apr  7 12:01:13 2026
 
 @author: aengstrom
 """
+import logging
 from pathlib import Path
+from autogc_validation.workspace.result import WorkspaceResult
+
+logger = logging.getLogger(__name__)
 def _generate_checklist(
     result: WorkspaceResult,
     site: str,
@@ -37,7 +41,8 @@ def _generate_checklist(
 - [] Add month to MDVR cell
 - [] Copy operator log entries
 ## Validation
-
+- [] Check canister dates and concentrations in MAX, op log, and sqlite db
+- [] Check calibration forms
 
 
 ### Week 1

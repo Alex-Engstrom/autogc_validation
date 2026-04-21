@@ -17,7 +17,7 @@ from .qualifier_code import (
 from .column_type import ColumnType
 from .concentration_unit import ConcentrationUnit
 from .priority import Priority
-from .sample_type import SampleType
+from .sample_type import SampleTypeLetter, SampleTypeLong, LETTER_TO_LONG_NAMES
 from .voc_category import VOCCategory
 from .compound_code import CompoundAQSCode
 from .compound_name import CompoundName
@@ -146,7 +146,9 @@ __all__ = [
     "ColumnType",
     "ConcentrationUnit",
     "Priority",
-    "SampleType",
+    "SampleTypeLetter",
+    "SampleTypeLong",
+    "LETTER_TO_LONG_NAMES",
     "VOCCategory",
     "CompoundAQSCode",
     "CompoundName",

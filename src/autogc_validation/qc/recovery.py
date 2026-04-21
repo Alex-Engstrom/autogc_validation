@@ -11,10 +11,10 @@ import logging
 
 import pandas as pd
 
-from autogc_validation.database.enums import SampleType
+from autogc_validation.database.enums import SampleTypeLetter
 from autogc_validation.qc.utils import get_compound_cols, align_period_index
 
-_QC_SAMPLE_TYPES = {SampleType.CVS, SampleType.LCS, SampleType.RTS}
+_QC_SAMPLE_TYPES = {SampleTypeLetter.CVS, SampleTypeLetter.LCS, SampleTypeLetter.RTS}
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,6 @@ def compute_recovery(
         rows.append(result)
 
     df = pd.DataFrame(rows, index=qc_samples.index)
-    df.index.name = "date_time"
     return df
 
 
@@ -86,7 +85,7 @@ def check_qc_recovery(
     Args:
         qc_samples: Typed QC DataFrame — DatetimeIndex, AQS code columns,
             filename column. Must have attrs["sample_type"] in
-            {SampleType.CVS, SampleType.LCS, SampleType.RTS}.
+            {SampleTypeLetter.CVS, SampleTypeLetter.LCS, SampleTypeLetter.RTS}.
         canister_periods: Wide DataFrame with DatetimeIndex (one row per
             canister period) and AQS codes as columns, as returned by
             get_canister_periods.
@@ -94,7 +93,7 @@ def check_qc_recovery(
     Returns:
         Wide integer DataFrame — +1 where recovery exceeded 130% (high),
         -1 where recovery was below 70% (low), 0 for passing samples.
-        Columns: filename + AQS codes. Index: date_time.
+        Columns: filename + AQS codes. Index: sample_hour.
 
     Raises:
         ValueError: If qc_samples.attrs["sample_type"] is not a recognised
@@ -143,7 +142,6 @@ def check_qc_recovery(
         result_rows.append(flags)
 
     result = pd.DataFrame(result_rows, index=qc_samples.index)
-    result.index.name = "date_time"
 
     n_failures = (result.drop(columns="filename") != 0).any(axis=1).sum()
     logger.info(

@@ -16,7 +16,7 @@ from plotly.subplots import make_subplots
 from autogc_validation.database.enums import (
     CompoundAQSCode,
     NULL_CODES,
-    SampleType,
+    SampleTypeLetter,
     aqs_to_name,
 )
 
@@ -38,17 +38,17 @@ _LAYOUT_STYLE = dict(plot_bgcolor="white", paper_bgcolor="white", font=dict(colo
 
 # Human-readable labels and colours for each sample type value.
 _SAMPLE_TYPE_META: dict[str, tuple[str, str]] = {
-    SampleType.AMBIENT.value:           ("Valid Ambient",   "#2196F3"),
-    SampleType.BLANK.value:             ("Blanks",          "#FF9800"),
-    SampleType.CVS.value:               ("CVS",             "#4CAF50"),
-    SampleType.LCS.value:               ("LCS",             "#8BC34A"),
-    SampleType.RTS.value:               ("RTS",             "#CDDC39"),
-    SampleType.MDL_POINT.value:         ("MDL Point",       "#9C27B0"),
-    SampleType.CALIBRATION_POINT.value: ("Calibration",     "#E91E63"),
-    SampleType.EXPERIMENTAL.value:      ("PT/Experimental", "#795548"),
+    SampleTypeLetter.AMBIENT.value:           ("Valid Ambient",   "#2196F3"),
+    SampleTypeLetter.BLANK.value:             ("Blanks",          "#FF9800"),
+    SampleTypeLetter.CVS.value:               ("CVS",             "#4CAF50"),
+    SampleTypeLetter.LCS.value:               ("LCS",             "#8BC34A"),
+    SampleTypeLetter.RTS.value:               ("RTS",             "#CDDC39"),
+    SampleTypeLetter.MDL_POINT.value:         ("MDL Point",       "#9C27B0"),
+    SampleTypeLetter.CALIBRATION_POINT.value: ("Calibration",     "#E91E63"),
+    SampleTypeLetter.EXPERIMENTAL.value:      ("PT/Experimental", "#795548"),
 }
 
-# Reverse map: human-readable label → SampleType value string.
+# Reverse map: human-readable label → SampleTypeLetter value string.
 _LABEL_TO_ST_VAL: dict[str, str] = {
     label: st_val for st_val, (label, _) in _SAMPLE_TYPE_META.items()
 }
@@ -87,7 +87,7 @@ def plot_monthly_hours_summary(
             if st_val is not None:
                 raw_counts[st_val] = count
 
-    n_ambient = raw_counts.get(SampleType.AMBIENT.value, 0)
+    n_ambient = raw_counts.get(SampleTypeLetter.AMBIENT.value, 0)
     n_valid_ambient = max(n_ambient - nulled_hours, 0)
 
     labels, values, colors = [], [], []
@@ -102,7 +102,7 @@ def plot_monthly_hours_summary(
         colors.append("#F44336")
 
     for st_val, (label, color) in _SAMPLE_TYPE_META.items():
-        if st_val == SampleType.AMBIENT.value:
+        if st_val == SampleTypeLetter.AMBIENT.value:
             continue
         n = raw_counts.get(st_val, 0)
         if n > 0:
@@ -113,7 +113,7 @@ def plot_monthly_hours_summary(
     qc_hours = sum(
         raw_counts.get(st_val, 0)
         for st_val in _SAMPLE_TYPE_META
-        if st_val != SampleType.AMBIENT.value
+        if st_val != SampleTypeLetter.AMBIENT.value
     )
 
     total_hours_in_month = calendar.monthrange(year, month)[1] * 24

@@ -99,7 +99,7 @@ def check_cvs_precision(
     if not pairs:
         logger.info("No back-to-back CVS pairs found")
         empty = pd.DataFrame(columns=["filename", "filename2"] + compound_cols)
-        empty.index.name = "date_time"
+        empty.index.name = "sample_hour"
         return empty, []
 
     logger.info("Found %d back-to-back CVS pair(s)", len(pairs))
@@ -127,7 +127,7 @@ def check_cvs_precision(
 
         rows.append(fail_dict)
 
-    pair_timestamps = pd.DatetimeIndex([t1 for t1, _ in pairs], name="date_time")
+    pair_timestamps = pd.DatetimeIndex([t1 for t1, _ in pairs], name="sample_hour")
     precision_failures = pd.DataFrame(rows, index=pair_timestamps)
 
     n_fail = int((precision_failures[compound_cols] == 1).any(axis=1).sum())

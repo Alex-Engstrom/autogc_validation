@@ -10,7 +10,7 @@ import logging
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, SampleType
+from autogc_validation.database.enums import CompoundAQSCode, SampleTypeLetter
 from autogc_validation.qc.utils import get_compound_cols, align_period_index
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def compounds_above_mdl(
 
     Args:
         blanks: Dataset.blanks DataFrame — DatetimeIndex, AQS code columns,
-            filename column. Must have attrs["sample_type"] == SampleType.BLANK.
+            filename column. Must have attrs["sample_type"] == SampleTypeLetter.BLANK.
         mdl_periods: Wide DataFrame with DatetimeIndex (one row per MDL period)
             and AQS codes as columns, as returned by get_mdl_periods.
         threshold_ppbc: Fixed concentration threshold for individual compounds
@@ -48,19 +48,19 @@ def compounds_above_mdl(
     Returns:
         Tuple of (mdl_failures, threshold_failures):
             mdl_failures: Wide boolean DataFrame — 1 where compound > MDL,
-                0 otherwise. Columns: filename + AQS codes. Index: date_time.
+                0 otherwise. Columns: filename + AQS codes. Index: sample_hour.
                 TNMHC is always 0 (no MDL applies).
             threshold_failures: Wide boolean DataFrame — 1 where compound
                 > threshold_ppbc, 0 otherwise. Same shape as mdl_failures.
                 TNMHC uses tnmhc_threshold_ppbc instead of threshold_ppbc.
 
     Raises:
-        ValueError: If blanks.attrs["sample_type"] is not SampleType.BLANK.
+        ValueError: If blanks.attrs["sample_type"] is not SampleTypeLetter.BLANK.
     """
     sample_type = blanks.attrs.get("sample_type")
-    if sample_type != SampleType.BLANK:
+    if sample_type != SampleTypeLetter.BLANK:
         raise ValueError(
-            f"Expected blanks DataFrame with attrs['sample_type'] == SampleType.BLANK, "
+            f"Expected blanks DataFrame with attrs['sample_type'] == SampleTypeLetter.BLANK, "
             f"got {sample_type!r}"
         )
 
@@ -107,8 +107,6 @@ def compounds_above_mdl(
 
     mdl_failures = pd.DataFrame(mdl_rows, index=blanks.index)
     threshold_failures = pd.DataFrame(threshold_rows, index=blanks.index)
-    mdl_failures.index.name = "date_time"
-    threshold_failures.index.name = "date_time"
 
     n_mdl = (mdl_failures.drop(columns="filename") > 0).any(axis=1).sum()
     n_thresh = (threshold_failures.drop(columns="filename") > 0).any(axis=1).sum()

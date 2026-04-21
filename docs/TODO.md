@@ -16,11 +16,19 @@
 - [x] Add "mdl_sum = mdl_failures.iloc[:,1:].sum(axis=0)
 mdl_sum_text = [f"{aqs_to_name(col).lower()} ({count} exceedances)" for col, count in mdl_sum.items() if count > 1]"
 to notebook generator.
-- [] Add small function to add the current month to the MDVR document
+- [x] Add small function to add the current month to the MDVR document
 - [] Add small function to add QC canister info the the MDVR doc.
 - [] Fix cells in MDVR template
 - [] Add plots folder to monthly folder 
-- [] Clean up anaconda environments
+- [x] Clean up anaconda environments
+- [] Correct blank screening function so TNMHC isnt included in compounds above 0.5 ppbC
+- [x] Update how code calculates which hour data belongs to to match MAX
+    - [x] Update this in AQS file comparison
+- [] Add screening function for TNMTC vs TNMHC checks
+- [] Add monthly review before AQS file check
+- [x] Add sample hour-filename check to notebook template
+- [x] Add long/short sampletype check to dataset class
+
 
 
 ## AQS upload file functions
@@ -31,8 +39,8 @@ to notebook generator.
 
 ## AutoGC Core
 - [x] Connect to github
-- [] Write function to parse MAX crosstab csv files
-- [] Write function to parse MAX figure download csvs
+- [x] Write function to parse MAX crosstab csv files
+- [x] Write function to parse MAX figure download csvs
 - [] Move more stuff from gc_validation enums to here
 
 ## txt_parser

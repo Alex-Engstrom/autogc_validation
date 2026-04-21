@@ -19,23 +19,43 @@ class Calibration(BaseModel):
     Attributes:
         primary_canister_id: Unique canister identifier
         date_run
-        plot_rf
-        bp_rf
         
     """
     primary_canister_id: str
     date_run: str
-    plot_rf: float
-    bp_rf: float
+    dr1: float 
+    dr2: float 
+    dr3: float 
+    dr4: float
+    l1_area: float 
+    l1_conc: float
+    l2_area: float 
+    l2_conc: float
+    l3_area: float 
+    l3_conc: float
+    l4_area: float 
+    l4_conc: float
+    
+    
 
     __tablename__ = "calibrations"
 
     __table_sql__ = """
                     CREATE TABLE IF NOT EXISTS calibrations (
-                        primary_canister_id TEXT PRIMARY KEY,
-                        date_run TEXT NOT NULL,
-                        plot_rf REAL,
-                        bp_rf REAL,
+                        primary_canister_id TEXT,
+                        date_run TEXT NOT NULL PRIMARY KEY,
+                        dr_1 REAL,
+                        dr_2 REAL,
+                        dr_3 REAL,
+                        dr_4 REAL,
+                        l1_area REAL,
+                        l1_conc REAL,
+                        l2_area REAL,
+                        l2_conc REAL,
+                        l3_area REAL,
+                        l3_conc REAL,
+                        l4_area REAL,
+                        l4_conc REAL,
                         FOREIGN KEY(primary_canister_id) REFERENCES primary_canisters(primary_canister_id)
                     );
                     """

@@ -76,7 +76,7 @@ def build_blank_qc_table(
 
     Args:
         mdl_failures: Wide boolean DataFrame — 1 where compound exceeded its MDL.
-            Columns: filename + integer AQS codes. Index name: date_time.
+            Columns: filename + integer AQS codes. Index name: sample_hour.
         threshold_failures: Wide boolean DataFrame — 1 where compound exceeded
             0.5 ppbC threshold. Same shape and index as mdl_failures.
         nulled_filenames: Filenames of blank runs that were nulled. Failing
@@ -294,7 +294,7 @@ def build_recovery_qc_table(
     Args:
         recovery_failures: Wide integer DataFrame — +1 (high) or -1 (low)
             where compound recovery was outside bounds, 0 for passing samples.
-            Columns: filename + integer AQS codes. Index name: date_time.
+            Columns: filename + integer AQS codes. Index name: sample_hour.
             As returned by check_qc_recovery.
         qc_type: One of 'CVS', 'LCS', or 'RTS'. Determines the actions message.
         nulled_filenames: Filenames of QC runs that were nulled. Failing

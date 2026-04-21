@@ -14,7 +14,7 @@ import pandas as pd
 
 from autogc_validation.database.enums import (
     CompoundAQSCode,
-    SampleType,
+    SampleTypeLetter,
     TOTAL_CODES,
     VOCCategory,
     aqs_to_name,
@@ -46,7 +46,7 @@ def check_ratios(
     mdl_series = to_aqs_indexed_series(mdls)
     mdl_series.index = mdl_series.index.map(int)
 
-    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].sort_index().copy()
+    ambient_df = data[data["sample_type"] == SampleTypeLetter.AMBIENT].sort_index().copy()
 
     compound_cols_for_skip = [c for c in data.columns if isinstance(c, int)]
     skipped = set(compound_cols_for_skip) - set(mdl_series.index)
@@ -181,7 +181,7 @@ def check_overrange_values(
                 except (KeyError, ValueError):
                     logger.warning("Unknown compound name for exclusion: %s", item)
 
-    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].copy()
+    ambient_df = data[data["sample_type"] == SampleTypeLetter.AMBIENT].copy()
 
     compound_cols = [c for c in ambient_df.columns if isinstance(c, int)]
     ambient_df[compound_cols] = ambient_df[compound_cols].apply(
@@ -242,7 +242,7 @@ def check_lognormal_outliers(
     else:
         mdl_series = pd.Series(dtype=float)
 
-    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].copy()
+    ambient_df = data[data["sample_type"] == SampleTypeLetter.AMBIENT].copy()
     compound_cols = [
         c for c in ambient_df.columns
         if isinstance(c, int) and c not in TOTAL_CODES
@@ -294,7 +294,7 @@ def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:
     Returns:
         Series indexed by the timestamp of each daily max, values are TNMHC (ppbC).
     """
-    ambient_df = data[data["sample_type"] == SampleType.AMBIENT].sort_index()
+    ambient_df = data[data["sample_type"] == SampleTypeLetter.AMBIENT].sort_index()
 
     if CompoundAQSCode.C_TNMHC not in ambient_df.columns:
         logger.warning("check_daily_max_tnmhc: TNMHC column not found in data")

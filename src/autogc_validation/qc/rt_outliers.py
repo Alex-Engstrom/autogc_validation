@@ -61,7 +61,7 @@ def detect_rt_outliers(
 
     Returns:
         DataFrame of flagged outliers with columns:
-            date_time, sample_type, filename, compound, compound_name,
+            sample_hour, sample_type, filename, compound, compound_name,
             rt, median_rt, delta, mad, threshold.
         Empty DataFrame (same columns) if no outliers are found.
 
@@ -116,7 +116,7 @@ def detect_rt_outliers(
                     if idx not in above_mdl.index or not above_mdl.loc[idx, compound]:
                         continue
                 flagged_rows.append({
-                    "date_time": idx,
+                    "sample_hour": idx,
                     "sample_type": sample_type,
                     "filename": group.loc[idx, filename_col] if filename_col in group.columns else None,
                     "compound": compound,
@@ -129,10 +129,10 @@ def detect_rt_outliers(
                 })
 
     columns = [
-        "date_time", "sample_type", "filename", "compound", "compound_name",
+        "sample_hour", "sample_type", "filename", "compound", "compound_name",
         "rt", "median_rt", "delta", "mad", "threshold",
     ]
     if not flagged_rows:
         return pd.DataFrame(columns=columns)
 
-    return pd.DataFrame(flagged_rows).set_index("date_time")
+    return pd.DataFrame(flagged_rows).set_index("sample_hour")

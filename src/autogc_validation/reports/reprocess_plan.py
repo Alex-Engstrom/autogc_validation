@@ -15,7 +15,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
-from autogc_validation.database.enums import SampleType
+from autogc_validation.database.enums import SampleTypeLetter
 
 _SHEET_NAME = "Reprocess Plan"
 
@@ -55,14 +55,14 @@ def _cell_has_value(cell) -> bool:
     return v is not None and str(v).strip() != ""
 
 
-_FILLS: dict[SampleType, PatternFill] = {
-    SampleType.CVS:               _solid("FF0070C0"),  # blue
-    SampleType.BLANK:             _solid("FF00B0F0"),  # light blue
-    SampleType.LCS:               _solid("FF00B050"),  # green
-    SampleType.RTS:               _solid("FFA568D2"),  # purple
-    SampleType.EXPERIMENTAL:      _solid("FFFF0000"),  # red
-    SampleType.CALIBRATION_POINT: _solid("FF338583"),  # teal  (Multipoint)
-    SampleType.MDL_POINT:         _solid("FFFFCC99"),  # peach (Detection Limit)
+_FILLS: dict[SampleTypeLetter, PatternFill] = {
+    SampleTypeLetter.CVS:               _solid("FF0070C0"),  # blue
+    SampleTypeLetter.BLANK:             _solid("FF00B0F0"),  # light blue
+    SampleTypeLetter.LCS:               _solid("FF00B050"),  # green
+    SampleTypeLetter.RTS:               _solid("FFA568D2"),  # purple
+    SampleTypeLetter.EXPERIMENTAL:      _solid("FFFF0000"),  # red
+    SampleTypeLetter.CALIBRATION_POINT: _solid("FF338583"),  # teal  (Multipoint)
+    SampleTypeLetter.MDL_POINT:         _solid("FFFFCC99"),  # peach (Detection Limit)
 }
 
 _MISSING_FILL = _solid("FFFF99FF")  # pink  (Missing Data)
@@ -72,14 +72,14 @@ _RPO_FILL     = _solid("FF00FFFF")  # cyan  (Reprocessed file / RP)
 # ---------------------------------------------------------------------------
 # Invalid PLOT / Invalid BP text per sample type
 # ---------------------------------------------------------------------------
-_INVALID_TEXT: dict[SampleType, str] = {
-    SampleType.CVS:               "AY",
-    SampleType.BLANK:             "AY",
-    SampleType.LCS:               "AY",
-    SampleType.RTS:               "TC",
-    SampleType.CALIBRATION_POINT: "AT",
-    SampleType.EXPERIMENTAL:      "XX",
-    SampleType.MDL_POINT:         "DL",
+_INVALID_TEXT: dict[SampleTypeLetter, str] = {
+    SampleTypeLetter.CVS:               "AY",
+    SampleTypeLetter.BLANK:             "AY",
+    SampleTypeLetter.LCS:               "AY",
+    SampleTypeLetter.RTS:               "TC",
+    SampleTypeLetter.CALIBRATION_POINT: "AT",
+    SampleTypeLetter.EXPERIMENTAL:      "XX",
+    SampleTypeLetter.MDL_POINT:         "DL",
 }
 
 
@@ -280,10 +280,10 @@ def fill_reprocess_plan(
     existing_hours: set[tuple[int, int]] = {(ts.day, ts.hour) for ts in data_index}
 
     target_types = set(_FILLS)
-    qc_hours: dict[tuple[int, int], SampleType] = {}
+    qc_hours: dict[tuple[int, int], SampleTypeLetter] = {}
     for ts, st_val in zip(data_index, data_df["sample_type"]):
         if st_val in target_types:
-            qc_hours[(ts.day, ts.hour)] = SampleType(st_val)
+            qc_hours[(ts.day, ts.hour)] = SampleTypeLetter(st_val)
 
     overrange_by_day = _build_overrange_lookup(overrange)
     tnmhc_by_day     = _build_tnmhc_lookup(daily_tnmhc)

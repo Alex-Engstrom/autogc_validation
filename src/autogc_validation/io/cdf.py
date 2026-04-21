@@ -57,12 +57,18 @@ class Chromatogram:
     def __init__(self, filename, dataformat="cdf"):
         self.format = dataformat
         self.filename = Path(filename)
+        self._sampletype = None
         self._datetime = None
         self._chromatogram = None
         self._peakamounts = None
         self._peakwindows = None
         self._peaklocations = None
-
+    
+    @property
+    def sampletype(self):
+        if self._sampletype is None:
+            self._sampletype = self.examine_netcdf_attribute('sample_id')
+        return self._sampletype
     @property
     def datetime(self):
         if self._datetime is None:
@@ -92,6 +98,7 @@ class Chromatogram:
         if self._peaklocations is None:
             self._peaklocations = self._generate_class_attributes('peaklocations')
         return self._peaklocations
+    
 
     def _get_datetime(self):
         """Extract datetime from CDF file metadata."""

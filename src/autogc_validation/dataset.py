@@ -12,10 +12,105 @@ from typing import Dict, List
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, SampleType, UNID_CODES, TOTAL_CODES
+from autogc_validation.database.enums import CompoundAQSCode, SampleTypeLetter, SampleTypeLong, LETTER_TO_LONG_NAMES, UNID_CODES, TOTAL_CODES
 from autogc_validation.io.samples import Sample, load_samples_from_folder
 
 logger = logging.getLogger(__name__)
+
+
+_SAMPLE_COLLECTION_OFFSET = pd.Timedelta(minutes=20)
+"""Samples are collected for 40 minutes before injection; the midpoint (and
+therefore the labelled sample hour) is 20 minutes before injection."""
+
+
+def sample_hour(injection_time: pd.Timestamp) -> pd.Timestamp:
+    """Return the sample hour for a given injection timestamp.
+
+    The AutoGC collects ambient air for 40 minutes before injecting into the
+    GC. The midpoint of collection — and therefore the hour that should be
+    associated with the result — is 20 minutes before the injection time,
+    floored to the whole hour.
+
+    Example: injection at 10:05 → sample hour 09:00.
+
+    Args:
+        injection_time: The datetime when the sample was injected into the GC.
+
+    Returns:
+        Timestamp representing the sample hour (minute/second zeroed out).
+    """
+    return (injection_time - _SAMPLE_COLLECTION_OFFSET).floor("h")
+
+
+def _collection_overlap(injection_time: pd.Timestamp, sample_hour_ts: pd.Timestamp) -> float:
+    """Minutes of the 40-minute collection window that fall within the labeled sample hour.
+
+    The collection window runs from injection_time - 40 min to injection_time.
+    The labeled hour spans [sample_hour_ts, sample_hour_ts + 1h).
+
+    Args:
+        injection_time: Raw injection timestamp.
+        sample_hour_ts: The sample_hour label for that injection (floor of
+            injection_time - 20 min).
+
+    Returns:
+        Overlap duration in minutes (0.0 to 40.0).
+    """
+    collection_start = injection_time - pd.Timedelta(minutes=40)
+    collection_end   = injection_time
+    hour_end         = sample_hour_ts + pd.Timedelta(hours=1)
+    overlap_start    = max(collection_start, sample_hour_ts)
+    overlap_end      = min(collection_end,   hour_end)
+    delta = overlap_end - overlap_start
+    return max(0.0, delta.total_seconds() / 60)
+
+
+def resolve_duplicate_sample_hours(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Resolve duplicate sample_hour index values, keeping the best sample per hour.
+
+    When two samples share the same sample_hour label, the one whose 40-minute
+    collection window has greater overlap with that hour is retained. The other
+    is returned in a separate DataFrame so the caller can log or inspect it.
+
+    Typical usage::
+
+        ambient, removed = resolve_duplicate_sample_hours(ds.ambient)
+        if not removed.empty:
+            print("Dropped duplicate hour samples:", removed["filename"].tolist())
+
+    Args:
+        df: DataFrame with a DatetimeIndex named ``sample_hour`` and a
+            ``date_time`` column holding the raw injection timestamp. As
+            returned by any Dataset typed property (e.g. ``ds.ambient``).
+
+    Returns:
+        ``(kept_df, removed_df)`` — both have the same schema as *df*.
+        *removed_df* is empty when no duplicates are present.
+    """
+    if not df.index.duplicated().any():
+        return df.copy(), pd.DataFrame(columns=df.columns)
+
+    kept_rows    = []
+    removed_rows = []
+
+    for sh_val, group in df.groupby(level=0):
+        if len(group) == 1:
+            kept_rows.append(group)
+            continue
+
+        overlaps = group["date_time"].apply(
+            lambda dt: _collection_overlap(pd.Timestamp(dt), pd.Timestamp(sh_val))
+        )
+        best_pos = int(overlaps.values.argmax())
+        for i, (_, row_df) in enumerate(group.iterrows()):
+            target = kept_rows if i == best_pos else removed_rows
+            target.append(group.iloc[[i]])
+
+    kept_df = pd.concat(kept_rows).sort_index() if kept_rows else df.iloc[:0].copy()
+    removed_df = pd.concat(removed_rows).sort_index() if removed_rows else df.iloc[:0].copy()
+    return kept_df, removed_df
 
 
 class Dataset:
@@ -24,8 +119,17 @@ class Dataset:
     Attributes:
         folder: Path to the directory of CDF files.
         samples: List of Sample objects (paired front/back chromatograms).
-        data: Concentration DataFrame (ppbC), all sample types, indexed by datetime.
-        rt: Retention time DataFrame, all sample types, indexed by datetime.
+        data: Concentration DataFrame (ppbC), all sample types.
+        rt: Retention time DataFrame, all sample types.
+
+    All DataFrames use a DatetimeIndex named ``sample_hour`` — the injection
+    time minus 20 minutes, floored to the whole hour. The raw injection
+    timestamp is preserved as a ``date_time`` column. See ``sample_hour()``.
+
+    Because sample_hour is derived by flooring, two samples can share the same
+    index value. Use ``resolve_duplicate_sample_hours()`` to reduce a typed
+    DataFrame to one sample per hour before passing it to AQS or qualifier
+    functions.
 
     Typed concentration properties (filter data by sample type):
         ambient, blanks, cvs, rts, lcs, mdl, calibration, experimental
@@ -40,8 +144,8 @@ class Dataset:
         self.samples = load_samples_from_folder(self.folder)
         self._data: pd.DataFrame | None = None
         self._rt: pd.DataFrame | None = None
-        self._typed_data: Dict[SampleType, pd.DataFrame] = {}
-        self._typed_rt: Dict[SampleType, pd.DataFrame] = {}
+        self._typed_data: Dict[SampleTypeLetter, pd.DataFrame] = {}
+        self._typed_rt: Dict[SampleTypeLetter, pd.DataFrame] = {}
 
     # ------------------------------------------------------------------
     # Combined DataFrames
@@ -49,14 +153,22 @@ class Dataset:
 
     @property
     def data(self) -> pd.DataFrame:
-        """Concentration data, lazily generated on first access."""
+        """Concentration data, lazily generated on first access.
+
+        Indexed by ``sample_hour`` (injection time − 20 min, floored to the
+        hour). Raw injection timestamps are in the ``date_time`` column.
+        """
         if self._data is None:
             self._data = self._generate_data()
         return self._data
 
     @property
     def rt(self) -> pd.DataFrame:
-        """Retention time data, lazily generated on first access."""
+        """Retention time data, lazily generated on first access.
+
+        Indexed by ``sample_hour`` (injection time − 20 min, floored to the
+        hour). Raw injection timestamps are in the ``date_time`` column.
+        """
         if self._rt is None:
             self._rt = self._generate_rt()
         return self._rt
@@ -68,42 +180,42 @@ class Dataset:
     @property
     def ambient(self) -> pd.DataFrame:
         """Concentration data for ambient field samples."""
-        return self._get_typed(SampleType.AMBIENT)
+        return self._get_typed(SampleTypeLetter.AMBIENT)
 
     @property
     def blanks(self) -> pd.DataFrame:
         """Concentration data for blank samples."""
-        return self._get_typed(SampleType.BLANK)
+        return self._get_typed(SampleTypeLetter.BLANK)
 
     @property
     def cvs(self) -> pd.DataFrame:
         """Concentration data for canister verification standard samples."""
-        return self._get_typed(SampleType.CVS)
+        return self._get_typed(SampleTypeLetter.CVS)
 
     @property
     def rts(self) -> pd.DataFrame:
         """Concentration data for retention time standard samples."""
-        return self._get_typed(SampleType.RTS)
+        return self._get_typed(SampleTypeLetter.RTS)
 
     @property
     def lcs(self) -> pd.DataFrame:
         """Concentration data for laboratory control standard samples."""
-        return self._get_typed(SampleType.LCS)
+        return self._get_typed(SampleTypeLetter.LCS)
 
     @property
     def mdl(self) -> pd.DataFrame:
         """Concentration data for method detection limit samples."""
-        return self._get_typed(SampleType.MDL_POINT)
+        return self._get_typed(SampleTypeLetter.MDL_POINT)
 
     @property
     def calibration(self) -> pd.DataFrame:
         """Concentration data for calibration standard samples."""
-        return self._get_typed(SampleType.CALIBRATION_POINT)
+        return self._get_typed(SampleTypeLetter.CALIBRATION_POINT)
 
     @property
     def experimental(self) -> pd.DataFrame:
         """Concentration data for experimental samples."""
-        return self._get_typed(SampleType.EXPERIMENTAL)
+        return self._get_typed(SampleTypeLetter.EXPERIMENTAL)
 
     # ------------------------------------------------------------------
     # Typed retention time properties
@@ -112,48 +224,115 @@ class Dataset:
     @property
     def ambient_rt(self) -> pd.DataFrame:
         """Retention time data for ambient field samples."""
-        return self._get_typed(SampleType.AMBIENT, use_rt=True)
+        return self._get_typed(SampleTypeLetter.AMBIENT, use_rt=True)
 
     @property
     def blanks_rt(self) -> pd.DataFrame:
         """Retention time data for blank samples."""
-        return self._get_typed(SampleType.BLANK, use_rt=True)
+        return self._get_typed(SampleTypeLetter.BLANK, use_rt=True)
 
     @property
     def cvs_rt(self) -> pd.DataFrame:
         """Retention time data for canister verification standard samples."""
-        return self._get_typed(SampleType.CVS, use_rt=True)
+        return self._get_typed(SampleTypeLetter.CVS, use_rt=True)
 
     @property
     def rts_rt(self) -> pd.DataFrame:
         """Retention time data for retention time standard samples."""
-        return self._get_typed(SampleType.RTS, use_rt=True)
+        return self._get_typed(SampleTypeLetter.RTS, use_rt=True)
 
     @property
     def lcs_rt(self) -> pd.DataFrame:
         """Retention time data for laboratory control standard samples."""
-        return self._get_typed(SampleType.LCS, use_rt=True)
+        return self._get_typed(SampleTypeLetter.LCS, use_rt=True)
 
     @property
     def mdl_rt(self) -> pd.DataFrame:
         """Retention time data for method detection limit samples."""
-        return self._get_typed(SampleType.MDL_POINT, use_rt=True)
+        return self._get_typed(SampleTypeLetter.MDL_POINT, use_rt=True)
 
     @property
     def calibration_rt(self) -> pd.DataFrame:
         """Retention time data for calibration standard samples."""
-        return self._get_typed(SampleType.CALIBRATION_POINT, use_rt=True)
+        return self._get_typed(SampleTypeLetter.CALIBRATION_POINT, use_rt=True)
 
     @property
     def experimental_rt(self) -> pd.DataFrame:
         """Retention time data for experimental samples."""
-        return self._get_typed(SampleType.EXPERIMENTAL, use_rt=True)
+        return self._get_typed(SampleTypeLetter.EXPERIMENTAL, use_rt=True)
 
     # ------------------------------------------------------------------
     # Public filter method
     # ------------------------------------------------------------------
 
-    def filter_by_type(self, sample_type: SampleType, use_rt: bool = False) -> pd.DataFrame:
+    def check_filename_hour_alignment(self) -> pd.DataFrame:
+        """Check whether each sample's filename hour matches its injection-derived sample hour.
+
+        The filename hour is programmed into the GC sequence before samples are
+        run. If the sequence is configured incorrectly the filename letter may
+        not correspond to the actual collection time. This method compares the
+        filename-encoded hour against the sample hour derived from the injection
+        timestamp (injection time − 20 minutes, floored to the hour).
+
+        Returns:
+            DataFrame with columns:
+                filename       — filename_base for each sample
+                filename_hour  — integer hour (0-23) decoded from the filename letter
+                sample_hour    — integer hour (0-23) derived from injection time
+                injection_time — raw injection datetime (timezone-naive)
+                aligned        — True if filename_hour == sample_hour
+
+            Only samples with a readable injection datetime and a valid filename
+            hour letter are included. Rows where ``aligned`` is False indicate a
+            likely GC sequence configuration error.
+        """
+        from datetime import timedelta
+        records = []
+        for s in self.samples:
+            fname_hour = s.filename_hour
+            dt = s.datetime
+            if dt is None or fname_hour is None:
+                continue
+            dt_naive = dt.replace(tzinfo=None)
+            actual_hour = (dt_naive - timedelta(minutes=20)).hour
+            records.append({
+                "filename": s.filename_base,
+                "filename_hour": fname_hour,
+                "sample_hour": actual_hour,
+                "injection_time": dt_naive,
+                "aligned": fname_hour == actual_hour,
+            })
+        return pd.DataFrame(records)
+    
+    def check_long_and_letter_sample_types(self) -> pd.DataFrame:
+        """Compare the filename-derived sample type against the CDF sample_id for each sample.
+
+        Returns:
+            DataFrame of mismatches with columns:
+                filename, injection_time, letter_sampletype, long_sampletype.
+            Empty DataFrame (same columns) if all samples agree.
+        """
+        columns = ["filename", "injection_time", "letter_sampletype", "long_sampletype"]
+        records = []
+        for s in self.samples:
+            long_type = s.sample_type_long  # lazy property — opens CDF file
+            if long_type is None:
+                # Unrecognised sample_id; already logged by the property.
+                continue
+            letter_name = s.sample_type_letter.name
+            compatible  = LETTER_TO_LONG_NAMES.get(letter_name, frozenset())
+            if long_type.name not in compatible:
+                records.append({
+                    "filename":          s.filename_base,
+                    "injection_time":    s.datetime,
+                    "letter_sampletype": s.sample_type_letter,
+                    "long_sampletype":   long_type,
+                })
+        if records:
+            return pd.DataFrame(records)
+        return pd.DataFrame(columns=columns)
+
+    def filter_by_type(self, sample_type: SampleTypeLetter, use_rt: bool = False) -> pd.DataFrame:
         """Return rows matching a sample type from the concentration or RT DataFrame.
 
         Args:
@@ -167,7 +346,7 @@ class Dataset:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _get_typed(self, sample_type: SampleType, use_rt: bool = False) -> pd.DataFrame:
+    def _get_typed(self, sample_type: SampleTypeLetter, use_rt: bool = False) -> pd.DataFrame:
         """Return a cached per-type DataFrame, computing it on first access."""
         cache = self._typed_rt if use_rt else self._typed_data
         if sample_type not in cache:
@@ -282,7 +461,7 @@ class Dataset:
 
                 row = {
                     "date_time": dt,
-                    "sample_type": sample.sample_type.value,
+                    "sample_type": sample.sample_type_letter.value,
                     "filename": sample.filename_base,
                     **{code: value_dict.get(code) for code in chem_cols},
                 }
@@ -301,9 +480,13 @@ class Dataset:
             logger.warning("No samples were successfully processed — returning empty DataFrame")
             chem_cols = self._get_chem_cols(include_totals=include_totals)
             empty = pd.DataFrame(columns=["date_time", "sample_type", "filename"] + chem_cols)
-            return empty.set_index("date_time")
+            empty.index = pd.DatetimeIndex([], name="sample_hour")
+            return empty
 
-        return pd.DataFrame(rows).set_index("date_time").sort_index()
+        df = pd.DataFrame(rows)
+        df.index = df["date_time"].apply(sample_hour)
+        df.index.name = "sample_hour"
+        return df.sort_index()
 
     def _generate_data(self) -> pd.DataFrame:
         """Generate a DataFrame of VOC concentrations for all samples."""

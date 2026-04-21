@@ -24,17 +24,15 @@ def _aqs_timestamp(aqs_df: pd.DataFrame) -> pd.DataFrame:
     return aqs_df_ts
 
 
-def _ds_timestamp_convert(ds_ts: pd.Timestamp) -> pd.Timestamp:
-    return ds_ts.replace(minute=0, second=0, microsecond=0)
-
-
 def compare_aqs_to_dataset(aqs_upload_file: str, dataset: pd.DataFrame) -> pd.DataFrame:
     """Compare an AQS upload file against the dataset to find value discrepancies.
 
     Args:
         aqs_upload_file: Path to the AQS RD transaction upload file.
         dataset: Ambient-only DataFrame (e.g. ds.ambient) with integer AQS code
-            columns, a DatetimeIndex, and sample_type / filename columns.
+            columns, a sample_hour DatetimeIndex, and date_time / sample_type /
+            filename columns. Pass through resolve_duplicate_sample_hours() first
+            if the month contains any duplicate sample hours.
 
     Returns:
         DataFrame of rows where |dataset - AQS| > 0.001, with columns:
@@ -55,11 +53,13 @@ def compare_aqs_to_dataset(aqs_upload_file: str, dataset: pd.DataFrame) -> pd.Da
     aqs_df.dropna(how="any", inplace=True)
     aqs_df = aqs_df.reset_index()
 
-    dataset.index = dataset.index.map(_ds_timestamp_convert)
-    dataset.drop(columns=["sample_type", "filename"], inplace=True)
+    # Drop metadata columns. reset_index() promotes the sample_hour index to a
+    # column; rename it to date_time to match the AQS DataFrame's join key.
+    dataset.drop(columns=["date_time", "sample_type", "filename"], inplace=True)
     dataset = (
         dataset.apply(pd.to_numeric, errors="coerce")
         .reset_index()
+        .rename(columns={"sample_hour": "date_time"})
         .melt(id_vars="date_time", var_name="Parameter", value_name="dataset")
     )
 

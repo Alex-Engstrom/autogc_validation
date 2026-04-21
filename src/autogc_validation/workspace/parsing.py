@@ -17,7 +17,7 @@ from typing import Optional, Tuple
 
 import pandas as pd
 
-from autogc_validation.database.enums import SampleType
+from autogc_validation.database.enums import SampleTypeLetter
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ def parse_dat_file(
 
 def list_by_sample_type(
     input_directory: os.PathLike,
-    sample_type: SampleType,
+    sample_type: SampleTypeLetter,
     year: int,
     output_dir: Optional[os.PathLike] = None,
 ) -> list[Path]:
@@ -173,7 +173,7 @@ def list_by_sample_type(
 
     Args:
         input_directory: Directory containing .dat files.
-        sample_type: SampleType enum value to filter by.
+        sample_type: SampleTypeLetter enum value to filter by.
         year: Year for date formatting.
         output_dir: Directory for the CSV output. Defaults to input_directory.
 
