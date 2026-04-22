@@ -308,7 +308,7 @@ def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:
 
 def compare_tnmtc_tnmhc(data: pd.DataFrame, 
                         diff_thresh: float = .001, 
-                        ratio_thresh: float = 0.5) -> pd.Series:
+                        ratio_thresh: float = 0.5) -> tuple[pd.DataFrame, pd.DataFrame]:
     """ """
     data = data.sort_index()
     if CompoundAQSCode.C_TNMHC not in data.columns or CompoundAQSCode.C_TNMTC not in data.columns:

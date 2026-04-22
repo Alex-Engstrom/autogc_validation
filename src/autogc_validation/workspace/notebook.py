@@ -258,7 +258,7 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc,\n"
-            "    check_lognormal_outliers,\n"
+            "    check_lognormal_outliers, compare_tnmtc_tnmhc,\n"
             ")\n"
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
@@ -284,6 +284,11 @@ def _generate_notebook(
             "daily_tnmhc_w1 = check_daily_max_tnmhc(data_w1)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w1)\n\n"
+            "tchc_diff_w1, tchc_ratio_w1 = compare_tnmtc_tnmhc(data_w1)\n"
+            'print("TNMHC - TNMTC:")\n'
+            "display(tchc_diff_w1)\n"
+            'print("TNMHC / TNMTC:")\n'
+            "display(tchc_ratio_w1)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
             "    overrange=overrange_w1, daily_tnmhc=daily_tnmhc_w1, outliers=outliers_w1,\n"
@@ -337,7 +342,7 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc,\n"
-            "    check_lognormal_outliers,\n"
+            "    check_lognormal_outliers, compare_tnmtc_tnmhc,\n"
             ")\n"
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
@@ -363,6 +368,11 @@ def _generate_notebook(
             "daily_tnmhc_w2 = check_daily_max_tnmhc(data_w2)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w2)\n\n"
+            "tchc_diff_w2, tchc_ratio_w2 = compare_tnmtc_tnmhc(data_w2)\n"
+            'print("TNMHC - TNMTC:")\n'
+            "display(tchc_diff_w2)\n"
+            'print("TNMHC / TNMTC:")\n'
+            "display(tchc_ratio_w2)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
             "    overrange=overrange_w2, daily_tnmhc=daily_tnmhc_w2, outliers=outliers_w2,\n"
@@ -444,10 +454,9 @@ def _generate_notebook(
             "display(daily_tnmhc_w3)\n\n"
             "tchc_diff_w3, tchc_ratio_w3 = compare_tnmtc_tnmhc(data_w3)\n"
             'print("TNMHC - TNMTC:")\n'
-            "display(tchc_diff_w3)"
+            "display(tchc_diff_w3)\n"
             'print("TNMHC / TNMTC:")\n'
-            "display(tchc_ratio_w3)"
-            
+            "display(tchc_ratio_w3)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
             "    overrange=overrange_w3, daily_tnmhc=daily_tnmhc_w3, outliers=outliers_w3,\n"
@@ -501,7 +510,7 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc,\n"
-            "    check_lognormal_outliers,\n"
+            "    check_lognormal_outliers, compare_tnmtc_tnmhc,\n"
             ")\n"
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "# Re-run 'Load dataset' cell above if you added new files since last loading.\n"
@@ -527,6 +536,11 @@ def _generate_notebook(
             "daily_tnmhc_w4 = check_daily_max_tnmhc(data_w4)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w4)\n\n"
+            "tchc_diff_w4, tchc_ratio_w4 = compare_tnmtc_tnmhc(data_w4)\n"
+            'print("TNMHC - TNMTC:")\n'
+            "display(tchc_diff_w4)\n"
+            'print("TNMHC / TNMTC:")\n'
+            "display(tchc_ratio_w4)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
             "    overrange=overrange_w4, daily_tnmhc=daily_tnmhc_w4, outliers=outliers_w4,\n"
