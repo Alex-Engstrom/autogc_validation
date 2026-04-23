@@ -10,6 +10,7 @@ from .site import Site
 from .mdl import MDL
 from .voc import VOCInfo
 from .version import Version
+from .calibration import Calibration
 
 # Define models list
 MODELS = [
@@ -20,7 +21,8 @@ MODELS = [
     CanisterConcentration,
     SiteCanister,
     MDL,
-    Version
+    Version,
+    Calibration,
 ]
 
 # Create registry automatically
@@ -40,6 +42,7 @@ __all__ = [
     "MDL",
     "VOCInfo",
     "Version",
+    "Calibration",
     
     # Registry
     "MODELS",

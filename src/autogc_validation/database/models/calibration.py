@@ -27,14 +27,23 @@ class Calibration(BaseModel):
     dr2: float 
     dr3: float 
     dr4: float
-    l1_area: float 
-    l1_conc: float
-    l2_area: float 
-    l2_conc: float
-    l3_area: float 
-    l3_conc: float
-    l4_area: float 
-    l4_conc: float
+    l1_area_PLOT: float 
+    l1_conc_PLOT: float
+    l2_area_PLOT: float 
+    l2_conc_PLOT: float
+    l3_area_PLOT: float 
+    l3_conc_PLOT: float
+    l4_area_PLOT: float 
+    l4_conc_PLOT: float
+    
+    l1_area_BP: float 
+    l1_conc_BP: float
+    l2_area_BP: float 
+    l2_conc_BP: float
+    l3_area_BP: float 
+    l3_conc_BP: float
+    l4_area_BP: float 
+    l4_conc_BP: float
     
     
 
@@ -44,18 +53,26 @@ class Calibration(BaseModel):
                     CREATE TABLE IF NOT EXISTS calibrations (
                         primary_canister_id TEXT,
                         date_run TEXT NOT NULL PRIMARY KEY,
-                        dr_1 REAL,
-                        dr_2 REAL,
-                        dr_3 REAL,
-                        dr_4 REAL,
-                        l1_area REAL,
-                        l1_conc REAL,
-                        l2_area REAL,
-                        l2_conc REAL,
-                        l3_area REAL,
-                        l3_conc REAL,
-                        l4_area REAL,
-                        l4_conc REAL,
+                        dr1 REAL,
+                        dr2 REAL,
+                        dr3 REAL,
+                        dr4 REAL,
+                        l1_area_PLOT REAL,
+                        l1_conc_PLOT REAL,
+                        l2_area_PLOT REAL,
+                        l2_conc_PLOT REAL,
+                        l3_area_PLOT REAL,
+                        l3_conc_PLOT REAL,
+                        l4_area_PLOT REAL,
+                        l4_conc_PLOT REAL,
+                        l1_area_BP REAL,
+                        l1_conc_BP REAL,
+                        l2_area_BP REAL,
+                        l2_conc_BP REAL,
+                        l3_area_BP REAL,
+                        l3_conc_BP REAL,
+                        l4_area_BP REAL,
+                        l4_conc_BP REAL,
                         FOREIGN KEY(primary_canister_id) REFERENCES primary_canisters(primary_canister_id)
                     );
                     """
