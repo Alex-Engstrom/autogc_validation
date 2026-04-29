@@ -23,6 +23,7 @@ CalData = list[tuple[float, float]]  # (concentration, area) pairs
 class ColumnResult:
     """Regression analysis result for a single GC column (PLOT or BP)."""
     rfs: list[float]
+    rf_avg: float
     rsd: float
     slope: float
     intercept: float
@@ -65,6 +66,7 @@ def _compare_to_regression(data: CalData) -> ColumnResult:
     r2 = reg.score(conc_arr, area_arr)
 
     rfs = [_calculate_rf(ar, con) for con, ar in data]
+    avg = stats.mean(rfs)
     rsd = _calculate_rsd(rfs)
 
     area_col = np.array(area).reshape(-1, 1)
@@ -75,6 +77,7 @@ def _compare_to_regression(data: CalData) -> ColumnResult:
 
     return ColumnResult(
         rfs=rfs,
+        rf_avg = avg,
         rsd=float(rsd),
         slope=float(slope),
         intercept=float(intercept),

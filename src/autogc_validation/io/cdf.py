@@ -61,6 +61,7 @@ class Chromatogram:
         self._datetime = None
         self._chromatogram = None
         self._peakamounts = None
+        self._peakareas = None
         self._peakwindows = None
         self._peaklocations = None
     
@@ -86,7 +87,11 @@ class Chromatogram:
         if self._peakamounts is None:
             self._peakamounts = self._generate_class_attributes('peakamounts')
         return self._peakamounts
-
+    @property 
+    def peakareas(self):
+        if self._peakareas is None:
+            self._peakareas = self._generate_class_attributes('peakareas')
+        return self._peakareas
     @property
     def peakwindows(self):
         if self._peakwindows is None:
@@ -145,6 +150,7 @@ class Chromatogram:
                 "baseline_start_value", "baseline_stop_value", "peak_retention_time",
             ],
             'peakamounts': ["peak_name", "peak_amount"],
+            'peakareas': ["peak_name", "peak_area"],
             'peakwindows': [
                 "peak_name", "peak_start_time", "peak_end_time", "peak_retention_time",
             ],
@@ -184,6 +190,8 @@ class Chromatogram:
                         "peak_amount": [tnmhc, tnmtc],
                     })
                     df = pd.concat([df, totals], ignore_index=True)
+                    df = df.astype({'peak_name': int})
+                elif attribute == 'peakareas':
                     df = df.astype({'peak_name': int})
 
                 return df

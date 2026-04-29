@@ -55,7 +55,7 @@ def compare_aqs_to_dataset(aqs_upload_file: str, dataset: pd.DataFrame) -> pd.Da
 
     # Drop metadata columns. reset_index() promotes the sample_hour index to a
     # column; rename it to date_time to match the AQS DataFrame's join key.
-    dataset.drop(columns=["date_time", "sample_type", "filename"], inplace=True)
+    dataset.drop(columns=["date_time", "sample_type", "sample_type_long", "filename"], inplace=True)
     dataset = (
         dataset.apply(pd.to_numeric, errors="coerce")
         .reset_index()

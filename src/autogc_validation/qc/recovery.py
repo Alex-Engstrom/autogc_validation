@@ -150,3 +150,46 @@ def check_qc_recovery(
     )
 
     return result
+
+def check_ambient_spike_recovery(
+    spike: pd.DataFrame,
+    ambient: pd.DataFrame,
+    canister_periods: pd.DataFrame,
+) -> pd.DataFrame:
+    """Compute ambient spike recovery for a single spike sample.
+
+    Subtracts the mean of the surrounding ambient samples from the spike
+    measurement, then divides by the expected canister concentration to
+    get recovery.
+
+    Args:
+        spike: Single-row DataFrame for the spike sample hour (from
+            Dataset.experimental filtered to the spike hour).
+        ambient: DataFrame of ambient samples bracketing the spike (typically
+            the hours immediately before and after). Their mean is used as
+            the ambient background.
+        canister_periods: Wide DataFrame with DatetimeIndex (one row per
+            canister period) and AQS codes as columns, as returned by
+            get_canister_periods.
+
+    Returns:
+        DataFrame with one row per ambient sample (timestamp index), followed
+        by 'spike', 'expected', and 'recovery_%' rows. Columns are the
+        canister compounds in elution order.
+    """
+    compound_cols = [c for c in get_compound_cols(spike) if c in canister_periods.columns]
+    period_indices = align_period_index(spike, canister_periods)
+    effective_conc = canister_periods.iloc[period_indices[0]]
+
+    ambient_avg = ambient[compound_cols].mean(axis=0)
+    diff = spike[compound_cols].squeeze() - ambient_avg
+    recovery = diff / effective_conc[compound_cols] * 100
+
+    combo = pd.concat([
+        ambient[compound_cols],
+        spike[compound_cols],
+        pd.DataFrame([effective_conc[compound_cols].values], index=["expected"], columns=compound_cols),
+        pd.DataFrame([recovery.values], index=["recovery_%"], columns=compound_cols),
+    ])
+    return combo
+    

@@ -43,6 +43,7 @@ class SampleTypeLong(StrEnum):
     CAL_POINT_3 = "Curve LVL 3"
     CAL_POINT_4 = "Curve LVL 4"
     PT          = "PT canister"
+    PT_ALT      = "PT"            # alias → PT
     AMBIENTSPIKE = "Ambient Spike"
 
 
@@ -50,6 +51,10 @@ class SampleTypeLong(StrEnum):
 # names that are considered compatible with it.  Used by
 # Dataset.check_long_and_letter_sample_types() to handle the ambiguous
 # letters "m" (any cal level) and "x" (any experimental sub-type).
+LONG_NAME_CANONICAL: dict[str, str] = {
+    "PT_ALT": "PT",
+}
+
 LETTER_TO_LONG_NAMES: dict[str, frozenset[str]] = {
     "AMBIENT":           frozenset({"AMBIENT"}),
     "BLANK":             frozenset({"BLANK"}),
@@ -58,7 +63,7 @@ LETTER_TO_LONG_NAMES: dict[str, frozenset[str]] = {
     "LCS":               frozenset({"LCS"}),
     "MDL_POINT":         frozenset({"MDL_POINT"}),
     "CALIBRATION_POINT": frozenset({"CAL_POINT_1", "CAL_POINT_2", "CAL_POINT_3", "CAL_POINT_4"}),
-    "EXPERIMENTAL":      frozenset({"PT", "AMBIENTSPIKE"}),
+    "EXPERIMENTAL":      frozenset({"PT", "AMBIENTSPIKE", "PT_ALT"}),
 }
     
     

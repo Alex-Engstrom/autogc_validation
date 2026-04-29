@@ -47,8 +47,8 @@ class Sample:
         If the front and back chromatograms report different ``sample_id``
         values a warning is logged and the front value is used.
         """
-        front_raw = self.front.sampletype
-        back_raw  = self.back.sampletype
+        front_raw = self.front.sampletype.strip()
+        back_raw  = self.back.sampletype.strip()
         if front_raw != back_raw:
             logger.warning(
                 "%s: front/back sample_id mismatch (%r vs %r) — using front",
@@ -61,6 +61,11 @@ class Sample:
                 "%s: unrecognised sample_id %r", self.filename_base, front_raw
             )
             return None
+
+    @property
+    def sample_type_long_raw(self) -> str:
+        """Raw ``sample_id`` string from the CDF file, stripped of whitespace."""
+        return self.front.sampletype.strip()
 
     @property
     def filename_hour(self) -> int | None:

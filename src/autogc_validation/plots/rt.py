@@ -75,7 +75,7 @@ def plot_rt(
         df_long = (
             df.reset_index()
             .melt(
-                id_vars=["date_time", "sample_type", "filename"],
+                id_vars=["sample_hour", "date_time", "sample_type", "sample_type_long", "filename"],
                 var_name="compound",
                 value_name="rt",
             )
@@ -84,17 +84,20 @@ def plot_rt(
 
         pct_long = (
             percentiles
-            .assign(sample_type=conc_display["sample_type"])
+            .assign(
+                sample_type=conc_display["sample_type"],
+                sample_type_long=conc_display["sample_type_long"],
+            )
             .reset_index()
             .melt(
-                id_vars=["date_time", "sample_type"],
+                id_vars=["sample_hour", "sample_type", "sample_type_long"],
                 var_name="compound",
                 value_name="percentile",
             )
         )
 
         df_long = df_long.merge(
-            pct_long, on=["date_time", "sample_type", "compound"], how="left"
+            pct_long, on=["sample_hour", "sample_type", "compound"], how="left"
         )
 
         df_long["category"] = df_long["compound"].apply(

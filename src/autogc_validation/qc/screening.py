@@ -168,6 +168,8 @@ def check_overrange_values(
     Returns:
         DataFrame with columns: compound (AQS code), value, compound_name.
     """
+    if not upper_cal_point:
+        raise ValueError("Upper_cal_point must not be None") 
     if exclude_compounds is None:
         exclude_codes = set(TOTAL_CODES)
     else:

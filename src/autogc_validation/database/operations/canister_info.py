@@ -54,6 +54,8 @@ def get_active_canister_concentrations(
           AND (sc.date_off IS NULL OR sc.date_off > ?)
     """
 
+    output_unit = ConcentrationUnit(str(output_unit).lower())
+
     with connection(database) as conn:
         cursor = conn.execute(sql, (site_id, canister_type, date, date))
         rows = cursor.fetchall()
@@ -82,6 +84,54 @@ def get_active_canister_concentrations(
     wide.attrs["units"] = output_unit
     return wide
 
+def get_primary_canister_concentrations(
+    database: str,
+    canister_id: int,
+    output_unit: ConcentrationUnit,
+) -> pd.DataFrame:
+    """Get concentrations for all compounds in a primary canister.
+
+    Args:
+        database: Path to SQLite database.
+        canister_id: Primary canister ID.
+        output_unit: Concentration unit for the returned values.
+
+    Returns:
+        Wide single-row DataFrame with AQS codes as columns and concentrations
+        as values. Units stored in df.attrs['units'].
+    """
+    sql = """
+        SELECT aqs_code, concentration, units
+        FROM primary_canister_concentration
+        WHERE primary_canister_id = ?
+    """
+    output_unit = ConcentrationUnit(str(output_unit).lower())
+
+    with connection(database) as conn:
+        cursor = conn.execute(sql, (canister_id,))
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        df = pd.DataFrame(rows, columns=columns)
+
+    if df.empty:
+        logger.warning("No concentrations found for primary_canister_id=%s", canister_id)
+        wide = pd.DataFrame([{}])
+        wide.attrs["units"] = output_unit
+        return wide
+
+    df["concentration"] = df.apply(
+        lambda row: convert(
+            value=row["concentration"],
+            aqs_code=row["aqs_code"],
+            from_unit=row["units"],
+            to_unit=output_unit,
+        ),
+        axis=1,
+    )
+
+    wide = pd.DataFrame([df.set_index("aqs_code")["concentration"].to_dict()])
+    wide.attrs["units"] = output_unit
+    return wide
 
 def get_canister_periods(
     database: str,
@@ -123,6 +173,8 @@ def get_canister_periods(
           AND sc.date_on <= ?
         ORDER BY sc.date_on
     """
+    output_unit = ConcentrationUnit(str(output_unit).lower())
+
     with connection(database) as conn:
         cursor = conn.execute(sql, (site_id, canister_type, start_date, end_date))
         mid_breakpoints = [row[0] for row in cursor.fetchall()]

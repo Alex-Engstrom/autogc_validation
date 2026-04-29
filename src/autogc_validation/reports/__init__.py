@@ -7,6 +7,7 @@ from .qc_table import (
     build_blank_qc_table,
     build_precision_qc_table,
     build_recovery_qc_table,
+    build_experimental_table,
     write_qc_table_to_excel,
 )
 from .qualifiers import (

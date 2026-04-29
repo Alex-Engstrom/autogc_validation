@@ -7,12 +7,13 @@ concentration and retention time DataFrames for downstream QC analysis.
 """
 
 import logging
+from datetime import timedelta
 from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, SampleTypeLetter, SampleTypeLong, LETTER_TO_LONG_NAMES, UNID_CODES, TOTAL_CODES
+from autogc_validation.database.enums import CompoundAQSCode, SampleTypeLetter, SampleTypeLong, LETTER_TO_LONG_NAMES, LONG_NAME_CANONICAL, UNID_CODES, TOTAL_CODES
 from autogc_validation.io.samples import Sample, load_samples_from_folder
 
 logger = logging.getLogger(__name__)
@@ -144,6 +145,7 @@ class Dataset:
         self.samples = load_samples_from_folder(self.folder)
         self._data: pd.DataFrame | None = None
         self._rt: pd.DataFrame | None = None
+        self._areas: pd.DataFrame | None = None
         self._typed_data: Dict[SampleTypeLetter, pd.DataFrame] = {}
         self._typed_rt: Dict[SampleTypeLetter, pd.DataFrame] = {}
 
@@ -172,6 +174,18 @@ class Dataset:
         if self._rt is None:
             self._rt = self._generate_rt()
         return self._rt
+
+    @property
+    def areas(self) -> pd.DataFrame:
+        """Peak area data, lazily generated on first access.
+
+        Same structure as ``data`` but values are raw integrated peak areas
+        rather than concentrations. Used for calibration factor calculation.
+        Indexed by ``sample_hour``. TNMHC/TNMTC totals are not included.
+        """
+        if self._areas is None:
+            self._areas = self._generate_areas()
+        return self._areas
 
     # ------------------------------------------------------------------
     # Typed concentration properties
@@ -209,8 +223,14 @@ class Dataset:
 
     @property
     def calibration(self) -> pd.DataFrame:
-        """Concentration data for calibration standard samples."""
-        return self._get_typed(SampleTypeLetter.CALIBRATION_POINT)
+        """Peak area data for calibration standard samples."""
+        cache = self._typed_data
+        key = SampleTypeLetter.CALIBRATION_POINT
+        if key not in cache:
+            df = self.areas[self.areas["sample_type"] == key.value]
+            df.attrs["sample_type"] = key
+            cache[key] = df
+        return cache[key]
 
     @property
     def experimental(self) -> pd.DataFrame:
@@ -295,13 +315,13 @@ class Dataset:
                 continue
             dt_naive = dt.replace(tzinfo=None)
             actual_hour = (dt_naive - timedelta(minutes=20)).hour
-            records.append({
-                "filename": s.filename_base,
-                "filename_hour": fname_hour,
-                "sample_hour": actual_hour,
-                "injection_time": dt_naive,
-                "aligned": fname_hour == actual_hour,
-            })
+            if actual_hour != fname_hour:
+                records.append({
+                    "filename": s.filename_base,
+                    "filename_hour": fname_hour,
+                    "sample_hour": actual_hour,
+                    "injection_time": dt_naive
+                })
         return pd.DataFrame(records)
     
     def check_long_and_letter_sample_types(self) -> pd.DataFrame:
@@ -312,12 +332,18 @@ class Dataset:
                 filename, injection_time, letter_sampletype, long_sampletype.
             Empty DataFrame (same columns) if all samples agree.
         """
-        columns = ["filename", "injection_time", "letter_sampletype", "long_sampletype"]
+        columns = ["filename", "injection_time", "letter_sampletype", "long_sampletype", "issue"]
         records = []
         for s in self.samples:
             long_type = s.sample_type_long  # lazy property — opens CDF file
             if long_type is None:
-                # Unrecognised sample_id; already logged by the property.
+                records.append({
+                    "filename":          s.filename_base,
+                    "injection_time":    s.datetime,
+                    "letter_sampletype": s.sample_type_letter,
+                    "long_sampletype":   s.sample_type_long_raw,
+                    "issue":             "unrecognised sample_id",
+                })
                 continue
             letter_name = s.sample_type_letter.name
             compatible  = LETTER_TO_LONG_NAMES.get(letter_name, frozenset())
@@ -327,6 +353,7 @@ class Dataset:
                     "injection_time":    s.datetime,
                     "letter_sampletype": s.sample_type_letter,
                     "long_sampletype":   long_type,
+                    "issue":             "incompatible sample types",
                 })
         if records:
             return pd.DataFrame(records)
@@ -403,6 +430,15 @@ class Dataset:
         )
         return voc_amounts.set_index("peak_name")["peak_amount"].to_dict()
 
+    def _build_area_dict(
+        self, front_df: pd.DataFrame, back_df: pd.DataFrame
+    ) -> dict:
+        """Build a dict mapping AQS code -> peak area."""
+        front_target = self._filter_targets(front_df)
+        back_target = self._filter_targets(back_df)
+        voc_areas = pd.concat([front_target, back_target], ignore_index=True)
+        return voc_areas.set_index("peak_name")["peak_area"].to_dict()
+
     def _build_rt_dict(
         self, front_df: pd.DataFrame, back_df: pd.DataFrame
     ) -> dict:
@@ -459,9 +495,16 @@ class Dataset:
 
                 value_dict = builder(front_df, back_df)
 
+                long_type = sample.sample_type_long
+                if long_type is not None:
+                    long_name = LONG_NAME_CANONICAL.get(long_type.name, long_type.name)
+                else:
+                    long_name = sample.sample_type_long_raw or None
+
                 row = {
                     "date_time": dt,
                     "sample_type": sample.sample_type_letter.value,
+                    "sample_type_long": long_name,
                     "filename": sample.filename_base,
                     **{code: value_dict.get(code) for code in chem_cols},
                 }
@@ -491,6 +534,10 @@ class Dataset:
     def _generate_data(self) -> pd.DataFrame:
         """Generate a DataFrame of VOC concentrations for all samples."""
         return self._generate_frame("peakamounts", self._build_amount_dict)
+
+    def _generate_areas(self) -> pd.DataFrame:
+        """Generate a DataFrame of peak areas for all samples."""
+        return self._generate_frame("peakareas", self._build_area_dict, include_totals=False)
 
     def _generate_rt(self) -> pd.DataFrame:
         """Generate a DataFrame of retention times for all samples."""

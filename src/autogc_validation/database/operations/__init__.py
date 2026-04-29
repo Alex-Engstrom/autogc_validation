@@ -12,7 +12,7 @@ from .delete import delete
 from .update import retire_site_canister, retire_mdl
 from .voc_info import get_by_aqs_code, get_all_voc_data, get_all_voc_data_as_dataframe
 from .mdl_info import get_active_mdls, get_mdl_periods
-from .canister_info import get_active_canister_concentrations, get_canister_periods
+from .canister_info import get_active_canister_concentrations, get_canister_periods, get_primary_canister_concentrations
 from .calibrations import evaluate_calibration, ColumnResult, CalibrationResult
 
 __all__ = ["create_table",
@@ -27,6 +27,7 @@ __all__ = ["create_table",
            "get_active_mdls",
            "get_mdl_periods",
            "get_active_canister_concentrations",
+           "get_primary_canister_concentrations",
            "get_canister_periods",
            "evaluate_calibration",
            "ColumnResult",

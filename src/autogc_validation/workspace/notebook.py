@@ -55,6 +55,7 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell(
             f"# {site} {yyyymm} Monthly Validation"
         ),
+        nbformat.v4.new_markdown_cell("## Logging"),
         nbformat.v4.new_code_cell(
             "import logging\n"
             "from pathlib import Path\n\n"
@@ -163,6 +164,7 @@ def _generate_notebook(
             "for s, amt in sample_amt.items():\n"
             '    if s not in ["s", "x"]:\n'
             "        qc += amt\n\n"
+            "print(qc)"
             "for sample in samples:\n"
             "    print(f\"{sample.attrs['sample_type'].value}: {len(sample)}\")\n\n"
             "# --- Filename hour alignment check ---\n"
@@ -284,7 +286,7 @@ def _generate_notebook(
             "daily_tnmhc_w1 = check_daily_max_tnmhc(data_w1)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w1)\n\n"
-            "tchc_diff_w1, tchc_ratio_w1 = compare_tnmtc_tnmhc(data_w1)\n"
+            "tchc_diff_w1, tchc_ratio_w1 = compare_tnmtc_tnmhc(ambient_w1)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w1)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -368,7 +370,7 @@ def _generate_notebook(
             "daily_tnmhc_w2 = check_daily_max_tnmhc(data_w2)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w2)\n\n"
-            "tchc_diff_w2, tchc_ratio_w2 = compare_tnmtc_tnmhc(data_w2)\n"
+            "tchc_diff_w2, tchc_ratio_w2 = compare_tnmtc_tnmhc(ambient_w2)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w2)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -452,7 +454,7 @@ def _generate_notebook(
             "daily_tnmhc_w3 = check_daily_max_tnmhc(data_w3)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w3)\n\n"
-            "tchc_diff_w3, tchc_ratio_w3 = compare_tnmtc_tnmhc(data_w3)\n"
+            "tchc_diff_w3, tchc_ratio_w3 = compare_tnmtc_tnmhc(ambient_w3)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w3)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -536,7 +538,7 @@ def _generate_notebook(
             "daily_tnmhc_w4 = check_daily_max_tnmhc(data_w4)\n"
             'print("Daily max TNMHC:")\n'
             "display(daily_tnmhc_w4)\n\n"
-            "tchc_diff_w4, tchc_ratio_w4 = compare_tnmtc_tnmhc(data_w4)\n"
+            "tchc_diff_w4, tchc_ratio_w4 = compare_tnmtc_tnmhc(ambient_w4)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w4)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -573,9 +575,42 @@ def _generate_notebook(
             'print(f"Monthly RT outliers: {len(rt_outliers)}")\n'
             "rt_outliers"
         ),
+        # --- Special samples ---
+        nbformat.v4.new_markdown_cell("## 8. Special Samples"),
+        nbformat.v4.new_markdown_cell(
+            "### 8a. Ambient Spikes\n\n"
+            "Set `spike_hour` to the sample_hour timestamp of the ambient spike run "
+            "and `ambient_hours` to the two surrounding ambient hours. "
+            "If no ambient spike was run this month, skip this section."
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.recovery import check_ambient_spike_recovery\n\n"
+            "# ← Set these manually\n"
+            "spike_hour    = pd.Timestamp('YYYY-MM-DD HH:00')  # sample_hour of the spike run\n"
+            "ambient_hours = [pd.Timestamp('YYYY-MM-DD HH:00'),  # hour before\n"
+            "                 pd.Timestamp('YYYY-MM-DD HH:00')]  # hour after\n"
+            "spike_canister_periods = rts_periods  # or cvs_periods, depending on which canister was used\n\n"
+            "spike_df   = exp.loc[[spike_hour]]\n"
+            "ambient_df = ambient.loc[ambient_hours]\n\n"
+            "spike_recovery = check_ambient_spike_recovery(spike_df, ambient_df, spike_canister_periods)\n"
+            "display(spike_recovery)"
+        ),
+        nbformat.v4.new_code_cell(
+            "# Export spike recovery to CSV for pasting into MDVR.\n"
+            "spike_recovery_csv = spike_recovery.rename(\n"
+            "    columns={c: aqs_to_name(c) for c in spike_recovery.columns if isinstance(c, int)}\n"
+            ")\n"
+            f"spike_csv_path = workspace_dir / 'ambient_spike_recovery.csv'\n"
+            "spike_recovery_csv.to_csv(spike_csv_path)\n"
+            'print(f"Written to {spike_csv_path}")'
+        ),
+        nbformat.v4.new_markdown_cell("### 8b. Calibrations"),
+        nbformat.v4.new_code_cell(""),
+        nbformat.v4.new_markdown_cell("### 8c. MDLs"),
+        nbformat.v4.new_code_cell(""),
 
         # --- Blank QC ---
-        nbformat.v4.new_markdown_cell("## 8. Blank check"),
+        nbformat.v4.new_markdown_cell("## 9. Blank check"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.blanks import compounds_above_mdl\n\n"
             "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n\n"
@@ -584,7 +619,8 @@ def _generate_notebook(
             'print("\\n--- Compounds exceeding 0.5 ppbC ---")\n'
             'print_failures(threshold_failures, "Threshold exceedances")\n'
             'mdl_sum = mdl_failures.iloc[:,1:].sum(axis=0)\n'
-            'mdl_sum_text = [f"{aqs_to_name(col).lower()} ({count} exceedances)" for col, count in mdl_sum.items() if count > 1]'
+            'mdl_sum_text = [f"{aqs_to_name(col).lower()} ({count} exceedances)" for col, count in mdl_sum.items() if count > 1]\n'
+            'print(", ".join(mdl_sum_text))'
             
         ),
 
@@ -594,7 +630,7 @@ def _generate_notebook(
         ),
 
         # --- Recovery QC ---
-        nbformat.v4.new_markdown_cell("## 9. QC recovery checks (CVS / LCS / RTS)"),
+        nbformat.v4.new_markdown_cell("## 10. QC recovery checks (CVS / LCS / RTS)"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.recovery import check_qc_recovery\n\n"
             "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
@@ -619,7 +655,8 @@ def _generate_notebook(
             "from autogc_validation.plots.qc import plot_qc_recovery\n\n"
             f"plot_qc_recovery(ds.cvs, cvs_periods, 'CVS', '{site}', {year}, {month})\n"
             f"plot_qc_recovery(ds.lcs, lcs_periods, 'LCS', '{site}', {year}, {month})\n"
-            f"plot_qc_recovery(ds.rts, rts_periods, 'RTS', '{site}', {year}, {month})"
+            f"plot_qc_recovery(ds.rts, rts_periods, 'RTS', '{site}', {year}, {month})\n"
+            f"plot_qc_recovery(ds.mdl, rts_periods, 'MDL', '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.precision import check_cvs_precision\n\n"
@@ -636,39 +673,42 @@ def _generate_notebook(
 
         # --- QC Review table ---
         nbformat.v4.new_markdown_cell(
-            "## 10. QC Review table\n\n"
+            "## 11. QC Review table\n\n"
             "Builds the human-readable QC summary table and writes it to the "
             "'QC Review' sheet of the MDVR spreadsheet.\n\n"
             "Set `blank_start_row`, `cvs_start_row`, `lcs_start_row`, and "
             "`rts_start_row` to match the merged-cell row ranges in your MDVR template."
         ),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.reports import (\n"
+            "from autogc_validation.reports import(\n"
             "    build_blank_qc_table, build_precision_qc_table,\n"
-            "    build_recovery_qc_table, write_qc_table_to_excel,\n"
+            "    build_recovery_qc_table, build_experimental_table, write_qc_table_to_excel,\n"
             ")\n\n"
             "# Adjust these start rows to match the merged-cell ranges in the MDVR template.\n"
-            "blank_start_row     = 73\n"
-            "cvs_start_row       = 22\n"
-            "lcs_start_row       = 15\n"
-            "rts_start_row       = 7\n"
-            "precision_start_row = 62\n\n"
-            "blank_table     = build_blank_qc_table(mdl_failures, threshold_failures, nulled_filenames=nulled_blanks or None)\n"
-            "cvs_table       = build_recovery_qc_table(cvs_failures, 'CVS', nulled_filenames=nulled_cvs or None)\n"
-            "lcs_table       = build_recovery_qc_table(lcs_failures, 'LCS', nulled_filenames=nulled_lcs or None)\n"
-            "rts_table       = build_recovery_qc_table(rts_failures, 'RTS')\n"
-            "precision_table = build_precision_qc_table(precision_failures, nulled_filenames=nulled_cvs or None)\n\n"
-            "write_qc_table_to_excel(blank_table,     mdvr_path, mdvr_path, 'Blanks',         blank_start_row)\n"
-            "write_qc_table_to_excel(cvs_table,       mdvr_path, mdvr_path, 'CVS',            cvs_start_row)\n"
-            "write_qc_table_to_excel(lcs_table,       mdvr_path, mdvr_path, 'LCS',            lcs_start_row)\n"
-            "write_qc_table_to_excel(rts_table,       mdvr_path, mdvr_path, 'RTS',            rts_start_row)\n"
-            "write_qc_table_to_excel(precision_table, mdvr_path, mdvr_path, 'CVS Precision',  precision_start_row)\n"
+            "blank_start_row       = 73\n"
+            "cvs_start_row         = 22\n"
+            "lcs_start_row         = 15\n"
+            "rts_start_row         = 7\n"
+            "precision_start_row   = 62\n"
+            "experimental_start_row = 113\n\n"
+            "blank_table       = build_blank_qc_table(mdl_failures, threshold_failures, nulled_filenames=nulled_blanks or None)\n"
+            "cvs_table         = build_recovery_qc_table(cvs_failures, 'CVS', nulled_filenames=nulled_cvs or None)\n"
+            "lcs_table         = build_recovery_qc_table(lcs_failures, 'LCS', nulled_filenames=nulled_lcs or None)\n"
+            "rts_table         = build_recovery_qc_table(rts_failures, 'RTS')\n"
+            "precision_table   = build_precision_qc_table(precision_failures, nulled_filenames=nulled_cvs or None)\n"
+            "experimental_table = build_experimental_table(exp)\n\n"
+            "write_qc_table_to_excel(blank_table,        mdvr_path, mdvr_path, 'Blanks',         blank_start_row)\n"
+            "write_qc_table_to_excel(cvs_table,          mdvr_path, mdvr_path, 'CVS',            cvs_start_row)\n"
+            "write_qc_table_to_excel(lcs_table,          mdvr_path, mdvr_path, 'LCS',            lcs_start_row)\n"
+            "write_qc_table_to_excel(rts_table,          mdvr_path, mdvr_path, 'RTS',            rts_start_row)\n"
+            "write_qc_table_to_excel(precision_table,    mdvr_path, mdvr_path, 'CVS Precision',  precision_start_row)\n"
+            "write_qc_table_to_excel(experimental_table, mdvr_path, mdvr_path, 'Exp. Or Test Sample', experimental_start_row)\n"
             f'print(f"QC Review table written to {{mdvr_path}}")'
         ),
 
         # --- Station temperature ---
         nbformat.v4.new_markdown_cell(
-            "## 11. Station temperature check\n\n"
+            "## 12. Station temperature check\n\n"
             "Requires an AirVision database connection. "
             "Hours where station temperature exceeds 30\u00b0C are nulled with flag AE."
         ),
@@ -677,10 +717,6 @@ def _generate_notebook(
             "from autogc_validation.reports import build_temp_null_lines\n\n"
             "# Temperature threshold for AE null qualification (°C).\n"
             "temp_null_threshold = 30.0\n\n"
-            "# Optional: timestamps of the nearest temperature reading from adjacent months.\n"
-            "# Set if the first or last hour of the month exceeds the threshold.\n"
-            "prior_temp = None\n"
-            "next_temp  = None\n\n"
             f"temp_result = plot_station_temp('{site}', {month}, {year}, upper_threshold=temp_null_threshold)\n"
             "hourly_max = temp_result.temperatures.resample('h').max()\n"
             "n_over = int((hourly_max > temp_null_threshold).sum())\n"
@@ -690,15 +726,13 @@ def _generate_notebook(
             "temp_null_lines = build_temp_null_lines(\n"
             "    temp_result.temperatures,\n"
             "    threshold=temp_null_threshold,\n"
-            "    prior_temp=prior_temp,\n"
-            "    next_temp=next_temp,\n"
             ")\n"
             'print(f"Temperature null lines: {len(temp_null_lines)}")\n'
             "temp_null_lines"
         ),
 
         # --- Ambient screening ---
-        nbformat.v4.new_markdown_cell("## 12. Ambient screening"),
+        nbformat.v4.new_markdown_cell("## 13. Ambient screening"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc,\n"
@@ -730,7 +764,7 @@ def _generate_notebook(
         ),
 
         # --- Reprocess Plan ---
-        nbformat.v4.new_markdown_cell("## 13. Reprocess Plan"),
+        nbformat.v4.new_markdown_cell("## 14. Reprocess Plan"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "fill_reprocess_plan(\n"
@@ -740,7 +774,7 @@ def _generate_notebook(
         ),
 
         # --- MDVR ---
-        nbformat.v4.new_markdown_cell("## 14. MDVR qualifier generation"),
+        nbformat.v4.new_markdown_cell("## 15. MDVR qualifier generation"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import (\n"
             "    build_blank_qualifier_lines,\n"
@@ -810,7 +844,7 @@ def _generate_notebook(
         ),
 
         # --- AQS verification ---
-        nbformat.v4.new_markdown_cell("## 15. AQS upload verification"),
+        nbformat.v4.new_markdown_cell("## 16. AQS upload verification"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports.aqs import compare_aqs_to_dataset\n\n"
             f"aqs_file = r\"\"  # ← set path to AQS RD upload file\n\n"
@@ -821,7 +855,7 @@ def _generate_notebook(
 
         # --- Monthly case narrative ---
         nbformat.v4.new_markdown_cell(
-            "## 16. Monthly case narrative\n\n"
+            "## 17. Monthly case narrative\n\n"
             "Run this cell once you have finished reviewing the full month and "
             "are satisfied with the data qualification.  "
             "The generated `.qmd` file renders to both a self-contained HTML report "
@@ -858,7 +892,7 @@ def _generate_notebook(
 
         # --- Transfer to network ---
         nbformat.v4.new_markdown_cell(
-            "## 17. Transfer to network\n\n"
+            "## 18. Transfer to network\n\n"
             "Copies AQS, FINAL, Original, and MDVR "
             "to the network drive. The destination folder must not already exist — "
             "delete it manually before re-running if you need to overwrite a previous transfer."

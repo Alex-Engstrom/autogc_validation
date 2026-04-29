@@ -9,6 +9,8 @@ MDVR Excel template.
 
 import pandas as pd
 from openpyxl import load_workbook
+import logging
+
 
 from autogc_validation.database.enums import (
     ColumnType,
@@ -16,9 +18,12 @@ from autogc_validation.database.enums import (
     BP_CODES,
     COLUMN_CALIBRANTS,
     CompoundAQSCode,
+    SampleTypeLetter,
     aqs_to_name,
+    SampleTypeLong
 )
 
+logger = logging.getLogger(__name__)
 _TNMHC_CODE = int(CompoundAQSCode.C_TNMHC)
 
 _LB_ACTION = (
@@ -347,6 +352,55 @@ def build_recovery_qc_table(
     return pd.DataFrame(rows)
 
 
+def build_experimental_table(exp_df: pd.DataFrame) -> pd.DataFrame:
+    """Build an experimental sample summary table for the MDVR QC Review sheet.
+
+    Produces one row per experimental sample (PT canister, ambient spike, etc.)
+    with the long-form sample type used as the actions label.
+
+    Args:
+        exp_df: Typed experimental DataFrame — must have
+            attrs["sample_type"] == SampleTypeLetter.EXPERIMENTAL.
+            Columns: sample_type_long, filename, plus AQS code columns.
+            Index: sample_hour DatetimeIndex.
+
+    Returns:
+        DataFrame with columns:
+            date         MM/DD/YYYY formatted string
+            time         HH:00 formatted string
+            filename     original sample filename
+            plot_notes   empty string (populated manually)
+            bp_notes     empty string (populated manually)
+            actions      "<sample_type_long> run", or "Experimental run" if
+                         sample_type_long is not available
+
+    Raises:
+        ValueError: If attrs["sample_type"] is not SampleTypeLetter.EXPERIMENTAL.
+    """
+    sample_type = exp_df.attrs.get("sample_type")
+    if sample_type != SampleTypeLetter.EXPERIMENTAL:
+        raise ValueError(
+            f"Expected sample type {SampleTypeLetter.EXPERIMENTAL!r}, got {sample_type!r}"
+        )
+
+    rows = []
+    for timestamp, row in exp_df.iterrows():
+        long_name = row.get("sample_type_long")
+        try:
+            long_type = SampleTypeLong[long_name].value if long_name else "Experimental"
+        except KeyError:
+            long_type = long_name or "Experimental"
+        rows.append({
+            "date":       timestamp.strftime("%m/%d/%Y"),
+            "time":       timestamp.strftime("%H:00"),
+            "filename":   row["filename"],
+            "plot_notes": "",
+            "bp_notes":   "",
+            "actions":    f"{long_type} run",
+        })
+    return pd.DataFrame(rows)
+        
+
 def write_qc_table_to_excel(
     table_df: pd.DataFrame,
     template_path: str,
@@ -391,6 +445,11 @@ def write_qc_table_to_excel(
         ws.cell(row=r, column=4).value = row.filename
         ws.cell(row=r, column=5).value = row.plot_notes
         ws.cell(row=r, column=6).value = row.bp_notes
-        ws.cell(row=r, column=7).value = "Nulled" if pd.isna(row.actions) else row.actions
+        if pd.isna(row.actions):
+            cell = ws.cell(row=r, column=7)
+            if not cell.value:
+                cell.value = "Nulled"
+        else:
+            ws.cell(row=r, column=7).value = row.actions
 
     wb.save(output_path)

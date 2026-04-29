@@ -40,21 +40,59 @@ def _generate_checklist(
 - [] Download crosstab pre-changes
 - [] Add month to MDVR cell
 - [] Copy operator log entries
+- [] Review operator checklist
 ## Validation
 - [] Check canister dates and concentrations in MAX, op log, and sqlite db
 - [] Check calibration forms
 
 
 ### Week 1
-
+- [] Check method RFs
+- [] Check method group range
+- [] Check method integration start and stop times
+- [] Update method cdf and txt output locations
+- [] Reprocess week
+- [] Review and reprocess as needed
+- [] Fill reprocess plan worksheet
+- [] Review flagged hours
+- [] Convert txt files
+- [] Upload to MAX
 
 ### Week 2
-
+- [] Check method RFs
+- [] Check method group range
+- [] Check method integration start and stop times
+- [] Update method cdf and txt output locations
+- [] Reprocess week
+- [] Review and reprocess as needed
+- [] Fill reprocess plan worksheet
+- [] Review flagged hours
+- [] Convert txt files
+- [] Upload to MAX
 
 ### Week 3
-
+- [] Check method RFs
+- [] Check method group range
+- [] Check method integration start and stop times
+- [] Update method cdf and txt output locations
+- [] Reprocess week
+- [] Review and reprocess as needed
+- [] Fill reprocess plan worksheet
+- [] Review flagged hours
+- [] Convert txt files
+- [] Upload to MAX
 
 ### Week 4
+- [] Check method RFs
+- [] Check method group range
+- [] Check method integration start and stop times
+- [] Update method cdf and txt output locations
+- [] Reprocess week
+- [] Review and reprocess as needed
+- [] Fill reprocess plan worksheet
+- [] Review flagged hours
+- [] Convert txt files
+- [] Upload to MAX
 ## Review
 ## Final Steps
 - [] Upload to Xchange network

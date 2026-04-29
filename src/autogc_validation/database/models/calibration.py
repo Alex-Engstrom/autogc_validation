@@ -23,6 +23,8 @@ class Calibration(BaseModel):
     """
     primary_canister_id: str
     date_run: str
+    date_on: str 
+    date_off: str
     dr1: float 
     dr2: float 
     dr3: float 
@@ -53,6 +55,8 @@ class Calibration(BaseModel):
                     CREATE TABLE IF NOT EXISTS calibrations (
                         primary_canister_id TEXT,
                         date_run TEXT NOT NULL PRIMARY KEY,
+                        date_on TEXT,
+                        date_off TEXT,
                         dr1 REAL,
                         dr2 REAL,
                         dr3 REAL,
@@ -86,7 +90,15 @@ class Calibration(BaseModel):
 
     @field_validator('date_run')
     @classmethod
-    def validate_expiration(cls, v: Optional[str]) -> Optional[str]:
+    def validate_rundate(cls, v: Optional[str]) -> Optional[str]:
+        return BaseModel.validate_date_format(v)
+    @field_validator('date_on')
+    @classmethod
+    def validate_ondate(cls, v: Optional[str]) -> Optional[str]:
+        return BaseModel.validate_date_format(v)
+    @field_validator('date_off')
+    @classmethod
+    def validate_offdate(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             return BaseModel.validate_date_format(v)
         return v
