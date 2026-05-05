@@ -76,7 +76,7 @@ def _generate_notebook(
             f'database = Path(r"{_DBPATH}")\n'
             f'start_date = "{start_date_str}"\n'
             f'end_date   = "{end_date_str}"\n'
-            f'mdvr_path = workspace_dir / "MDVR" / "{site}{yyyymm}_MDVR.xlsx"\n\n'
+            f'mdvr_path = workspace_dir / "MDVR" / "TAS-FORM-003_AutoGC_Monthly_Data_Validation_{site}{yyyymm}.xlsx"\n\n'
             f'# Week date ranges (boundaries: 1-7, 8-14, 15-21, 22-end)\n'
             f'weeks = {{\n'
             f'    1: (pd.Timestamp({year}, {month},  1), pd.Timestamp({year}, {month},  7, 23, 59, 59)),\n'
@@ -139,8 +139,8 @@ def _generate_notebook(
         # --- Populate MDVR ---
         nbformat.v4.new_markdown_cell("## 3. Populate MDVR"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.reports import add_month_to_mdvr\n\n"
-            "add_month_to_mdvr(mdvr_path, month, year)"
+            "from autogc_validation.reports import populate_mdvr\n\n"
+            "populate_mdvr(mdvr_path, month, year, db_path=database, site_id=site_id)"
         ),
 
         # --- Load dataset ---
@@ -164,7 +164,7 @@ def _generate_notebook(
             "for s, amt in sample_amt.items():\n"
             '    if s not in ["s", "x"]:\n'
             "        qc += amt\n\n"
-            "print(qc)"
+            "print('Number of QC samples:, qc)\n"
             "for sample in samples:\n"
             "    print(f\"{sample.attrs['sample_type'].value}: {len(sample)}\")\n\n"
             "# --- Filename hour alignment check ---\n"
@@ -773,8 +773,17 @@ def _generate_notebook(
             ")"
         ),
 
+        # --- QC Calculations ---
+        nbformat.v4.new_markdown_cell("## 15. Populate QC calculations"),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports import add_qc_to_mdvr\n\n"
+            "add_qc_to_mdvr(mdvr_path, cvs)\n"
+            "add_qc_to_mdvr(mdvr_path, lcs)\n"
+            "add_qc_to_mdvr(mdvr_path, rts)"
+        ),
+
         # --- MDVR ---
-        nbformat.v4.new_markdown_cell("## 15. MDVR qualifier generation"),
+        nbformat.v4.new_markdown_cell("## 16. MDVR qualifier generation"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import (\n"
             "    build_blank_qualifier_lines,\n"
@@ -844,7 +853,7 @@ def _generate_notebook(
         ),
 
         # --- AQS verification ---
-        nbformat.v4.new_markdown_cell("## 16. AQS upload verification"),
+        nbformat.v4.new_markdown_cell("## 17. AQS upload verification"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports.aqs import compare_aqs_to_dataset\n\n"
             f"aqs_file = r\"\"  # ← set path to AQS RD upload file\n\n"
@@ -855,7 +864,7 @@ def _generate_notebook(
 
         # --- Monthly case narrative ---
         nbformat.v4.new_markdown_cell(
-            "## 17. Monthly case narrative\n\n"
+            "## 18. Monthly case narrative\n\n"
             "Run this cell once you have finished reviewing the full month and "
             "are satisfied with the data qualification.  "
             "The generated `.qmd` file renders to both a self-contained HTML report "
@@ -892,7 +901,7 @@ def _generate_notebook(
 
         # --- Transfer to network ---
         nbformat.v4.new_markdown_cell(
-            "## 18. Transfer to network\n\n"
+            "## 19. Transfer to network\n\n"
             "Copies AQS, FINAL, Original, and MDVR "
             "to the network drive. The destination folder must not already exist — "
             "delete it manually before re-running if you need to overwrite a previous transfer."

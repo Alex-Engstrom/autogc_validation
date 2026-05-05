@@ -245,13 +245,13 @@ def _copy_mdvr_template(
     template does not exist rather than raising.
     """
     yyyymm = f"{year}{month:02d}"
-    template_path = project_dir / "templates" / "mdvr" / f"{site}_MDVR_template.xlsx"
+    template_path = project_dir / "templates" / "mdvr" / "MDVR_template.xlsx"
 
     if not template_path.exists():
-        logger.warning("MDVR template not found for site %s: %s", site, template_path)
+        logger.warning("MDVR template not found %s", template_path)
         return
 
-    dest = result.base_dir / "MDVR" / f"{site}{yyyymm}_MDVR.xlsx"
+    dest = result.base_dir / "MDVR" / f"TAS-FORM-003_AutoGC_Monthly_Data_Validation_{site}{yyyymm}.xlsx"
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(template_path, dest)
     logger.info("Copied MDVR template to %s", dest)

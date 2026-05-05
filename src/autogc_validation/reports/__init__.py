@@ -21,7 +21,7 @@ from .qualifiers import (
 from .monthly_report import generate_monthly_report
 from .reprocess_plan import fill_reprocess_plan
 
-from .populate_MDVR import add_month_to_mdvr
+from .populate_MDVR import add_month_to_mdvr, populate_mdvr, add_qc_to_mdvr
 
 from .aqs import compare_aqs_to_dataset
 
@@ -39,5 +39,7 @@ __all__ = [
     "fill_reprocess_plan",
     "compare_aqs_to_dataset",
     "make_col_row",
-    "add_month_to_mdvr"
+    "add_month_to_mdvr",
+    "populate_mdvr",
+    "add_qc_to_mdvr",
 ]
