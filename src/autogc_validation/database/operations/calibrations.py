@@ -6,13 +6,57 @@ Fits a linear regression to multi-level calibration data and evaluates
 how well each level's measured area conforms to the fitted curve.
 """
 
+import sqlite3
 from dataclasses import dataclass
 
 import numpy as np
 import statistics as stats
 from sklearn.linear_model import LinearRegression
 
+from autogc_validation.database.conn import connection
 from autogc_validation.database.models.calibration import Calibration
+
+def get_calibration(database, date_run: str) -> Calibration:
+    """Fetch a single calibration record by its run date.
+
+    Args:
+        database: Path to the database file.
+        date_run: Primary key value (YYYY-MM-DD HH:MM or YYYY-MM-DD HH:MM:SS).
+
+    Returns:
+        Calibration dataclass instance.
+
+    Raises:
+        ValueError: If no row exists for the given date_run.
+    """
+    with connection(database) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM calibrations WHERE date_run = ?", (date_run,)
+        ).fetchone()
+    if row is None:
+        raise ValueError(f"No calibration found for date_run={date_run!r}")
+    return Calibration(**dict(row))
+
+
+def get_calibrations_for_site(database, site_id: int) -> list[Calibration]:
+    """Fetch all calibration records for a given site, ordered by run date.
+
+    Args:
+        database: Path to the database file.
+        site_id: Integer site ID referencing the sites table.
+
+    Returns:
+        List of Calibration dataclass instances, oldest first.
+    """
+    with connection(database) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM calibrations WHERE site_id = ? ORDER BY date_run",
+            (site_id,)
+        ).fetchall()
+    return [Calibration(**dict(row)) for row in rows]
+
 
 _LEVELS = ("L1", "L2", "L3", "L4")
 

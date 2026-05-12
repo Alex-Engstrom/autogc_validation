@@ -3,6 +3,34 @@ CREATE TABLE SchemaVersion (
                         version TEXT PRIMARY KEY,
                         applied_on TEXT
                     );
+CREATE TABLE calibrations (
+                        primary_canister_id TEXT,
+                        date_run TEXT NOT NULL PRIMARY KEY,
+                        site_id INTEGER,
+                        dr1 REAL,
+                        dr2 REAL,
+                        dr3 REAL,
+                        dr4 REAL,
+                        l1_area_PLOT REAL,
+                        l1_conc_PLOT REAL,
+                        l2_area_PLOT REAL,
+                        l2_conc_PLOT REAL,
+                        l3_area_PLOT REAL,
+                        l3_conc_PLOT REAL,
+                        l4_area_PLOT REAL,
+                        l4_conc_PLOT REAL,
+                        l1_area_BP REAL,
+                        l1_conc_BP REAL,
+                        l2_area_BP REAL,
+                        l2_conc_BP REAL,
+                        l3_area_BP REAL,
+                        l3_conc_BP REAL,
+                        l4_area_BP REAL,
+                        l4_conc_BP REAL,
+                        FOREIGN KEY(primary_canister_id) REFERENCES primary_canisters(primary_canister_id),
+                        FOREIGN KEY(site_id) REFERENCES sites(site_id)
+                    );
+INSERT INTO "calibrations" VALUES('CC524930-0626','2025-10-10 00:00:00',490353015,0.000985143777896537,0.00160786331820828,0.0120516136948794,0.0360935571730159,6770.0,1.004846653454467775e+00,10799.0,1.640020584572445595e+00,78382.0,1.229264596877698779e+01,234996.0,3.681542831647621484e+01,7294.0,1.004846653454467775e+00,11923.0,1.640020584572445595e+00,83470.0,1.229264596877698779e+01,248645.0,3.681542831647621484e+01);
 CREATE TABLE canister_types (
                             canister_type TEXT PRIMARY KEY
                         );

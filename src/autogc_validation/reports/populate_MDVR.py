@@ -125,11 +125,11 @@ BP_CVS_ROW, BP_CVS_COL = 4, 5
 #LCS data start cells
 LCS_DATE_ROW, LCS_DATE_COL = 4, 8
 PLOT_LCS_ROW, PLOT_LCS_COL = 4, 9
-BP_LCS_ROW, BP_LCS_COL = 4, 10
+BP_LCS_ROW, BP_LCS_COL = 4, 11
 #RTS data start cells
 RTS_DATE_ROW, RTS_DATE_COL = 19, 8
 PLOT_RTS_ROW, PLOT_RTS_COL = 19, 9
-BP_RTS_ROW, BP_RTS_COL = 19, 10
+BP_RTS_ROW, BP_RTS_COL = 19, 11
 
 # Maps SampleTypeLetter to (start_row, date_col, plot_col, bp_col)
 _QC_COORDS = {

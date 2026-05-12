@@ -164,7 +164,7 @@ def _generate_notebook(
             "for s, amt in sample_amt.items():\n"
             '    if s not in ["s", "x"]:\n'
             "        qc += amt\n\n"
-            "print('Number of QC samples:, qc)\n"
+            "print('Number of QC samples:', qc)\n"
             "for sample in samples:\n"
             "    print(f\"{sample.attrs['sample_type'].value}: {len(sample)}\")\n\n"
             "# --- Filename hour alignment check ---\n"
@@ -217,9 +217,10 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 1"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
             "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
-            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
+            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1'\n)"
+            f"plot_vs_totals(ambient_w1, '{site}', {year}, {month})\n"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -242,10 +243,10 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
-            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
-            "mask = (ambient_w1[name_to_aqs('n-pentane')] == 0) | (ambient_w1[name_to_aqs('propane')] == 0) | (ambient_w1[name_to_aqs('toluene')] == 0) | (ambient_w1[name_to_aqs('benzene')] == 0)\n"
+            "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
+            "mask = (ambient_w1[name_to_aqs('n-pentane')] < 0.005) | (ambient_w1[name_to_aqs('propane')] < 0.005) | (ambient_w1[name_to_aqs('toluene')] < 0.005) | (ambient_w1[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w1[reference][mask]\n"
-            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
+            "misided.columns = [aqs_to_name(col) if col != 'filename' else col for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -301,9 +302,10 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 2"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
             "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
-            f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
+            f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')\n"
+            f"plot_vs_totals(ambient_w2, '{site}', {year}, {month})\n"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -326,10 +328,10 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
-            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
-            "mask = (ambient_w2[name_to_aqs('n-pentane')] == 0) | (ambient_w2[name_to_aqs('propane')] == 0) | (ambient_w2[name_to_aqs('toluene')] == 0) | (ambient_w2[name_to_aqs('benzene')] == 0)\n"
+            "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
+            "mask = (ambient_w2[name_to_aqs('n-pentane')] < 0.005) | (ambient_w2[name_to_aqs('propane')] < 0.005) | (ambient_w2[name_to_aqs('toluene')] < 0.005) | (ambient_w2[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w2[reference][mask]\n"
-            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
+            "misided.columns = [aqs_to_name(col) if col != 'filename' else col for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -385,9 +387,10 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 3"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
             "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
-            f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
+            f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')\n"
+            f"plot_vs_totals(ambient_w3, '{site}', {year}, {month})\n"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -410,10 +413,10 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
-            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
-            "mask = (ambient_w3[name_to_aqs('n-pentane')] == 0) | (ambient_w3[name_to_aqs('propane')] == 0) | (ambient_w3[name_to_aqs('toluene')] == 0) | (ambient_w3[name_to_aqs('benzene')] == 0)\n"
+            "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
+            "mask = (ambient_w3[name_to_aqs('n-pentane')] < 0.005) | (ambient_w3[name_to_aqs('propane')] < 0.005) | (ambient_w3[name_to_aqs('toluene')] < 0.005) | (ambient_w3[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w3[reference][mask]\n"
-            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
+            "misided.columns = [aqs_to_name(col) if col != 'filename' else col for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -469,9 +472,10 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 4"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
             "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
-            f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
+            f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')\n"
+            f"plot_vs_totals(ambient_w4, '{site}', {year}, {month})\n"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -494,10 +498,10 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
-            "reference = [name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
-            "mask = (ambient_w4[name_to_aqs('n-pentane')] == 0) | (ambient_w4[name_to_aqs('propane')] == 0) | (ambient_w4[name_to_aqs('toluene')] == 0) | (ambient_w4[name_to_aqs('benzene')] == 0)\n"
+            "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
+            "mask = (ambient_w4[name_to_aqs('n-pentane')] < 0.005) | (ambient_w4[name_to_aqs('propane')] < 0.005) | (ambient_w4[name_to_aqs('toluene')] < 0.005) | (ambient_w4[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w4[reference][mask]\n"
-            "misided.columns = [aqs_to_name(col) for col in misided.columns]\n"
+            "misided.columns = [aqs_to_name(col) if col != 'filename' else col for col in misided.columns]\n"
             "display(misided)"
         ),
         nbformat.v4.new_markdown_cell("#### Convert txt"),
@@ -690,7 +694,7 @@ def _generate_notebook(
             "lcs_start_row         = 15\n"
             "rts_start_row         = 7\n"
             "precision_start_row   = 62\n"
-            "experimental_start_row = 113\n\n"
+            "experimental_start_row = 111\n\n"
             "blank_table       = build_blank_qc_table(mdl_failures, threshold_failures, nulled_filenames=nulled_blanks or None)\n"
             "cvs_table         = build_recovery_qc_table(cvs_failures, 'CVS', nulled_filenames=nulled_cvs or None)\n"
             "lcs_table         = build_recovery_qc_table(lcs_failures, 'LCS', nulled_filenames=nulled_lcs or None)\n"

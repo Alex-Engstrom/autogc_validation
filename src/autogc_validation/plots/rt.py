@@ -3,14 +3,11 @@
 Retention time distribution plots for AutoGC validation.
 """
 
-import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-import seaborn as sns
+import plotly.graph_objects as go
 
 from autogc_validation.database.enums import ColumnType, aqs_to_name, get_codes_by_column
-
-# Percentile bin edges and labels used for strip-plot colouring.
-_PCT_BINS = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.0]
 
 
 def plot_rt(
@@ -100,41 +97,53 @@ def plot_rt(
             pct_long, on=["sample_hour", "sample_type", "compound"], how="left"
         )
 
-        df_long["category"] = df_long["compound"].apply(
-            lambda x: "PLOT" if x in plot_names else "BP"
-        )
-        df_long["pct_bin"] = pd.cut(
-            df_long["percentile"],
-            bins=[0.0] + _PCT_BINS,
-            labels=_PCT_BINS,
-        )
-        df_long["pct_bin"] = df_long["pct_bin"].astype(
-            pd.CategoricalDtype(categories=_PCT_BINS, ordered=True)
-        )
         df_long["compound"] = pd.Categorical(
             df_long["compound"], categories=all_names, ordered=True
         )
-        df_long = df_long.sort_values(["compound", "pct_bin"])
+        df_long = df_long.sort_values("compound")
 
-        plt.figure(figsize=(24, 6))
-        sns.violinplot(
-            data=df_long, x="compound", y="rt",
-            inner=None, fill=False, color="black", linewidth=1,
+        present_names = [n for n in all_names if n in set(df_long["compound"])]
+        compound_pos = {name: i for i, name in enumerate(present_names)}
+
+        rng = np.random.default_rng(42)
+        x_jittered = (
+            df_long["compound"].map(compound_pos).astype(float)
+            + rng.uniform(-0.3, 0.3, size=len(df_long))
         )
-        sns.stripplot(
-            data=df_long, x="compound", y="rt",
-            hue="pct_bin", hue_order=_PCT_BINS,
-            palette="coolwarm", size=2,
-            edgecolor="black", linewidth=0.1,
-            jitter=0.3, legend=True,
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=x_jittered,
+            y=df_long["rt"],
+            mode="markers",
+            marker=dict(
+                size=2.5,
+                color=df_long["percentile"],
+                colorscale="RdBu_r",
+                cmin=0,
+                cmax=1,
+                colorbar=dict(title="Concentration<br>Percentile"),
+                opacity=0.7,
+            ),
+            text=df_long["filename"],
+            hovertemplate=(
+                "<b>%{text}</b><br>"
+                "RT offset: %{y:.4f}<br>"
+                "Percentile: %{marker.color:.2f}"
+                "<extra></extra>"
+            ),
+            showlegend=False,
+        ))
+
+        fig.update_xaxes(
+            tickvals=list(range(len(present_names))),
+            ticktext=present_names,
+            tickangle=90,
         )
-        plt.xticks(rotation=90)
-        plt.legend(
-            title="Concentration Percentile",
-            bbox_to_anchor=(1.05, 1),
-            loc="upper left",
+        fig.update_yaxes(title_text="Normalized RT (RT \u2212 median RT)")
+        fig.update_layout(
+            title=f"{sitename} {year}-{month:02d} \u2014 RT Distribution ({sampletype})",
+            height=500,
+            width=max(900, 25 * len(present_names)),
         )
-        plt.ylabel("Normalized RT (RT \u2212 median RT)")
-        plt.xlabel("Compound")
-        plt.tight_layout()
-        plt.show()
+        fig.show()

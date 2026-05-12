@@ -10,7 +10,7 @@ from .site import Site
 from .mdl import MDL
 from .voc import VOCInfo
 from .version import Version
-from .calibration import Calibration
+from .calibration import Calibration, generate_cal_obj
 
 # Define models list
 MODELS = [
@@ -43,6 +43,7 @@ __all__ = [
     "VOCInfo",
     "Version",
     "Calibration",
+    "generate_cal_obj",
     
     # Registry
     "MODELS",

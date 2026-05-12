@@ -268,14 +268,12 @@ def build_qc_qualifier_lines(
     RTS failures are noted but not data-qualified — returns an empty DataFrame
     for qc_type 'q'. CVS ('c') and LCS ('e') failures are qualified as follows:
 
-    - If the PLOT-column calibrant (Propane) failed on a run, all PLOT-column
-      compounds receive flag **LL** (calibrant low) or **LK** (calibrant high)
-      for the interval spanning that run.
-    - If the BP-column calibrant (Toluene) failed on a run, all BP-column
-      compounds receive LL or LK similarly.
-    - When a calibrant fails, a single qualifier row is written with
-      ``Parameter(s)`` = "All PLOT compounds" or "All BP compounds" and
-      ``CODE`` = "QX, LL" (low) or "QX, LK" (high).
+    - If the PLOT-column calibrant (Propane) recovery falls outside 70–130%,
+      all PLOT-column compounds are nulled with **AS** for the interval spanning
+      that run. A single row is written with ``Parameter(s)`` = "All PLOT
+      compounds".
+    - If the BP-column calibrant (Toluene) recovery falls outside 70–130%,
+      all BP-column compounds are nulled with **AS** similarly.
     - Compounds whose column calibrant passed but which individually failed
       receive **QX** (one row per compound, grouped by shared interval).
 
@@ -334,20 +332,13 @@ def build_qc_qualifier_lines(
         (plot_cols, "All PLOT compounds", plot_cal, plot_cal_name),
         (bp_cols,   "All BP compounds",   bp_cal,   bp_cal_name),
     ]:
-        # Calibrant failures — one row per merged interval for the whole column,
-        # with both qualifier codes combined in the CODE cell.
-        for cal_val, flag_code, bound_str in [
-            (-1, "QX, LL", "below lower"),
-            ( 1, "QX, LK", "above upper"),
-        ]:
-            cal_mask = (cal_series == cal_val).astype(int)
-            reason = (
-                f"{qc_name} {cal_name} (calibrant) recovery {bound_str} bound"
-            )
-            for start, end in compute_failure_intervals(
-                all_data, cal_mask, prior_qc, next_qc
-            ):
-                rows.append(make_col_row(col_label, reason, flag_code, start, end))
+        # Calibrant failures — null all column compounds with AS.
+        cal_mask = (cal_series != 0).astype(int)
+        reason = f"{qc_name} {cal_name} (calibrant) recovery outside acceptable bounds"
+        for start, end in compute_failure_intervals(
+            all_data, cal_mask, prior_qc, next_qc
+        ):
+            rows.append(make_col_row(col_label, reason, "AS", start, end))
 
         # Individual compound failures when the column calibrant passed.
         qx_reason = f"{qc_name} recovery outside acceptable bounds"

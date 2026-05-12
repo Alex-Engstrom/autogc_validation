@@ -56,11 +56,15 @@ BP_CODES = frozenset(v["aqs_code"] for v in _VOC_DATA if v["column"] == "BP")
 
 # Calibrant compound for each GC column.  Used by QC qualifier generation to
 # determine whether a whole-column LL/LK qualifier applies.
+
 COLUMN_CALIBRANTS: dict[ColumnType, int] = {
     ColumnType.PLOT: CompoundAQSCode.C_PROPANE.value,  # Propane
     ColumnType.BP:   CompoundAQSCode.C_TOLUENE.value,  # Toluene
 }
-
+COLUMN_CALIBRANTS_ED: dict[ColumnType, int] = {
+    ColumnType.PLOT: CompoundAQSCode.C_N_BUTANE.value,  # Propane
+    ColumnType.BP:   CompoundAQSCode.C_TOLUENE.value,  # Toluene
+}
 # Reference compounds used for retention time outlier detection.  Other
 # compound RTs are locked relative to these, so a misidentification here
 # implies a systematic shift across the column.
@@ -260,6 +264,7 @@ __all__ = [
     "PLOT_CODES",
     "BP_CODES",
     "COLUMN_CALIBRANTS",
+    "COLUMN_CALIBRANTS_ED",
     "RT_REFERENCE_CODES",
     "QualifierCodeInfo",
     "QUALIFIER_CODES",

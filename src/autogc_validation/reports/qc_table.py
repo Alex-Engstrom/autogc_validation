@@ -236,13 +236,13 @@ def _build_recovery_actions(
     bp_cal_val   = fail_row.get(_BP_CALIBRANT,   0)
 
     # Whole-column calibrant sentences.
-    for cal_val, col_label, flag_code in [
-        (plot_cal_val, "PLOT", "LL" if plot_cal_val == -1 else "LK"),
-        (bp_cal_val,   "BP",   "LL" if bp_cal_val   == -1 else "LK"),
+    for cal_val, col_label, direction in [
+        (plot_cal_val, "PLOT", "low" if plot_cal_val == -1 else "high"),
+        (bp_cal_val,   "BP",   "low" if bp_cal_val   == -1 else "high"),
     ]:
         if cal_val != 0:
             parts.append(
-                f"All {col_label} compounds qualified with flags QX, {flag_code} "
+                f" {col_label} column calibrant failed {direction}. All {col_label} compounds nulled with flag AS "
                 f"forward and backward to the nearest passing {qc_type}."
             )
 
