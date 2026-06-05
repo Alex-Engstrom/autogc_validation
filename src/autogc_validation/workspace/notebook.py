@@ -219,7 +219,7 @@ def _generate_notebook(
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
             "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
-            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1'\n)"
+            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')\n"
             f"plot_vs_totals(ambient_w1, '{site}', {year}, {month})\n"
         ),
         nbformat.v4.new_code_cell(
@@ -294,7 +294,7 @@ def _generate_notebook(
             "display(tchc_ratio_w1)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w1, daily_tnmhc=daily_tnmhc_w1, outliers=outliers_w1,\n"
+            "    overrange=overrange_w1, daily_tnmhc=daily_tnmhc_w1\n"
             "    start_date=weeks[1][0], end_date=weeks[1][1],\n"
             ")"
         ),
@@ -379,7 +379,7 @@ def _generate_notebook(
             "display(tchc_ratio_w2)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w2, daily_tnmhc=daily_tnmhc_w2, outliers=outliers_w2,\n"
+            "    overrange=overrange_w2, daily_tnmhc=daily_tnmhc_w2,\n"
             "    start_date=weeks[2][0], end_date=weeks[2][1],\n"
             ")"
         ),
@@ -464,7 +464,7 @@ def _generate_notebook(
             "display(tchc_ratio_w3)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w3, daily_tnmhc=daily_tnmhc_w3, outliers=outliers_w3,\n"
+            "    overrange=overrange_w3, daily_tnmhc=daily_tnmhc_w3,\n"
             "    start_date=weeks[3][0], end_date=weeks[3][1],\n"
             ")"
         ),
@@ -549,7 +549,7 @@ def _generate_notebook(
             "display(tchc_ratio_w4)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w4, daily_tnmhc=daily_tnmhc_w4, outliers=outliers_w4,\n"
+            "    overrange=overrange_w4, daily_tnmhc=daily_tnmhc_w4,\n"
             "    start_date=weeks[4][0], end_date=weeks[4][1],\n"
             ")"
         ),
@@ -664,7 +664,7 @@ def _generate_notebook(
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.precision import check_cvs_precision\n\n"
-            "precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs, cvs_periods)\n"
+            "precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs, cvs_periods, nulled_filenames = nulled_cvs)\n"
             f'print(f"CVS precision pairs found: {{len(cvs_precision_pairs)}}")\n\n'
             "compound_cols_p = [c for c in precision_failures.columns if isinstance(c, int)]\n"
             "for ts, row in precision_failures.iterrows():\n"
@@ -689,12 +689,12 @@ def _generate_notebook(
             "    build_recovery_qc_table, build_experimental_table, write_qc_table_to_excel,\n"
             ")\n\n"
             "# Adjust these start rows to match the merged-cell ranges in the MDVR template.\n"
-            "blank_start_row       = 73\n"
+            "blank_start_row       = 77\n"
             "cvs_start_row         = 22\n"
             "lcs_start_row         = 15\n"
             "rts_start_row         = 7\n"
-            "precision_start_row   = 62\n"
-            "experimental_start_row = 111\n\n"
+            "precision_start_row   = 66\n"
+            "experimental_start_row = 126\n\n"
             "blank_table       = build_blank_qc_table(mdl_failures, threshold_failures, nulled_filenames=nulled_blanks or None)\n"
             "cvs_table         = build_recovery_qc_table(cvs_failures, 'CVS', nulled_filenames=nulled_cvs or None)\n"
             "lcs_table         = build_recovery_qc_table(lcs_failures, 'LCS', nulled_filenames=nulled_lcs or None)\n"
@@ -773,7 +773,7 @@ def _generate_notebook(
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange, daily_tnmhc=daily_tnmhc, outliers=outliers,\n"
+            "    overrange=overrange, daily_tnmhc=daily_tnmhc,\n"
             ")"
         ),
 
@@ -863,45 +863,21 @@ def _generate_notebook(
             f"aqs_file = r\"\"  # ← set path to AQS RD upload file\n\n"
             "differences = compare_aqs_to_dataset(aqs_file, ds.ambient.copy())\n"
             'print(f"Rows with |dataset - AQS| > 0.001: {len(differences)}")\n'
-            "differences"
+            "differences\n"
+            'nbh = summarize_nulls_by_hour(aqs_file, "RD", threshold = 34)'
+            "display(nbh)"
+            'qbh = summarize_qualifiers_by_hour(aqs_file, "RD", threshold = 34)'
+            "display(qbh)"
+            "pd.set_option('display.max_columns', None)"
+            'nbc = summarize_nulls_by_compound(aqs_file, "RD")'
+            "nbc_df = pd.DataFrame(nbc)"
+            "display(nbc_df)"
+            
+            'qbc = summarize_qualifiers_by_compound(aqs_file, "RD")'
+            "qbc_df = pd.DataFrame(qbc)"
+            "display(qbc_df)"
         ),
 
-        # --- Monthly case narrative ---
-        nbformat.v4.new_markdown_cell(
-            "## 18. Monthly case narrative\n\n"
-            "Run this cell once you have finished reviewing the full month and "
-            "are satisfied with the data qualification.  "
-            "The generated `.qmd` file renders to both a self-contained HTML report "
-            "and a Word document. Word output requires `kaleido` (`pip install kaleido`) "
-            "and must be rendered from a **non-elevated** shell (not Run as Administrator).\n\n"
-            "```\n"
-            f"quarto render VALIDATION\\ DOCS/{site}{yyyymm}_case_narrative.qmd\n"
-            "```"
-        ),
-        nbformat.v4.new_code_cell(
-            "from autogc_validation.reports.monthly_report import generate_monthly_report\n\n"
-            "# Set to True when ready to generate the case narrative QMD.\n"
-            "_GENERATE = False\n\n"
-            "if _GENERATE:\n"
-            f"    qmd_path = generate_monthly_report(result, '{site}', year, month)\n"
-            f'    print(f"Case narrative written to {{qmd_path}}")\n'
-            "else:\n"
-            '    print("Skipped. Set _GENERATE = True to run.")'
-        ),
-        nbformat.v4.new_markdown_cell(
-            "Review and edit the `.qmd` file above before rendering. "
-            "When satisfied, run the cell below to render to HTML and Word."
-        ),
-        nbformat.v4.new_code_cell(
-            "from autogc_validation.reports.monthly_report import render_monthly_report\n\n"
-            "# Set to True when ready to render. Requires _GENERATE to have been run first.\n"
-            "_RENDER = False\n\n"
-            "if _RENDER:\n"
-            f"    docx_path = render_monthly_report(qmd_path, '{site}', year, month)\n"
-            f'    print(f"Word document: {{docx_path}}")\n'
-            "else:\n"
-            '    print("Skipped. Set _RENDER = True to run.")'
-        ),
 
         # --- Transfer to network ---
         nbformat.v4.new_markdown_cell(

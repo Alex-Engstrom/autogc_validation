@@ -208,7 +208,7 @@ def build_blank_qualifier_lines(
         mdl_failures: Wide boolean DataFrame — 1 where compound exceeded its
             MDL. Columns: filename + integer AQS codes. From compounds_above_mdl.
         threshold_failures: Wide boolean DataFrame — 1 where compound exceeded
-            0.5 ppbC. Same shape as mdl_failures.
+            0.5 ppbC or where TNMTC/TNMHC exceeded 10 ppbC. Same shape as mdl_failures.
         prior_blank: Timestamp of the last blank sample from the preceding
             month. Used as the left bound when the first blank of the month
             fails. Optional.
@@ -236,17 +236,21 @@ def build_blank_qualifier_lines(
         )
         for start, end in merged:
             rows.append(make_row(
-                code, "Blank(s) above respective MDL(s)", "LB", start, end
+                code, "Compound(s) above respective MDL(s) in blank", "LB", start, end
             ))
 
     thresh_cols = [c for c in threshold_failures.columns if isinstance(c, int)]
     for code in thresh_cols:
+        if code in [43102, 43000]:
+            thresh_text = '10'
+        else:
+            thresh_text = '0.5'
         merged = compute_failure_intervals(
             all_data, threshold_failures[code], prior_blank, next_blank
         )
         for start, end in merged:
             rows.append(make_row(
-                code, "Blank(s) above 0.5 ppbC threshold", "AS", start, end
+                code, f"Compound(s) above {thresh_text} ppbC threshold in blank", "AS", start, end
             ))
 
     if not rows:
