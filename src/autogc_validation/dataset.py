@@ -146,6 +146,7 @@ class Dataset:
         self._data: pd.DataFrame | None = None
         self._rt: pd.DataFrame | None = None
         self._areas: pd.DataFrame | None = None
+        self._totals: pd.DataFrame | None = None
         self._typed_data: Dict[SampleTypeLetter, pd.DataFrame] = {}
         self._typed_rt: Dict[SampleTypeLetter, pd.DataFrame] = {}
 
@@ -186,6 +187,19 @@ class Dataset:
         if self._areas is None:
             self._areas = self._generate_areas()
         return self._areas
+
+    @property
+    def totals(self) -> pd.DataFrame:
+        """Front and back chromatogram totals, lazily generated on first access.
+
+        Columns: ``tnmhc_front``, ``tnmhc_back``, ``tnmtc_front``, ``tnmtc_back``
+        (ppbC), plus ``date_time``, ``sample_type``, ``filename``.
+        Indexed by ``sample_hour``. Unlike ``data``, totals are kept separate
+        per chromatogram rather than summed.
+        """
+        if self._totals is None:
+            self._totals = self._generate_totals_split()
+        return self._totals
 
     # ------------------------------------------------------------------
     # Typed concentration properties
@@ -534,6 +548,66 @@ class Dataset:
     def _generate_data(self) -> pd.DataFrame:
         """Generate a DataFrame of VOC concentrations for all samples."""
         return self._generate_frame("peakamounts", self._build_amount_dict)
+
+    def _generate_totals_split(self) -> pd.DataFrame:
+        """Generate a DataFrame with separate front and back TNMHC/TNMTC totals."""
+        tnmhc = CompoundAQSCode.C_TNMHC
+        tnmtc = CompoundAQSCode.C_TNMTC
+        rows = []
+        errors = 0
+
+        for sample in self.samples:
+            try:
+                if sample.front.datetime is None or sample.back.datetime is None:
+                    logger.warning(
+                        "%s: could not read datetime from CDF file, skipping",
+                        sample.filename_base,
+                    )
+                    errors += 1
+                    continue
+
+                dt = sample.front.datetime.replace(tzinfo=None)
+                dt_back = sample.back.datetime.replace(tzinfo=None)
+                if abs((dt - dt_back).total_seconds()) > 1:
+                    logger.warning(
+                        "%s: front/back datetime mismatch", sample.filename_base
+                    )
+                    continue
+
+                front = self._filter_totals(sample.front.peakamounts).set_index("peak_name")["peak_amount"]
+                back = self._filter_totals(sample.back.peakamounts).set_index("peak_name")["peak_amount"]
+
+                rows.append({
+                    "date_time": dt,
+                    "sample_type": sample.sample_type_letter.value,
+                    "filename": sample.filename_base,
+                    "tnmhc_front": front.get(tnmhc),
+                    "tnmhc_back": back.get(tnmhc),
+                    "tnmtc_front": front.get(tnmtc),
+                    "tnmtc_back": back.get(tnmtc),
+                })
+            except Exception:
+                logger.exception("Error processing %s", sample.filename_base)
+                errors += 1
+                continue
+
+        if errors:
+            logger.warning(
+                "%d of %d samples failed to process", errors, len(self.samples)
+            )
+
+        _cols = ["date_time", "sample_type", "filename",
+                 "tnmhc_front", "tnmhc_back", "tnmtc_front", "tnmtc_back"]
+        if not rows:
+            logger.warning("No samples processed — returning empty totals DataFrame")
+            empty = pd.DataFrame(columns=_cols)
+            empty.index = pd.DatetimeIndex([], name="sample_hour")
+            return empty
+
+        df = pd.DataFrame(rows)
+        df.index = df["date_time"].apply(sample_hour)
+        df.index.name = "sample_hour"
+        return df.sort_index()
 
     def _generate_areas(self) -> pd.DataFrame:
         """Generate a DataFrame of peak areas for all samples."""

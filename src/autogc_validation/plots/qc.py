@@ -256,6 +256,12 @@ def plot_blank_concentrations(
         title=f"{sitename} {year}-{month:02d} — Blank Concentrations",
         height=500,
         hovermode="closest",
+        legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01
+    )
     )
     _apply_theme(fig)
     fig.show()

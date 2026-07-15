@@ -1,0 +1,94 @@
+---
+title: "Lake Park (LP) Ethane Contamination Case Narrative"
+toc: true
+format:    
+    typst:
+        font-heading: "Times New Roman"
+        mainfont: "Times New Roman"
+crossref:
+  fig-prefix: "Fig."
+
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+#| label: setup
+#| include: false
+from lp_ethane import load_data, plot_reference_vs_ambient
+
+data = load_data()
+blank_df = data["blank"]
+ambient_df = data["ambient"]
+cvs_df = data["cvs"]
+lcs_df = data["lcs"]
+rts_df = data["rts"]
+```
+
+Evaluation of temporal ethane trends reveals a strong correlation between ambient ethane concentrations and blank (@fig-blank-ethane) and CVS (@fig-cvs-ethane) concentrations. A similar, but weaker correlation is observed between RTS and ambient concentrations (@fig-rts-ethane). No correlation is observed between ambient ethane and LCS concentrations (@fig-lcs-ethane). This correlation suggests ambient air was entering the instrument through either a leak or incomplete removal by the TOC generator. This correlation began on August 26, 2025 and ended on July 7, 2026, when the TOC generator was replaced.
+
+Blank, CVS, and RTS samples each utilize air from the TOC generator, while the LCS does not. Because the elevated ethane concentrations tracked with ambient concentrations only in the samples using air from the TOC generator, and because the correlation disappeared immediately after the TOC generator was replaced on July 7, 2026, there is strong evidence that the elevated ethane concentrations were caused by incomplete removal by the TOC generator. Therefore, there is no reason to assume that ambient ethane measurements were impacted.
+
+Rather than nulling ambient ethane data with flag AS where a CVS or blank failed their acceptance criterion, these data were qualified with either QX (Does not meet QC criteria) or LB (Blank value exceeds MDL). No other compounds with high ambient concentrations appear to have entered the instrument alongside ethane (@fig-blank-ethylene, @fig-blank-n-butane, @fig-blank-propane).
+
+## Ethane
+
+### Blank
+
+```{python}
+#| label: fig-blank-ethane
+#| fig-cap: "Ethane in blanks vs. ambient"
+plot_reference_vs_ambient(
+    blank_df, ambient_df, "Ethane", "Blank", figsize=(16, 5), keep_below_threshold = True
+)
+```
+
+
+
+### CVS
+
+```{python}
+#| label: fig-cvs-ethane
+#| fig-cap: "Ethane in CVS vs. ambient"
+plot_reference_vs_ambient(cvs_df, ambient_df, "Ethane", "CVS", figsize=(16, 5))
+```
+
+### RTS
+
+```{python}
+#| label: fig-rts-ethane
+#| fig-cap: "Ethane in RTS vs. ambient"
+plot_reference_vs_ambient(rts_df, ambient_df, "Ethane", "RTS", figsize=(16, 5))
+```
+
+### LCS
+
+```{python}
+#| label: fig-lcs-ethane
+#| fig-cap: "Ethane in LCS vs. ambient"
+plot_reference_vs_ambient(lcs_df, ambient_df, "Ethane", "LCS", figsize=(16, 5))
+```
+
+
+
+## Other Compounds
+
+```{python}
+#| label: fig-blank-ethylene
+#| fig-cap: "Ethylene in blanks vs. ambient"
+plot_reference_vs_ambient(blank_df, ambient_df, "Ethylene", "Blank", figsize=(16, 5), keep_below_threshold = True)
+```
+
+```{python}
+#| label: fig-blank-propane
+#| fig-cap: "Propane in blanks vs. ambient"
+plot_reference_vs_ambient(blank_df, ambient_df, "Propane", "Blank", figsize=(16, 5), keep_below_threshold = True)
+```
+
+```{python}
+#| label: fig-blank-n-butane
+#| fig-cap: "N-butane in blanks vs. ambient"
+plot_reference_vs_ambient(blank_df, ambient_df, "N-butane", "Blank", figsize=(16, 5), keep_below_threshold = True)
+```

@@ -127,13 +127,18 @@ def _build_overrange_lookup(
 
 
 def _build_tnmhc_lookup(
-    daily_tnmhc: pd.Series | None,
-) -> dict[int, tuple[int, float]]:
-    """Return {day: (hour, tnmhc_value)} from daily_tnmhc series."""
-    if daily_tnmhc is None or daily_tnmhc.empty:
-        return {}
-    idx = _strip_tz(daily_tnmhc.index)
-    return {ts.day: (ts.hour, float(val)) for ts, val in zip(idx, daily_tnmhc.values)}
+    daily_tnmhc_front: pd.Series | None,
+    daily_tnmhc_back: pd.Series | None,
+) -> dict[int, dict[str, tuple[int, float]]]:
+    """Return {day: {"front": (hour, val), "back": (hour, val)}} from two Series."""
+    result: dict[int, dict] = {}
+    for key, series in (("front", daily_tnmhc_front), ("back", daily_tnmhc_back)):
+        if series is None or series.empty:
+            continue
+        idx = _strip_tz(series.index)
+        for ts, val in zip(idx, series.values):
+            result.setdefault(ts.day, {})[key] = (ts.hour, float(val))
+    return result
 
 
 def _build_outlier_lookup(
@@ -168,8 +173,11 @@ def _format_notes(
         lines.append(f"Overrange ({hour:02d}:00): {', '.join(entries)} ppbC")
 
     if day in tnmhc_by_day:
-        hour, val = tnmhc_by_day[day]
-        lines.append(f"Daily max TNMHC: {val:.1f} ppbC ({hour:02d}:00)")
+        day_tnmhc = tnmhc_by_day[day]
+        for label, key in (("Front", "front"), ("Back", "back")):
+            if key in day_tnmhc:
+                hour, val = day_tnmhc[key]
+                lines.append(f"Daily max TNMHC ({label}): {val:.1f} ppbC ({hour:02d}:00)")
 
     if outlier_by_day:
         by_hour_out: dict[int, list[str]] = {}
@@ -194,7 +202,8 @@ def fill_reprocess_plan(
     year: int,
     month: int,
     overrange: pd.DataFrame | None = None,
-    daily_tnmhc: pd.Series | None = None,
+    daily_tnmhc_front: pd.Series | None = None,
+    daily_tnmhc_back: pd.Series | None = None,
     outliers: pd.DataFrame | None = None,
     start_date: "str | pd.Timestamp | None" = None,
     end_date: "str | pd.Timestamp | None" = None,
@@ -232,8 +241,12 @@ def fill_reprocess_plan(
         month: Validation month number (1-12).
         overrange: Optional DataFrame returned by ``check_overrange_values``.
             Columns: compound (int), value (float), compound_name (str).
-        daily_tnmhc: Optional Series returned by ``check_daily_max_tnmhc``,
-            indexed by the timestamp of each day's maximum TNMHC sample.
+        daily_tnmhc_front: Optional Series returned by
+            ``check_daily_max_tnmhc(ds.totals, "tnmhc_front")``, indexed by
+            the timestamp of each day's front-chromatogram TNMHC maximum.
+        daily_tnmhc_back: Optional Series returned by
+            ``check_daily_max_tnmhc(ds.totals, "tnmhc_back")``, indexed by
+            the timestamp of each day's back-chromatogram TNMHC maximum.
         outliers: Optional DataFrame returned by ``check_lognormal_outliers``.
             Columns: compound (int), compound_name (str), value (float),
             threshold (float). Flagged hours receive yellow header treatment
@@ -286,7 +299,7 @@ def fill_reprocess_plan(
             qc_hours[(ts.day, ts.hour)] = SampleTypeLetter(st_val)
 
     overrange_by_day = _build_overrange_lookup(overrange)
-    tnmhc_by_day     = _build_tnmhc_lookup(daily_tnmhc)
+    tnmhc_by_day     = _build_tnmhc_lookup(daily_tnmhc_front, daily_tnmhc_back)
     outlier_by_day   = _build_outlier_lookup(outliers)
 
     # Hours that receive yellow header treatment.
@@ -310,9 +323,10 @@ def fill_reprocess_plan(
     for ts in overrange_index:
         yellow_full.add((ts.day, ts.hour))
 
-    tnmhc_index = _strip_tz(daily_tnmhc.index) if daily_tnmhc is not None and not daily_tnmhc.empty else []
-    for ts in tnmhc_index:
-        yellow_full.add((ts.day, ts.hour))
+    for _tnmhc_series in (daily_tnmhc_front, daily_tnmhc_back):
+        if _tnmhc_series is not None and not _tnmhc_series.empty:
+            for ts in _strip_tz(_tnmhc_series.index):
+                yellow_full.add((ts.day, ts.hour))
 
     outlier_index = _strip_tz(outliers.index) if outliers is not None and not outliers.empty else []
     for ts in outlier_index:

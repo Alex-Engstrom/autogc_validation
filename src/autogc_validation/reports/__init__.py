@@ -18,12 +18,13 @@ from .qualifiers import (
     write_mdvr_to_excel,
     make_col_row
 )
+from .orsat import compare_qc_recovery
 from .monthly_report import generate_monthly_report
 from .reprocess_plan import fill_reprocess_plan
 
 from .populate_MDVR import add_month_to_mdvr, populate_mdvr, add_qc_to_mdvr
 
-from .aqs import compare_aqs_to_dataset
+from .aqs import compare_aqs_to_dataset, check_eh, check_md, check_nd, check_sq
 
 __all__ = [
     "generate_monthly_report",
@@ -42,4 +43,8 @@ __all__ = [
     "add_month_to_mdvr",
     "populate_mdvr",
     "add_qc_to_mdvr",
+    "check_eh",
+    "check_nd",
+    "check_md",
+    "check_sq"
 ]

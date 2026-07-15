@@ -287,25 +287,29 @@ def check_lognormal_outliers(
     return result.sort_index()
 
 
-def check_daily_max_tnmhc(data: pd.DataFrame) -> pd.Series:
+def check_daily_max_tnmhc(
+    totals: pd.DataFrame,
+    column: str = "tnmhc_front",
+) -> pd.Series:
     """Find the daily maximum TNMHC value for ambient samples.
 
     Args:
-        data: Dataset.data DataFrame.
+        totals: Dataset.totals DataFrame.
+        column: Which totals column to use — ``"tnmhc_front"`` or
+            ``"tnmhc_back"``. Defaults to ``"tnmhc_front"``.
 
     Returns:
-        Series indexed by the timestamp of each daily max, values are TNMHC (ppbC).
+        Series indexed by the timestamp of each daily max, values are
+        TNMHC (ppbC). Compatible with ``fill_reprocess_plan``.
     """
-    ambient_df = data[data["sample_type"] == SampleTypeLetter.AMBIENT].sort_index()
+    ambient = totals[totals["sample_type"] == SampleTypeLetter.AMBIENT.value].sort_index()
 
-    if CompoundAQSCode.C_TNMHC not in ambient_df.columns:
-        logger.warning("check_daily_max_tnmhc: TNMHC column not found in data")
+    if column not in ambient.columns:
+        logger.warning("check_daily_max_tnmhc: column '%s' not found in totals", column)
         return pd.Series(dtype=float)
 
-    s = ambient_df[CompoundAQSCode.C_TNMHC]
-
+    s = pd.to_numeric(ambient[column], errors="coerce")
     timestamps_of_daily_max = s.groupby(s.index.date).idxmax()
-
     return s.loc[timestamps_of_daily_max]
 
 def compare_tnmtc_tnmhc(data: pd.DataFrame, 

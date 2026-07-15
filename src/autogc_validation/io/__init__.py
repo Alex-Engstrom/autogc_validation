@@ -3,6 +3,7 @@
 
 from .cdf import Chromatogram, PLOT_UNID_CODE, BP_UNID_CODE, UNID_CODES
 from .samples import Sample, parse_filename_metadata, load_samples_from_folder
+from .txt import process_txt_to_csv, write_txt_csv
 from autogc_validation.database.enums import SampleTypeLetter, SampleTypeLong
 
 __all__ = [
@@ -15,4 +16,6 @@ __all__ = [
     "SampleTypeLong",
     "parse_filename_metadata",
     "load_samples_from_folder",
+    "process_txt_to_csv",
+    "write_txt_csv",
 ]

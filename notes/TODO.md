@@ -8,6 +8,8 @@
 - [x] Update MDVR LCS and RTS columns coordinates
 - [x] Clean up notebook
 - [x] Separate TNMHC flagging from 0.5 ppbC
+- [] Add EH, ND, MD, SQ Checks to code
+
 
 
 ## AQS-tools

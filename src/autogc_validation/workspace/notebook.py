@@ -284,9 +284,13 @@ def _generate_notebook(
             'print(f"Lognormal outliers: {len(outliers_w1)}")\n'
             "if not outliers_w1.empty:\n"
             "    display(outliers_w1)\n\n"
-            "daily_tnmhc_w1 = check_daily_max_tnmhc(data_w1)\n"
-            'print("Daily max TNMHC:")\n'
-            "display(daily_tnmhc_w1)\n\n"
+            "totals_w1 = ds.totals.loc[weeks[1][0]:weeks[1][1]]\n"
+            "daily_tnmhc_front_w1 = check_daily_max_tnmhc(totals_w1, \"tnmhc_front\")\n"
+            "daily_tnmhc_back_w1  = check_daily_max_tnmhc(totals_w1, \"tnmhc_back\")\n"
+            'print("Daily max TNMHC (Front):")\n'
+            "display(daily_tnmhc_front_w1)\n"
+            'print("Daily max TNMHC (Back):")\n'
+            "display(daily_tnmhc_back_w1)\n\n"
             "tchc_diff_w1, tchc_ratio_w1 = compare_tnmtc_tnmhc(ambient_w1)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w1)\n"
@@ -294,7 +298,7 @@ def _generate_notebook(
             "display(tchc_ratio_w1)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w1, daily_tnmhc=daily_tnmhc_w1\n"
+            "    overrange=overrange_w1, daily_tnmhc_front=daily_tnmhc_front_w1, daily_tnmhc_back=daily_tnmhc_back_w1,\n"
             "    start_date=weeks[1][0], end_date=weeks[1][1],\n"
             ")"
         ),
@@ -369,9 +373,13 @@ def _generate_notebook(
             'print(f"Lognormal outliers: {len(outliers_w2)}")\n'
             "if not outliers_w2.empty:\n"
             "    display(outliers_w2)\n\n"
-            "daily_tnmhc_w2 = check_daily_max_tnmhc(data_w2)\n"
-            'print("Daily max TNMHC:")\n'
-            "display(daily_tnmhc_w2)\n\n"
+            "totals_w2 = ds.totals.loc[weeks[2][0]:weeks[2][1]]\n"
+            "daily_tnmhc_front_w2 = check_daily_max_tnmhc(totals_w2, \"tnmhc_front\")\n"
+            "daily_tnmhc_back_w2  = check_daily_max_tnmhc(totals_w2, \"tnmhc_back\")\n"
+            'print("Daily max TNMHC (Front):")\n'
+            "display(daily_tnmhc_front_w2)\n"
+            'print("Daily max TNMHC (Back):")\n'
+            "display(daily_tnmhc_back_w2)\n\n"
             "tchc_diff_w2, tchc_ratio_w2 = compare_tnmtc_tnmhc(ambient_w2)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w2)\n"
@@ -379,7 +387,7 @@ def _generate_notebook(
             "display(tchc_ratio_w2)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w2, daily_tnmhc=daily_tnmhc_w2,\n"
+            "    overrange=overrange_w2, daily_tnmhc_front=daily_tnmhc_front_w2, daily_tnmhc_back=daily_tnmhc_back_w2,\n"
             "    start_date=weeks[2][0], end_date=weeks[2][1],\n"
             ")"
         ),
@@ -454,9 +462,13 @@ def _generate_notebook(
             'print(f"Lognormal outliers: {len(outliers_w3)}")\n'
             "if not outliers_w3.empty:\n"
             "    display(outliers_w3)\n\n"
-            "daily_tnmhc_w3 = check_daily_max_tnmhc(data_w3)\n"
-            'print("Daily max TNMHC:")\n'
-            "display(daily_tnmhc_w3)\n\n"
+            "totals_w3 = ds.totals.loc[weeks[3][0]:weeks[3][1]]\n"
+            "daily_tnmhc_front_w3 = check_daily_max_tnmhc(totals_w3, \"tnmhc_front\")\n"
+            "daily_tnmhc_back_w3  = check_daily_max_tnmhc(totals_w3, \"tnmhc_back\")\n"
+            'print("Daily max TNMHC (Front):")\n'
+            "display(daily_tnmhc_front_w3)\n"
+            'print("Daily max TNMHC (Back):")\n'
+            "display(daily_tnmhc_back_w3)\n\n"
             "tchc_diff_w3, tchc_ratio_w3 = compare_tnmtc_tnmhc(ambient_w3)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w3)\n"
@@ -464,7 +476,7 @@ def _generate_notebook(
             "display(tchc_ratio_w3)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w3, daily_tnmhc=daily_tnmhc_w3,\n"
+            "    overrange=overrange_w3, daily_tnmhc_front=daily_tnmhc_front_w3, daily_tnmhc_back=daily_tnmhc_back_w3,\n"
             "    start_date=weeks[3][0], end_date=weeks[3][1],\n"
             ")"
         ),
@@ -539,9 +551,13 @@ def _generate_notebook(
             'print(f"Lognormal outliers: {len(outliers_w4)}")\n'
             "if not outliers_w4.empty:\n"
             "    display(outliers_w4)\n\n"
-            "daily_tnmhc_w4 = check_daily_max_tnmhc(data_w4)\n"
-            'print("Daily max TNMHC:")\n'
-            "display(daily_tnmhc_w4)\n\n"
+            "totals_w4 = ds.totals.loc[weeks[4][0]:weeks[4][1]]\n"
+            "daily_tnmhc_front_w4 = check_daily_max_tnmhc(totals_w4, \"tnmhc_front\")\n"
+            "daily_tnmhc_back_w4  = check_daily_max_tnmhc(totals_w4, \"tnmhc_back\")\n"
+            'print("Daily max TNMHC (Front):")\n'
+            "display(daily_tnmhc_front_w4)\n"
+            'print("Daily max TNMHC (Back):")\n'
+            "display(daily_tnmhc_back_w4)\n\n"
             "tchc_diff_w4, tchc_ratio_w4 = compare_tnmtc_tnmhc(ambient_w4)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w4)\n"
@@ -549,7 +565,7 @@ def _generate_notebook(
             "display(tchc_ratio_w4)\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange_w4, daily_tnmhc=daily_tnmhc_w4,\n"
+            "    overrange=overrange_w4, daily_tnmhc_front=daily_tnmhc_front_w4, daily_tnmhc_back=daily_tnmhc_back_w4,\n"
             "    start_date=weeks[4][0], end_date=weeks[4][1],\n"
             ")"
         ),
@@ -557,7 +573,8 @@ def _generate_notebook(
         # --- Monthly ambient compound plots ---
         nbformat.v4.new_markdown_cell("## 6. Monthly ambient compound plots"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons\n\n"
+            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
+            f"plot_vs_totals(ds.ambient, '{site}', {year}, {month})\n"
             f"plot_ambient_comparisons(ds.ambient, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
@@ -684,6 +701,12 @@ def _generate_notebook(
             "`rts_start_row` to match the merged-cell row ranges in your MDVR template."
         ),
         nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.recovery import check_qc_recovery\n\n"
+            "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
+            "lcs_failures = check_qc_recovery(ds.lcs, lcs_periods)\n"
+            "rts_failures = check_qc_recovery(ds.rts, rts_periods)\n\n"
+            "from autogc_validation.qc.precision import check_cvs_precision\n\n"
+            "precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs, cvs_periods, nulled_filenames = nulled_cvs)\n"
             "from autogc_validation.reports import(\n"
             "    build_blank_qc_table, build_precision_qc_table,\n"
             "    build_recovery_qc_table, build_experimental_table, write_qc_table_to_excel,\n"
@@ -762,9 +785,12 @@ def _generate_notebook(
             "if not outliers.empty:\n"
             "    display(outliers)\n\n"
             "# Daily max TNMHC\n"
-            "daily_tnmhc = check_daily_max_tnmhc(ds.data)\n"
-            'print(f"\\nDaily max TNMHC:")\n'
-            "daily_tnmhc"
+            "daily_tnmhc_front = check_daily_max_tnmhc(ds.totals, \"tnmhc_front\")\n"
+            "daily_tnmhc_back  = check_daily_max_tnmhc(ds.totals, \"tnmhc_back\")\n"
+            'print("\\nDaily max TNMHC (Front):")\n'
+            "display(daily_tnmhc_front)\n"
+            'print("Daily max TNMHC (Back):")\n'
+            "daily_tnmhc_back"
         ),
 
         # --- Reprocess Plan ---
@@ -773,7 +799,7 @@ def _generate_notebook(
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
-            "    overrange=overrange, daily_tnmhc=daily_tnmhc,\n"
+            "    overrange=overrange, daily_tnmhc_front=daily_tnmhc_front, daily_tnmhc_back=daily_tnmhc_back,\n"
             ")"
         ),
 
@@ -855,27 +881,71 @@ def _generate_notebook(
             "write_mdvr_to_excel(all_quals, mdvr_path, mdvr_path)\n"
             f'print(f"Qualifiers written to {{mdvr_path}}")'
         ),
-
+        # --- QC recovery comparison to Orsat MAX ---
+        nbformat.v4.new_markdown_cell(
+            "## 17. QC Recovery Verification\n\n"
+            "Compares locally-computed QC recovery against an independently-exported "
+            "ORSAT MAX recovery figure CSV, one file per QC type. Set `cvs_path`, "
+            "`lcs_path`, and `rts_path` below to the exported CSV for each QC type."
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports import compare_qc_recovery\n\n"
+            "thresh = 0.005\n"
+            'cvs_path = r""  # ← set path to ORSAT MAX CVS recovery export\n'
+            'lcs_path = r""  # ← set path to ORSAT MAX LCS recovery export\n'
+            'rts_path = r""  # ← set path to ORSAT MAX RTS recovery export\n\n'
+            '#CVS\n'
+            'diff_cvs = compare_qc_recovery(cvs, cvs_periods, cvs_path, thresh=thresh)\n'
+            'print(f"CVS rows with |dataset - MAX| > {thresh}: {len(diff_cvs)}")\n'
+            '#LCS\n'
+            'diff_lcs = compare_qc_recovery(lcs, lcs_periods, lcs_path, thresh=thresh)\n'
+            'print(f"LCS rows with |dataset - MAX| > {thresh}: {len(diff_lcs)}")\n'
+            '#RTS\n'
+            'diff_rts = compare_qc_recovery(rts, rts_periods, rts_path, thresh=thresh)\n'
+            'print(f"RTS rows with |dataset - MAX| > {thresh}: {len(diff_rts)}")'
+        ),
         # --- AQS verification ---
-        nbformat.v4.new_markdown_cell("## 17. AQS upload verification"),
+        nbformat.v4.new_markdown_cell("## 18. AQS upload verification"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports.aqs import compare_aqs_to_dataset\n\n"
+            "from aqs_tools.processors import summarize_nulls_by_hour, summarize_qualifiers_by_hour, summarize_nulls_by_compound, summarize_qualifiers_by_compound\n"
+            "from aqs_tools.parsers import generate_aqs_df\n"
+            "from aqs_tools.utils import combine_quals\n"
             f"aqs_file = r\"\"  # ← set path to AQS RD upload file\n\n"
             "differences = compare_aqs_to_dataset(aqs_file, ds.ambient.copy())\n"
             'print(f"Rows with |dataset - AQS| > 0.001: {len(differences)}")\n'
             "differences\n"
-            'nbh = summarize_nulls_by_hour(aqs_file, "RD", threshold = 34)'
-            "display(nbh)"
-            'qbh = summarize_qualifiers_by_hour(aqs_file, "RD", threshold = 34)'
-            "display(qbh)"
-            "pd.set_option('display.max_columns', None)"
-            'nbc = summarize_nulls_by_compound(aqs_file, "RD")'
-            "nbc_df = pd.DataFrame(nbc)"
-            "display(nbc_df)"
-            
-            'qbc = summarize_qualifiers_by_compound(aqs_file, "RD")'
-            "qbc_df = pd.DataFrame(qbc)"
-            "display(qbc_df)"
+            'nbh = summarize_nulls_by_hour(aqs_file, "RD", threshold = 34)\n'
+            "display(nbh)\n"
+            'qbh = summarize_qualifiers_by_hour(aqs_file, "RD", threshold = 34)\n'
+            "display(qbh)\n"
+            "pd.set_option('display.max_columns', None)\n"
+            'nbc = summarize_nulls_by_compound(aqs_file, "RD")\n'
+            "nbc_df = pd.DataFrame(nbc)\n"
+            "display(nbc_df)\n"
+            'qbc = summarize_qualifiers_by_compound(aqs_file, "RD")\n'
+            "qbc_df = pd.DataFrame(qbc)\n"
+            "display(qbc_df)\n"
+        ),
+        nbformat.v4.new_code_cell(
+            "from autogc_validation.reports import check_eh, check_nd, check_md, check_sq\n\n"
+            "upper_cal_point = None  # ← set to upper calibration point value\n\n"
+            "eh = check_eh(aqs_file, upper_cal_point)\n"
+            'print(f"EH false positives: {len(eh[\'false_positive\'])}, false negatives: {len(eh[\'false_negative\'])}")\n'
+            "display(eh['false_positive'])\n"
+            "display(eh['false_negative'])\n\n"
+            "nd = check_nd(aqs_file)\n"
+            'print(f"ND false positives: {len(nd[\'false_positive\'])}, false negatives: {len(nd[\'false_negative\'])}")\n'
+            "display(nd['false_positive'])\n"
+            "display(nd['false_negative'])\n\n"
+            "md = check_md(aqs_file, mdl_periods)\n"
+            'print(f"MD false positives: {len(md[\'false_positive\'])}, false negatives: {len(md[\'false_negative\'])}")\n'
+            "display(md['false_positive'])\n"
+            "display(md['false_negative'])\n\n"
+            "sq = check_sq(aqs_file, mdl_periods)\n"
+            'print(f"SQ false positives: {len(sq[\'false_positive\'])}, false negatives: {len(sq[\'false_negative\'])}")\n'
+            "display(sq['false_positive'])\n"
+            "display(sq['false_negative'])\n"
         ),
 
 

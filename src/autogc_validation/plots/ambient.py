@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 # Default compound pairs/groups to plot against each other.  The first element
 # of each tuple is the x-axis compound; the rest are plotted against it.
 _DEFAULT_COMPARISONS: list[tuple[str, ...]] = [
-    ("Benzene", "Toluene", "Ethane"),
+    ("Benzene",  "Ethane"),
+    ("Toluene", "Ethane"),
     ("Propane", "Propylene"),
     ("Propane", "TNMTC"),
     ("TNMTC", "TNMHC"),
@@ -58,9 +59,10 @@ def plot_vs_totals(ambient_df: pd.DataFrame,
     timestamps = ambient_df.index.strftime("%Y-%m-%d %H:%M")
     hover_text = ambient_df["filename"] + "<br>" + timestamps
     compounds = [col for col in ambient_df.columns if isinstance(col, CompoundAQSCode)]
+
     ncols = 4
     nrows = -(-len(compounds)//4)
-    subplot_titles = [f"{aqs_to_name(col)} vs TNMTC" for col in compounds if col !=43000]
+    subplot_titles = [f"{aqs_to_name(col)} vs TNMTC" for col in compounds]
     fig1 = make_subplots(
         rows=nrows, cols=ncols,
         subplot_titles=subplot_titles,

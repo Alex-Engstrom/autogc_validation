@@ -2,8 +2,8 @@
 """
 Created on Mon Mar 30 09:22:17 2026
 
-@author: aengstrom
-claude  
+@author: aengstrom &
+Claude ai  
 """
 
 import logging
