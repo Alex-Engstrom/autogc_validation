@@ -34,24 +34,24 @@ class TestCheckOverrangeValues:
     def test_value_above_upper_cal_flagged(self):
         benzene = int(CompoundAQSCode.C_BENZENE)
         df = _build_full_ambient_df({benzene: 50.0})
-        result = check_overrange_values(df, upper_cal_point=30.0)
+        result = check_overrange_values(df, upper_cal_point_plot=30.0, upper_cal_point_bp=30.0)
         assert benzene in result["compound"].values
 
     def test_tnmhc_excluded_by_default(self):
         tnmhc = int(CompoundAQSCode.C_TNMHC)
         df = _build_full_ambient_df({tnmhc: 500.0})
-        result = check_overrange_values(df, upper_cal_point=30.0)
+        result = check_overrange_values(df, upper_cal_point_plot=30.0, upper_cal_point_bp=30.0)
         assert tnmhc not in result["compound"].values
 
     def test_tnmtc_excluded_by_default(self):
         tnmtc = int(CompoundAQSCode.C_TNMTC)
         df = _build_full_ambient_df({tnmtc: 500.0})
-        result = check_overrange_values(df, upper_cal_point=30.0)
+        result = check_overrange_values(df, upper_cal_point_plot=30.0, upper_cal_point_bp=30.0)
         assert tnmtc not in result["compound"].values
 
     def test_no_exceedance_empty_result(self):
         df = _build_full_ambient_df()  # all values 1.0
-        result = check_overrange_values(df, upper_cal_point=30.0)
+        result = check_overrange_values(df, upper_cal_point_plot=30.0, upper_cal_point_bp=30.0)
         assert len(result) == 0
 
 
@@ -62,7 +62,7 @@ class TestCheckOverrangeValues:
             columns=["sample_type", "filename"] + [int(c) for c in all_codes]
         )
         df.index.name = "date_time"
-        result = check_overrange_values(df, upper_cal_point=30.0)
+        result = check_overrange_values(df, upper_cal_point_plot=30.0, upper_cal_point_bp=30.0)
         assert len(result) == 0
 
 

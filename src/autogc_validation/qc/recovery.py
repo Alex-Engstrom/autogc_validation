@@ -11,7 +11,7 @@ import logging
 
 import pandas as pd
 
-from autogc_validation.database.enums import SampleTypeLetter
+from autogc_validation.database.enums import SampleTypeLetter, aqs_to_name
 from autogc_validation.qc.utils import get_compound_cols, align_period_index
 
 _QC_SAMPLE_TYPES = {SampleTypeLetter.CVS, SampleTypeLetter.LCS, SampleTypeLetter.RTS}
@@ -150,6 +150,32 @@ def check_qc_recovery(
     )
 
     return result
+
+def qc_exceedance_counts(
+    qc_samples: pd.DataFrame,
+    canister_periods: pd.DataFrame,
+) -> pd.DataFrame:
+    """Count per-compound recovery exceedances across a month of QC samples.
+
+    Args:
+        qc_samples: Typed QC DataFrame (Dataset.cvs, Dataset.lcs, etc.).
+        canister_periods: Expected concentrations from get_canister_periods.
+
+    Returns:
+        DataFrame with two rows, 'high' and 'low', and one column per
+        compound (named, not AQS-coded). 'high' counts samples where
+        recovery exceeded 130%; 'low' counts samples where recovery was
+        below 70%. Compounds with no expected canister concentration are
+        never flagged by check_qc_recovery and so are always 0 here.
+    """
+    flags = check_qc_recovery(qc_samples, canister_periods)
+    flags = flags.drop(columns="filename")
+    flags.columns = [aqs_to_name(c) for c in flags.columns]
+
+    high = (flags == 1).sum(axis=0)
+    low = (flags == -1).sum(axis=0)
+    return pd.DataFrame([high, low], index=["high", "low"])
+
 
 def check_ambient_spike_recovery(
     spike: pd.DataFrame,

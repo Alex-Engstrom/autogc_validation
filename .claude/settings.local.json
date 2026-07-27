@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"D:\\\\autogc_validation\" status --porcelain -- src/autogc_validation/reports/case_narrative)",
+      "PowerShell(Move-Item *)",
+      "Bash(python -)",
+      "Bash(python -m py_compile plots.py flags.py casenarrative.py __init__.py)",
+      "Bash(PYTHONPATH='D:\\\\autogc_validation\\\\src' python -c ' *)",
+      "Bash(/c/ProgramData/anaconda3/envs/gc_validation/python.exe *)"
+    ]
+  }
+}

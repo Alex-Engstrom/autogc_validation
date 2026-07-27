@@ -6,13 +6,14 @@ Created on Mon Mar 30 09:22:17 2026
 Claude ai  
 """
 
+from autogc_validation.database.enums import PLOT_CODES, BP_CODES
 import logging
 from pathlib import Path
 import os
 
 import pandas as pd
 from aqs_tools import generate_aqs_df, combine_quals
-from autogc_validation.database.enums import TOTAL_CODES, aqs_to_name
+from autogc_validation.database.enums import aqs_to_name
 from autogc_validation.qc.utils import align_period_index
 logger = logging.getLogger(__name__)
 
@@ -75,20 +76,21 @@ def compare_aqs_to_dataset(aqs_upload_file: str, dataset: pd.DataFrame) -> pd.Da
     return combined[mask]
 
 TIME_FMT = '%Y%m%d%H:%M'
-TOTAL_CODES_STR = [code.value for code in TOTAL_CODES]
-def check_eh(aqs_upload_file: os.PathLike, upper_cal_point: float) -> dict:
+
+def check_eh(aqs_upload_file: os.PathLike, upper_cal_point_plot: float, upper_cal_point_bp: float) -> dict:
     aqs_df = generate_aqs_df(aqs_upload_file, "RD")
     aqs_df = combine_quals(aqs_df)
 
     false_positive = aqs_df.loc[
         (aqs_df['quals'].apply(lambda x: "EH" in x)) &
-        (aqs_df["Reported Sample Value"].astype(float) < upper_cal_point)
+        (((aqs_df["Reported Sample Value"].astype(float) < upper_cal_point_plot) & aqs_df["Parameter"].astype(int).isin(PLOT_CODES)) |
+        ((aqs_df["Reported Sample Value"].astype(float) < upper_cal_point_bp) & aqs_df["Parameter"].astype(int).isin(BP_CODES)))
     ].copy()
 
     false_negative = aqs_df.loc[
         (aqs_df['quals'].apply(lambda x: "EH" not in x)) &
-        (~aqs_df["Parameter"].astype(int).isin(TOTAL_CODES_STR)) &
-        (aqs_df["Reported Sample Value"].astype(float) > upper_cal_point)
+        (((aqs_df["Reported Sample Value"].astype(float) > upper_cal_point_plot) & aqs_df["Parameter"].astype(int).isin(PLOT_CODES)) |
+        ((aqs_df["Reported Sample Value"].astype(float) > upper_cal_point_bp) & aqs_df["Parameter"].astype(int).isin(BP_CODES)))
     ].copy()
 
     for df in [false_positive, false_negative]:

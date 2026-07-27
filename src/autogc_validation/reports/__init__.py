@@ -19,7 +19,6 @@ from .qualifiers import (
     make_col_row
 )
 from .orsat import compare_qc_recovery
-from .monthly_report import generate_monthly_report
 from .reprocess_plan import fill_reprocess_plan
 
 from .populate_MDVR import add_month_to_mdvr, populate_mdvr, add_qc_to_mdvr

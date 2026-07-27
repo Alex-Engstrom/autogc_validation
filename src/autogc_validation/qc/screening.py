@@ -20,6 +20,8 @@ from autogc_validation.database.enums import (
     aqs_to_name,
     name_to_aqs,
     get_codes_by_category,
+    PLOT_CODES,
+    BP_CODES
 )
 from autogc_validation.qc.utils import to_aqs_indexed_series
 
@@ -150,10 +152,17 @@ def check_ratios(
     )
     return result
 
-
+def _check_column(compound_code: int)-> str:
+    if CompoundAQSCode(compound_code) in PLOT_CODES:
+        return "PLOT"
+    elif CompoundAQSCode(compound_code) in BP_CODES:
+        return "BP"
+    else:
+        return None
 def check_overrange_values(
     data: pd.DataFrame,
-    upper_cal_point: float,
+    upper_cal_point_plot: float,
+    upper_cal_point_bp: float,
     exclude_compounds: Set[Union[str, int]] = None,
 ) -> pd.DataFrame:
     """Flag ambient samples where compounds exceed the upper calibration limit.
@@ -168,8 +177,8 @@ def check_overrange_values(
     Returns:
         DataFrame with columns: compound (AQS code), value, compound_name.
     """
-    if not upper_cal_point:
-        raise ValueError("Upper_cal_point must not be None") 
+    if not upper_cal_point_plot:
+        raise ValueError("upper_cal_point_plot must not be None") 
     if exclude_compounds is None:
         exclude_codes = set(TOTAL_CODES)
     else:
@@ -197,10 +206,15 @@ def check_overrange_values(
         value_name="value",
         ignore_index=False,
     )
+    
+    long_df["column"] = long_df["compound"].apply(_check_column)
 
-    mask = (long_df["value"] > upper_cal_point) & (
+
+    mask = ((long_df["value"] > upper_cal_point_plot) & (long_df["column"] == "PLOT") & (
         ~long_df["compound"].isin(exclude_codes)
-    )
+    )) | ((long_df["value"] > upper_cal_point_bp) & (long_df["column"] == "BP") & (
+        ~long_df["compound"].isin(exclude_codes)
+    ))
     exceedances = long_df[mask].copy()
 
     exceedances["compound_name"] = exceedances["compound"].map(aqs_to_name)
@@ -316,7 +330,8 @@ def compare_tnmtc_tnmhc(data: pd.DataFrame,
                         diff_thresh: float = .001, 
                         ratio_thresh: float = 0.5) -> tuple[pd.DataFrame, pd.DataFrame]:
     """ """
-    data = data.sort_index()
+    ambient = data[data["sample_type"] == SampleTypeLetter.AMBIENT.value].sort_index()
+    data = ambient.sort_index()
     if CompoundAQSCode.C_TNMHC not in data.columns or CompoundAQSCode.C_TNMTC not in data.columns:
         logger.warning("compare_tnmtc_tnmhc: TNMHC or TNMTC column not found in data")
         return pd.Series(dtype=float)

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c)",
+      "Bash(conda env)",
+      "Bash(where python *)",
+      "Bash(where py *)",
+      "Read(//c/Users/aengstrom/**)",
+      "Bash(python3 -c \"print\\('ok'\\)\")"
+    ]
+  }
+}

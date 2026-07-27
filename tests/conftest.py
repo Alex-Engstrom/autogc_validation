@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from autogc_validation.database.enums import CompoundAQSCode, ConcentrationUnit, SampleType, name_to_aqs
+from autogc_validation.database.enums import CompoundAQSCode, ConcentrationUnit, SampleTypeLetter, name_to_aqs
 from autogc_validation.database.management.init_db import initialize_database
 
 
@@ -131,10 +131,10 @@ def make_typed_df(make_dataset_df):
     """Factory that builds a typed DataFrame with attrs['sample_type'] set.
 
     Usage:
-        df = make_typed_df(SampleType.BLANK, values={43202: 0.5}, n_rows=2)
+        df = make_typed_df(SampleTypeLetter.BLANK, values={43202: 0.5}, n_rows=2)
     """
     def _make(
-        sample_type: SampleType,
+        sample_type: SampleTypeLetter,
         values=None,
         n_rows=1,
         start_time="2026-01-15 08:00:00",

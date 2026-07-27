@@ -10,7 +10,7 @@ import logging
 
 import pandas as pd
 
-from autogc_validation.database.enums import CompoundAQSCode, SampleTypeLetter
+from autogc_validation.database.enums import CompoundAQSCode, SampleTypeLetter, aqs_to_name
 from autogc_validation.qc.utils import get_compound_cols, align_period_index
 
 logger = logging.getLogger(__name__)
@@ -119,3 +119,26 @@ def compounds_above_mdl(
     )
 
     return mdl_failures, threshold_failures
+
+
+def blank_exceedance_counts(
+    blanks: pd.DataFrame,
+    mdl_periods: pd.DataFrame,
+) -> pd.DataFrame:
+    """Count per-compound MDL exceedances across a month of blank samples.
+
+    Args:
+        blanks: Typed blanks DataFrame (Dataset.blanks).
+        mdl_periods: MDL values from get_mdl_periods.
+
+    Returns:
+        DataFrame with one row, 'above_mdl', and one column per compound
+        (named, not AQS-coded), counting samples where the compound's
+        concentration exceeded the MDL active for its collection date.
+    """
+    mdl_failures, _ = compounds_above_mdl(blanks, mdl_periods)
+    mdl_failures = mdl_failures.drop(columns="filename")
+    mdl_failures.columns = [aqs_to_name(c) for c in mdl_failures.columns]
+
+    above_mdl = mdl_failures.sum(axis=0)
+    return pd.DataFrame([above_mdl], index=["above_mdl"])

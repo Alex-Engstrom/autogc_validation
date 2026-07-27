@@ -274,9 +274,10 @@ def _generate_notebook(
             "        display(ratios_w1)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "upper_cal_point_w1 = None  # ← set to upper calibration point value\n"
+            "upper_cal_point_plot_w1 = None  # ← set to upper calibration point value (PLOT column)\n"
+            "upper_cal_point_bp_w1 = None  # ← set to upper calibration point value (BP column)\n"
             "k = 3.5\n"
-            "overrange_w1 = check_overrange_values(data_w1, upper_cal_point_w1)\n"
+            "overrange_w1 = check_overrange_values(data_w1, upper_cal_point_plot_w1, upper_cal_point_bp_w1)\n"
             'print(f"Overrange values: {len(overrange_w1)}")\n'
             "if not overrange_w1.empty:\n"
             "    display(overrange_w1)\n\n"
@@ -291,7 +292,7 @@ def _generate_notebook(
             "display(daily_tnmhc_front_w1)\n"
             'print("Daily max TNMHC (Back):")\n'
             "display(daily_tnmhc_back_w1)\n\n"
-            "tchc_diff_w1, tchc_ratio_w1 = compare_tnmtc_tnmhc(ambient_w1)\n"
+            "tchc_diff_w1, tchc_ratio_w1 = compare_tnmtc_tnmhc(data_w1)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w1)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -363,9 +364,10 @@ def _generate_notebook(
             "        display(ratios_w2)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "upper_cal_point_w2 = None  # ← set to upper calibration point value\n"
+            "upper_cal_point_plot_w2 = None  # ← set to upper calibration point value (PLOT column)\n"
+            "upper_cal_point_bp_w2 = None  # ← set to upper calibration point value (BP column)\n"
             "k = 3.5\n"
-            "overrange_w2 = check_overrange_values(data_w2, upper_cal_point_w2)\n"
+            "overrange_w2 = check_overrange_values(data_w2, upper_cal_point_plot_w2, upper_cal_point_bp_w2)\n"
             'print(f"Overrange values: {len(overrange_w2)}")\n'
             "if not overrange_w2.empty:\n"
             "    display(overrange_w2)\n\n"
@@ -380,7 +382,7 @@ def _generate_notebook(
             "display(daily_tnmhc_front_w2)\n"
             'print("Daily max TNMHC (Back):")\n'
             "display(daily_tnmhc_back_w2)\n\n"
-            "tchc_diff_w2, tchc_ratio_w2 = compare_tnmtc_tnmhc(ambient_w2)\n"
+            "tchc_diff_w2, tchc_ratio_w2 = compare_tnmtc_tnmhc(data_w2)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w2)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -452,9 +454,10 @@ def _generate_notebook(
             "        display(ratios_w3)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "upper_cal_point_w3 = None  # ← set to upper calibration point value\n"
+            "upper_cal_point_plot_w3 = None  # ← set to upper calibration point value (PLOT column)\n"
+            "upper_cal_point_bp_w3 = None  # ← set to upper calibration point value (BP column)\n"
             "k = 3.5\n"
-            "overrange_w3 = check_overrange_values(data_w3, upper_cal_point_w3)\n"
+            "overrange_w3 = check_overrange_values(data_w3, upper_cal_point_plot_w3, upper_cal_point_bp_w3)\n"
             'print(f"Overrange values: {len(overrange_w3)}")\n'
             "if not overrange_w3.empty:\n"
             "    display(overrange_w3)\n\n"
@@ -469,7 +472,7 @@ def _generate_notebook(
             "display(daily_tnmhc_front_w3)\n"
             'print("Daily max TNMHC (Back):")\n'
             "display(daily_tnmhc_back_w3)\n\n"
-            "tchc_diff_w3, tchc_ratio_w3 = compare_tnmtc_tnmhc(ambient_w3)\n"
+            "tchc_diff_w3, tchc_ratio_w3 = compare_tnmtc_tnmhc(data_w3)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w3)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -541,9 +544,10 @@ def _generate_notebook(
             "        display(ratios_w4)\n"
             "except NameError:\n"
             '    print("Skipping ratio check — run section 6 first to load mdl_periods.")\n\n'
-            "upper_cal_point_w4 = None  # ← set to upper calibration point value\n"
+            "upper_cal_point_plot_w4 = None  # ← set to upper calibration point value (PLOT column)\n"
+            "upper_cal_point_bp_w4 = None  # ← set to upper calibration point value (BP column)\n"
             "k = 3.5\n"
-            "overrange_w4 = check_overrange_values(data_w4, upper_cal_point_w4)\n"
+            "overrange_w4 = check_overrange_values(data_w4, upper_cal_point_plot_w4, upper_cal_point_bp_w4)\n"
             'print(f"Overrange values: {len(overrange_w4)}")\n'
             "if not overrange_w4.empty:\n"
             "    display(overrange_w4)\n\n"
@@ -558,7 +562,7 @@ def _generate_notebook(
             "display(daily_tnmhc_front_w4)\n"
             'print("Daily max TNMHC (Back):")\n'
             "display(daily_tnmhc_back_w4)\n\n"
-            "tchc_diff_w4, tchc_ratio_w4 = compare_tnmtc_tnmhc(ambient_w4)\n"
+            "tchc_diff_w4, tchc_ratio_w4 = compare_tnmtc_tnmhc(data_w4)\n"
             'print("TNMHC - TNMTC:")\n'
             "display(tchc_diff_w4)\n"
             'print("TNMHC / TNMTC:")\n'
@@ -568,33 +572,6 @@ def _generate_notebook(
             "    overrange=overrange_w4, daily_tnmhc_front=daily_tnmhc_front_w4, daily_tnmhc_back=daily_tnmhc_back_w4,\n"
             "    start_date=weeks[4][0], end_date=weeks[4][1],\n"
             ")"
-        ),
-
-        # --- Monthly ambient compound plots ---
-        nbformat.v4.new_markdown_cell("## 6. Monthly ambient compound plots"),
-        nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
-            f"plot_vs_totals(ds.ambient, '{site}', {year}, {month})\n"
-            f"plot_ambient_comparisons(ds.ambient, '{site}', {year}, {month})"
-        ),
-        nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
-            f"plot_lognormal_boxplot(ds.ambient, '{site}', {year}, {month}, mdls=mdl_periods)"
-        ),
-
-        # --- Monthly retention time validation ---
-        nbformat.v4.new_markdown_cell("## 7. Monthly retention time validation"),
-        nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.rt import plot_rt\n"
-            "from autogc_validation.qc.rt_outliers import detect_rt_outliers\n"
-            "from autogc_validation.qc.utils import get_compound_cols\n"
-            "from autogc_validation.database.enums import RT_REFERENCE_CODES\n\n"
-            "rt_ref_cols = [c for c in RT_REFERENCE_CODES if c in ds.rt.columns]\n"
-            "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
-            f"plot_rt(ds.rt, ds.data, '{site}', {year}, {month}, samp_type='s')\n"
-            "rt_outliers = detect_rt_outliers(ds.rt[ds.rt['sample_type'] == 's'], rt_ref_cols, concentrations=ds.data, mdl_periods=mdl_periods)\n"
-            'print(f"Monthly RT outliers: {len(rt_outliers)}")\n'
-            "rt_outliers"
         ),
         # --- Special samples ---
         nbformat.v4.new_markdown_cell("## 8. Special Samples"),
@@ -773,9 +750,10 @@ def _generate_notebook(
             "if not ratios.empty:\n"
             "    display(ratios)\n\n"
             "# Overrange detection\n"
-            "upper_cal_point = None  # ← set to upper calibration point value\n"
+            "upper_cal_point_plot = None  # ← set to upper calibration point value (PLOT column)\n"
+            "upper_cal_point_bp = None  # ← set to upper calibration point value (BP column)\n"
             "k = 3.5\n"
-            "overrange = check_overrange_values(ds.data, upper_cal_point)\n"
+            "overrange = check_overrange_values(ds.data, upper_cal_point_plot, upper_cal_point_bp)\n"
             'print(f"\\nOverrange values: {len(overrange)}")\n'
             "if not overrange.empty:\n"
             "    display(overrange)\n\n"
@@ -929,8 +907,9 @@ def _generate_notebook(
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import check_eh, check_nd, check_md, check_sq\n\n"
-            "upper_cal_point = None  # ← set to upper calibration point value\n\n"
-            "eh = check_eh(aqs_file, upper_cal_point)\n"
+            "upper_cal_point_plot = None  # ← set to upper calibration point value (PLOT column)\n"
+            "upper_cal_point_bp = None  # ← set to upper calibration point value (BP column)\n\n"
+            "eh = check_eh(aqs_file, upper_cal_point_plot, upper_cal_point_bp)\n"
             'print(f"EH false positives: {len(eh[\'false_positive\'])}, false negatives: {len(eh[\'false_negative\'])}")\n'
             "display(eh['false_positive'])\n"
             "display(eh['false_negative'])\n\n"

@@ -23,6 +23,7 @@ from typing import Optional, Union
 from autogc_validation.workspace.folders import generate_monthly_folder_structure
 from autogc_validation.workspace.notebook import _generate_notebook
 from autogc_validation.workspace.checklist import _generate_checklist
+from autogc_validation.workspace.case_narrative import _generate_case_narrative
 from autogc_validation.workspace.files import (
     unzip_files,
     move_dat_files,
@@ -273,6 +274,7 @@ def start_month(
       - Creates ``project_dir/data/{site}/{YYYYMM}/``
       - Calls :func:`create_workspace` to build the folder structure
       - Generates a pre-filled Jupyter notebook in the workspace
+      - Generates a pre-filled Quarto case-narrative (.qmd) in the workspace
       - Copies ``templates/mdvr/{site}_MDVR_template.xlsx`` to the workspace
 
     Args:
@@ -305,10 +307,11 @@ def start_month(
         if result.base_dir is not None:
             result.save()
 
-        # Generate notebook, checklist, and copy MDVR template
+        # Generate notebook, checklist, case narrative, and copy MDVR template
         if result.base_dir is not None:
             _generate_notebook(result, site, year, month)
             _generate_checklist(result, site, year, month)
+            _generate_case_narrative(result, site, year, month)
             _copy_mdvr_template(result, site, year, month, project_dir)
 
         results[site] = result

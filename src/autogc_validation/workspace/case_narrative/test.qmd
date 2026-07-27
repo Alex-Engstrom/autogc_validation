@@ -1,0 +1,261 @@
+---
+title: " "
+format:
+    typst:
+        toc: true
+        font-heading: "Times New Roman"
+        mainfont: "Times New Roman"
+        minimal: true
+        include-in-header:
+          text: |
+            #set page(
+              margin: (left: 2.5cm, right: 2.5cm, top: 3cm, bottom: 2.5cm),
+              header: grid(
+                columns: (1fr, 1fr),
+                align: (left, right),
+                text(14pt, fill: gray)[Utah  Technical  Center  (EQ)  March 2026 Case Narrative],
+                box(height: 1.5cm, image("logo.png"))
+              )
+            )
+            #show figure.caption: it => align(left, it)
+            #show figure.where(kind: image): it => figure(
+              it.body,
+              caption: it.caption,
+              kind: "quarto-float-fig",
+              supplement: "Figure",
+            )
+crossref:
+  fig-prefix: "Fig."
+
+execute:
+  echo: false
+  warning: false
+jupyter: python3
+---
+
+```{python}
+# imports
+import pandas as pd
+from pathlib import Path
+import matplotlib.pyplot as plt
+
+from autogc_validation.database.enums import aqs_to_name, name_to_aqs
+workspace_dir = Path(r"D:\autogc_validation\validation\EQ\EQ202603v1")
+data_dir = Path(r"D:\autogc_validation\data\EQ\202603")
+site_id = 490353015
+year  = 2026
+month = 3
+database = Path(r"D:\autogc_validation\data\autogc.db")
+start_date = "2026-03-01 00:00"
+end_date   = "2026-03-31 23:59"
+```
+
+```{python}
+#| echo: false
+# Dataset
+from autogc_validation.dataset import Dataset
+data_dir = Path(r"D:\autogc_validation\data\EQ\202603")
+ds = Dataset(data_dir)
+
+ambient = ds.ambient
+blank   = ds.blanks
+cvs     = ds.cvs
+lcs     = ds.lcs
+rts     = ds.rts
+exp     = ds.experimental
+cal     = ds.calibration
+mdl     = ds.mdl
+
+from autogc_validation.database.operations import (
+    get_mdl_periods, get_canister_periods
+)
+from autogc_validation.database.enums import ConcentrationUnit
+
+mdl_periods = get_mdl_periods(database, site_id, start_date, end_date, ConcentrationUnit.PPBC)
+
+
+cvs_periods = get_canister_periods(database, site_id, "CVS", start_date, end_date, ConcentrationUnit.PPBC)
+lcs_periods = get_canister_periods(database, site_id, "LCS", start_date, end_date, ConcentrationUnit.PPBC)
+rts_periods = get_canister_periods(database, site_id, "RTS", start_date, end_date, ConcentrationUnit.PPBC)
+
+from autogc_validation.workspace.case_narrative import plots, flags
+AQS_TXTFILE = Path(r"D:\autogc_validation\validation\EQ\EQ202603v1\AQS\RD_SITE-EQ_TechCenter_INSERT_03-01-2026_to_03-31-2026 (3).txt")
+sample_summary = flags.SampleSummary(AQS_TXTFILE)
+```
+
+# General Monthly Summary
+
+::::: {layout="[1,1]"}
+::: {#text-col}
+\
+
+- Collection Rate: **`{python} f"{735/744*100:.1f}%"`**
+
+- Overall Data Completeness: **`{python} f"{sample_summary.ambient/sample_summary.total_hours*100:.1f}%"`**
+
+- QC-Adjusted Data Completeness: **`{python} f"{(sample_summary.ambient+sample_summary.total_qc_hours)/sample_summary.total_hours*100:.1f}%"`**
+
+- A total of **`{python} sample_summary.total_nulled_hours - sample_summary.total_qc_hours - sample_summary.nulled_by_code.get("XX", 0)`** full ambient hours were nulled.
+
+- A total of **9** hours were lost.
+:::
+
+::: {#plot-col}
+```{python}
+#| label: sample-type-summary
+#| fig-cap: Sample Type Summary
+flags.plot_monthly_hours_summary(sample_summary)
+
+```
+
+:::
+:::::
+
+On March 19, 5 hours were lost because the instrument shut down, attributed to a Kori Peltier timeout. After restarting the instrument, PLOT column chromatograms showed significant baseline noise, baseline jumps, and RT shifting for several hours. On March 31, 4 hours were lost because the station computer restarted. Over the course of the month CVS, LCS and RTS recoveries steadily decreased to less than 70%. Calibrant (propane, toluene) CVS and LCS failures led to the nullification of all compounds on the PLOT column for 211 hours and all compounds on the BP column for 375 hours (the same 211 hours as PLOT, plus an additional 164 hours where only BP-column compounds failed QC).
+
+# Data Null Summary
+
+::::: {layout="[1,1]"}
+::: {null-bullets}
+
+A total of **221** full hours were nulled with the following codes:
+
+- AS (Does not Meet QC Criteria) **211 hours**: CVS recoveries for calibrant compounds (propane, toluene) were below 70%. Ambient data were nulled forward and backward to the nearest passing CVS.
+
+- AN (Machine Malfunction) **6 hours**: The instrument shut down for 5 hours after a Kori Peltier timeout on March 19; the following hour was also nulled while the instrument stabilized after restart.
+
+- BK (Site Computer Down) **4 hours**: A possible computer update caused four hours to be lost on March 31.
+:::
+
+::: {null-plot}
+```{python}
+#| label: null-summary
+#| fig-cap: Nulled Full Ambient Hours by Null Code
+flags.plot_null_summary(sample_summary)
+```
+
+:::
+:::::
+
+Only PLOT column compounds were nulled for total of **15** hours with the following code(s): 
+
+>* DA (Aberrant Data) **15 hours**: After restarting the instrument on March 19, the PLOT column chromatograms had significant RT shifting, baseline jumps, baseline spikes, and generally elevated noise.
+
+Only BP column compounds were nulled for total of **164** hours with the following code(s): 
+
+>* AS (QC outside acceptable bounds) **164 hours**: CVS recoveries for toluene were below 70%, but were above 70% for propane. Ambient BP-column data were nulled forward and backward to the nearest passing CVS.
+
+# Data Qualification Summary
+
+LJ (Estimated Value): n-Dodecane, 1-hexene, and isoprene were qualified with LJ for the entire month due to inaccuracy at the end of the columns. 2-Methyl-1-pentene, alpha-pinene, and beta-pinene were qualified with LJ for the entire month because no reference gas was available. m-Diethylbenzene and p-diethylbenzene were both qualified with LJ for the entire month due to uncertainty at low concentrations. All PLOT compounds were qualified with LJ for 113 hours because of intermittent baseline noise and jumps which began after the March 19 instrument failure.
+
+QX (Does not Meet QC Criteria): Acetylene and p-diethylbenzene were qualified with QX for the entire month due to failing QC recoveries. As CVS recoveries decreased over the month, several other compounds began to fail and were qualified with QX forward and backward to the nearest passing CVS. See MDVR spreadsheet for greater detail.
+
+# QA Summary
+
+## Blank Response
+
+```{python}
+#| output: asis
+print(plots.exceedance_summary_text(blank, mdl_periods))
+```
+
+```{python}
+#| label: blank-tnmhc
+#| fig-cap: Total Non Methane Hydrocarbon concentration in Blanks
+plots.plot_tnmhc(blank)
+```
+
+## CVS
+
+```{python}
+cvs_stats = plots.recovery_stats(cvs, cvs_periods)
+
+```
+
+```{python}
+#| output: asis
+print(plots.exceedance_summary_text(cvs, cvs_periods))
+```
+
+Average propane recovery for the month was **`{python} f'{cvs_stats.loc["Propane","mean"]:.1f}'`** $\pm$ **`{python} f'{cvs_stats.loc["Propane","stdev"]:.1f}'`**% (1 stdev). Average toluene recovery for the month was **`{python} f'{cvs_stats.loc["Toluene","mean"]:.1f}'`** $\pm$ **`{python} f'{cvs_stats.loc["Toluene","stdev"]:.1f}'`**% (1 stdev).
+
+```{python}
+#| label: calibrant-cvs-recoveries
+#| fig-cap: Calibrant CVS recovery timeseries (left) and box-and-whisker plot (right)
+cvs = ds.cvs
+plots.recovery_plot(cvs, cvs_periods)
+
+
+```
+
+## LCS
+
+```{python}
+lcs_stats = plots.recovery_stats(lcs, lcs_periods)
+
+```
+
+```{python}
+#| output: asis
+print(plots.exceedance_summary_text(lcs, lcs_periods))
+```
+
+Average propane recovery for the month was **`{python} f'{lcs_stats.loc["Propane","mean"]:.1f}'`** $\pm$ **`{python} f'{lcs_stats.loc["Propane","stdev"]:.1f}'`**% (1 stdev). Average toluene recovery for the month was **`{python} f'{lcs_stats.loc["Toluene","mean"]:.1f}'`** $\pm$ **`{python} f'{lcs_stats.loc["Toluene","stdev"]:.1f}'`**% (1 stdev).
+
+```{python}
+#| label: calibrant-lcs-recoveries
+#| fig-cap: Calibrant LCS recovery timeseries (left) and box-and-whisker plot (right)
+lcs = ds.lcs
+plots.recovery_plot(lcs, lcs_periods)
+
+```
+
+## RTS
+
+```{python}
+rts_stats = plots.recovery_stats(rts, rts_periods)
+
+```
+
+Average propane recovery for the month was **`{python} f'{rts_stats.loc["Propane","mean"]:.1f}'`** $\pm$ **`{python} f'{rts_stats.loc["Propane","stdev"]:.1f}'`**% (1 stdev). Average toluene recovery for the month was **`{python} f'{rts_stats.loc["Toluene","mean"]:.1f}'`** $\pm$ **`{python} f'{rts_stats.loc["Toluene","stdev"]:.1f}'`**% (1 stdev).
+
+```{python}
+#| label: calibrant-rts-recoveries
+#| fig-cap: Calibrant RTS recovery timeseries (left) and box-and-whisker plot (right)
+rts = ds.rts
+plots.recovery_plot(rts, rts_periods)
+
+
+```
+
+# Calibrations
+
+| Date run   | PLOT RF | BP RF |
+|------------|---------|-------|
+| 2/15/2025  | 5721    | 5849  |
+| 4/19/2025  | 4672    | 4882  |
+| 4/22/2025  | 5968    | 6140  |
+| 4/30/2025  | 5934    | 5865  |
+| 6/26/2025  | 5791    | 6194  |
+| 9/8/2025   | 6927    | 7066  |
+| 10/10/2025 | 6520    | 7018  |
+
+Table 1. Calibrations over time
+
+# Method Detection Limit (MDL)
+
+None performed this month.
+
+# Proficiency Testing (PT)
+
+None performed this month.
+
+# Ambient Air Spikes
+
+None performed this month.
+
+# Nonconformances
+
+None.
+
