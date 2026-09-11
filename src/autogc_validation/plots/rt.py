@@ -17,13 +17,17 @@ def plot_rt(
     year: int,
     month: int,
     samp_type: str | None = None,
-) -> None:
+) -> list[go.Figure]:
     """Plot retention time distributions for each sample type.
 
     For each sample type (or a single type if samp_type is given), produces
     a violin + strip plot with one violin per compound. Strip points are
     coloured by their concentration percentile within the sample type group,
     so shifts correlated with high or low concentration are immediately visible.
+
+    The number of figures produced depends on how many sample types are
+    present, so this returns a list rather than a fixed number of figures —
+    display each element yourself, e.g. ``for fig in figs: display(fig)``.
 
     Args:
         rt_df: Dataset.rt DataFrame — DatetimeIndex, integer AQS code columns,
@@ -35,7 +39,11 @@ def plot_rt(
         month: Month number (for the plot title).
         samp_type: If given, only plot this sample_type value. Otherwise all
             sample types are plotted in separate figures.
+
+    Returns:
+        A list of Plotly Figures, one per sample type plotted.
     """
+    figures: list[go.Figure] = []
     # Build ordered compound code and name lists (elution order).
     plot_codes = get_codes_by_column(ColumnType.PLOT)
     bp_codes   = get_codes_by_column(ColumnType.BP)
@@ -146,4 +154,6 @@ def plot_rt(
             height=500,
             width=max(900, 25 * len(present_names)),
         )
-        fig.show()
+        figures.append(fig)
+
+    return figures

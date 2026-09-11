@@ -3,7 +3,7 @@
 Visualization functions for AutoGC QC results.
 """
 
-from .ambient import plot_ambient_comparisons, plot_vs_totals
+from .ambient import plot_ambient_comparisons, plot_voc_category_sums, plot_vs_totals
 from .qc import plot_qc_recovery, plot_blank_concentrations
 from .recovery import (
     plot_recovery_timeseries,
@@ -23,6 +23,7 @@ from .summary import (
 
 __all__ = [
     "plot_ambient_comparisons",
+    "plot_voc_category_sums",
     "plot_qc_recovery",
     "plot_blank_concentrations",
     "plot_recovery_timeseries",

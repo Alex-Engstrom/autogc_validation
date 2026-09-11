@@ -33,7 +33,7 @@ def query_av_rtemp(start_date: pd.Timestamp, end_date: pd.Timestamp, site: str) 
         WHERE SiteAbbreviation = '{site}'
         AND Date >= '{start_date_str}'
         AND Date <= '{end_date_str}'
-        AND [IntervalName] = '001m'
+        AND [IntervalName] = '001h'
         AND ParameterName = 'RTEMP'
         AND ParameterEnabled = 1
         ORDER BY Date"""

@@ -21,8 +21,8 @@ def check_station_temp(
     station_name: str,
     month: int,
     year: int,
-    upper_threshold: float = 25,
-    lower_threshold: float = 16,
+    upper_threshold: float = 30,
+    lower_threshold: float = 20,
 ) -> StationTempResult:
     _, num_days = calendar.monthrange(year, month)
     start_date = pd.Timestamp(year=year, month=month, day=1)

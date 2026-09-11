@@ -217,10 +217,19 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 1"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
-            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
-            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')\n"
-            f"plot_vs_totals(ambient_w1, '{site}', {year}, {month})\n"
+            "from autogc_validation.plots.ambient import (\n"
+            "    plot_ambient_comparisons, plot_voc_category_sums, plot_vs_totals,\n"
+            ")\n\n"
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_voc_category_sums(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_vs_totals(ambient_w1, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -235,7 +244,9 @@ def _generate_notebook(
             "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
             "rt_w1   = ds.rt.loc[weeks[1][0]:weeks[1][1]]\n"
             "data_w1 = ds.data.loc[weeks[1][0]:weeks[1][1]]\n"
-            f"plot_rt(rt_w1, data_w1, '{site}', {year}, {month}, samp_type='s')\n"
+            f"rt_figs_w1 = plot_rt(rt_w1, data_w1, '{site}', {year}, {month}, samp_type='s')\n"
+            "for _fig in rt_figs_w1:\n"
+            "    display(_fig)\n"
             "rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_ref_cols, concentrations=data_w1, mdl_periods=mdl_periods)\n"
             "# rt_outliers_w1 = detect_rt_outliers(rt_w1[rt_w1['sample_type'] == 's'], rt_compound_cols, concentrations=data_w1, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 1 RT outliers: {len(rt_outliers_w1)}")\n'
@@ -307,10 +318,19 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 2"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
-            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
-            f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')\n"
-            f"plot_vs_totals(ambient_w2, '{site}', {year}, {month})\n"
+            "from autogc_validation.plots.ambient import (\n"
+            "    plot_ambient_comparisons, plot_voc_category_sums, plot_vs_totals,\n"
+            ")\n\n"
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_voc_category_sums(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_vs_totals(ambient_w2, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -325,7 +345,9 @@ def _generate_notebook(
             "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
             "rt_w2   = ds.rt.loc[weeks[2][0]:weeks[2][1]]\n"
             "data_w2 = ds.data.loc[weeks[2][0]:weeks[2][1]]\n"
-            f"plot_rt(rt_w2, data_w2, '{site}', {year}, {month}, samp_type='s')\n"
+            f"rt_figs_w2 = plot_rt(rt_w2, data_w2, '{site}', {year}, {month}, samp_type='s')\n"
+            "for _fig in rt_figs_w2:\n"
+            "    display(_fig)\n"
             "rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_ref_cols, concentrations=data_w2, mdl_periods=mdl_periods)\n"
             "# rt_outliers_w2 = detect_rt_outliers(rt_w2[rt_w2['sample_type'] == 's'], rt_compound_cols, concentrations=data_w2, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 2 RT outliers: {len(rt_outliers_w2)}")\n'
@@ -397,10 +419,19 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 3"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
-            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
-            f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')\n"
-            f"plot_vs_totals(ambient_w3, '{site}', {year}, {month})\n"
+            "from autogc_validation.plots.ambient import (\n"
+            "    plot_ambient_comparisons, plot_voc_category_sums, plot_vs_totals,\n"
+            ")\n\n"
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_voc_category_sums(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_vs_totals(ambient_w3, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -415,7 +446,9 @@ def _generate_notebook(
             "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
             "rt_w3   = ds.rt.loc[weeks[3][0]:weeks[3][1]]\n"
             "data_w3 = ds.data.loc[weeks[3][0]:weeks[3][1]]\n"
-            f"plot_rt(rt_w3, data_w3, '{site}', {year}, {month}, samp_type='s')\n"
+            f"rt_figs_w3 = plot_rt(rt_w3, data_w3, '{site}', {year}, {month}, samp_type='s')\n"
+            "for _fig in rt_figs_w3:\n"
+            "    display(_fig)\n"
             "rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_ref_cols, concentrations=data_w3, mdl_periods=mdl_periods)\n"
             "# rt_outliers_w3 = detect_rt_outliers(rt_w3[rt_w3['sample_type'] == 's'], rt_compound_cols, concentrations=data_w3, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 3 RT outliers: {len(rt_outliers_w3)}")\n'
@@ -487,10 +520,19 @@ def _generate_notebook(
         nbformat.v4.new_markdown_cell("### Week 4"),
         nbformat.v4.new_markdown_cell("#### Ambient Checks"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.ambient import plot_ambient_comparisons, plot_vs_totals\n\n"
-            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
-            f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')\n"
-            f"plot_vs_totals(ambient_w4, '{site}', {year}, {month})\n"
+            "from autogc_validation.plots.ambient import (\n"
+            "    plot_ambient_comparisons, plot_voc_category_sums, plot_vs_totals,\n"
+            ")\n\n"
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_voc_category_sums(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_vs_totals(ambient_w4, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
@@ -505,7 +547,9 @@ def _generate_notebook(
             "# rt_compound_cols = get_compound_cols(ds.rt)  # uncomment to check all compounds\n\n"
             "rt_w4   = ds.rt.loc[weeks[4][0]:weeks[4][1]]\n"
             "data_w4 = ds.data.loc[weeks[4][0]:weeks[4][1]]\n"
-            f"plot_rt(rt_w4, data_w4, '{site}', {year}, {month}, samp_type='s')\n"
+            f"rt_figs_w4 = plot_rt(rt_w4, data_w4, '{site}', {year}, {month}, samp_type='s')\n"
+            "for _fig in rt_figs_w4:\n"
+            "    display(_fig)\n"
             "rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_ref_cols, concentrations=data_w4, mdl_periods=mdl_periods)\n"
             "# rt_outliers_w4 = detect_rt_outliers(rt_w4[rt_w4['sample_type'] == 's'], rt_compound_cols, concentrations=data_w4, mdl_periods=mdl_periods)  # all compounds\n"
             'print(f"Week 4 RT outliers: {len(rt_outliers_w4)}")\n'
@@ -574,9 +618,9 @@ def _generate_notebook(
             ")"
         ),
         # --- Special samples ---
-        nbformat.v4.new_markdown_cell("## 8. Special Samples"),
+        nbformat.v4.new_markdown_cell("## 6. Special Samples"),
         nbformat.v4.new_markdown_cell(
-            "### 8a. Ambient Spikes\n\n"
+            "### 6a. Ambient Spikes\n\n"
             "Set `spike_hour` to the sample_hour timestamp of the ambient spike run "
             "and `ambient_hours` to the two surrounding ambient hours. "
             "If no ambient spike was run this month, skip this section."
@@ -602,13 +646,13 @@ def _generate_notebook(
             "spike_recovery_csv.to_csv(spike_csv_path)\n"
             'print(f"Written to {spike_csv_path}")'
         ),
-        nbformat.v4.new_markdown_cell("### 8b. Calibrations"),
+        nbformat.v4.new_markdown_cell("### 6b. Calibrations"),
         nbformat.v4.new_code_cell(""),
-        nbformat.v4.new_markdown_cell("### 8c. MDLs"),
+        nbformat.v4.new_markdown_cell("### 6c. MDLs"),
         nbformat.v4.new_code_cell(""),
 
         # --- Blank QC ---
-        nbformat.v4.new_markdown_cell("## 9. Blank check"),
+        nbformat.v4.new_markdown_cell("## 7. Blank check"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.blanks import compounds_above_mdl\n\n"
             "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n\n"
@@ -628,7 +672,7 @@ def _generate_notebook(
         ),
 
         # --- Recovery QC ---
-        nbformat.v4.new_markdown_cell("## 10. QC recovery checks (CVS / LCS / RTS)"),
+        nbformat.v4.new_markdown_cell("## 8. QC recovery checks (CVS / LCS / RTS)"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.recovery import check_qc_recovery\n\n"
             "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
@@ -650,10 +694,18 @@ def _generate_notebook(
         ),
 
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.qc import plot_qc_recovery\n\n"
-            f"plot_qc_recovery(ds.cvs, cvs_periods, 'CVS', '{site}', {year}, {month})\n"
-            f"plot_qc_recovery(ds.lcs, lcs_periods, 'LCS', '{site}', {year}, {month})\n"
-            f"plot_qc_recovery(ds.rts, rts_periods, 'RTS', '{site}', {year}, {month})\n"
+            "from autogc_validation.plots.qc import plot_qc_recovery"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_qc_recovery(ds.cvs, cvs_periods, 'CVS', '{site}', {year}, {month})"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_qc_recovery(ds.lcs, lcs_periods, 'LCS', '{site}', {year}, {month})"
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_qc_recovery(ds.rts, rts_periods, 'RTS', '{site}', {year}, {month})"
+        ),
+        nbformat.v4.new_code_cell(
             f"plot_qc_recovery(ds.mdl, rts_periods, 'MDL', '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
@@ -671,7 +723,7 @@ def _generate_notebook(
 
         # --- QC Review table ---
         nbformat.v4.new_markdown_cell(
-            "## 11. QC Review table\n\n"
+            "## 9. QC Review table\n\n"
             "Builds the human-readable QC summary table and writes it to the "
             "'QC Review' sheet of the MDVR spreadsheet.\n\n"
             "Set `blank_start_row`, `cvs_start_row`, `lcs_start_row`, and "
@@ -712,19 +764,23 @@ def _generate_notebook(
 
         # --- Station temperature ---
         nbformat.v4.new_markdown_cell(
-            "## 12. Station temperature check\n\n"
+            "## 10. Station temperature check\n\n"
             "Requires an AirVision database connection. "
             "Hours where station temperature exceeds 30\u00b0C are nulled with flag AE."
         ),
         nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.room_temp import check_station_temp\n"
             "from autogc_validation.plots.room_temp import plot_station_temp\n"
             "from autogc_validation.reports import build_temp_null_lines\n\n"
             "# Temperature threshold for AE null qualification (°C).\n"
             "temp_null_threshold = 30.0\n\n"
-            f"temp_result = plot_station_temp('{site}', {month}, {year}, upper_threshold=temp_null_threshold)\n"
+            f"temp_result = check_station_temp('{site}', {month}, {year}, upper_threshold=temp_null_threshold)\n"
             "hourly_max = temp_result.temperatures.resample('h').max()\n"
             "n_over = int((hourly_max > temp_null_threshold).sum())\n"
             'print(f"Hours exceeding {temp_null_threshold}°C: {n_over}")'
+        ),
+        nbformat.v4.new_code_cell(
+            f"plot_station_temp(temp_result, '{site}', {month}, {year}, upper_threshold=temp_null_threshold)"
         ),
         nbformat.v4.new_code_cell(
             "temp_null_lines = build_temp_null_lines(\n"
@@ -736,7 +792,7 @@ def _generate_notebook(
         ),
 
         # --- Ambient screening ---
-        nbformat.v4.new_markdown_cell("## 13. Ambient screening"),
+        nbformat.v4.new_markdown_cell("## 11. Ambient screening"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.qc.screening import (\n"
             "    check_ratios, check_overrange_values, check_daily_max_tnmhc,\n"
@@ -772,7 +828,7 @@ def _generate_notebook(
         ),
 
         # --- Reprocess Plan ---
-        nbformat.v4.new_markdown_cell("## 14. Reprocess Plan"),
+        nbformat.v4.new_markdown_cell("## 12. Reprocess Plan"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import fill_reprocess_plan\n\n"
             "fill_reprocess_plan(\n"
@@ -782,7 +838,7 @@ def _generate_notebook(
         ),
 
         # --- QC Calculations ---
-        nbformat.v4.new_markdown_cell("## 15. Populate QC calculations"),
+        nbformat.v4.new_markdown_cell("## 13. Populate QC calculations"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import add_qc_to_mdvr\n\n"
             "add_qc_to_mdvr(mdvr_path, cvs)\n"
@@ -791,7 +847,7 @@ def _generate_notebook(
         ),
 
         # --- MDVR ---
-        nbformat.v4.new_markdown_cell("## 16. MDVR qualifier generation"),
+        nbformat.v4.new_markdown_cell("## 14. MDVR qualifier generation"),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import (\n"
             "    build_blank_qualifier_lines,\n"
@@ -861,7 +917,7 @@ def _generate_notebook(
         ),
         # --- QC recovery comparison to Orsat MAX ---
         nbformat.v4.new_markdown_cell(
-            "## 17. QC Recovery Verification\n\n"
+            "## 15. QC Recovery Verification\n\n"
             "Compares locally-computed QC recovery against an independently-exported "
             "ORSAT MAX recovery figure CSV, one file per QC type. Set `cvs_path`, "
             "`lcs_path`, and `rts_path` below to the exported CSV for each QC type."
@@ -883,9 +939,9 @@ def _generate_notebook(
             'print(f"RTS rows with |dataset - MAX| > {thresh}: {len(diff_rts)}")'
         ),
         # --- AQS verification ---
-        nbformat.v4.new_markdown_cell("## 18. AQS upload verification"),
+        nbformat.v4.new_markdown_cell("## 16. AQS upload verification"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.reports.aqs import compare_aqs_to_dataset\n\n"
+            "from autogc_validation.reports.aqs import compare_aqs_to_dataset, compare_aqs_blanks_to_dataset\n\n"
             "from aqs_tools.processors import summarize_nulls_by_hour, summarize_qualifiers_by_hour, summarize_nulls_by_compound, summarize_qualifiers_by_compound\n"
             "from aqs_tools.parsers import generate_aqs_df\n"
             "from aqs_tools.utils import combine_quals\n"
@@ -903,7 +959,11 @@ def _generate_notebook(
             "display(nbc_df)\n"
             'qbc = summarize_qualifiers_by_compound(aqs_file, "RD")\n'
             "qbc_df = pd.DataFrame(qbc)\n"
-            "display(qbc_df)\n"
+            "display(qbc_df)\n\n"
+            f"aqs_blank_file = r\"\"  # ← set path to AQS RB (field blank) upload file\n\n"
+            "blank_differences = compare_aqs_blanks_to_dataset(aqs_blank_file, ds.blanks.copy())\n"
+            'print(f"Blank rows with |dataset - AQS| > 0.001: {len(blank_differences)}")\n'
+            "blank_differences\n"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.reports import check_eh, check_nd, check_md, check_sq\n\n"
@@ -930,7 +990,7 @@ def _generate_notebook(
 
         # --- Transfer to network ---
         nbformat.v4.new_markdown_cell(
-            "## 19. Transfer to network\n\n"
+            "## 17. Transfer to network\n\n"
             "Copies AQS, FINAL, Original, and MDVR "
             "to the network drive. The destination folder must not already exist — "
             "delete it manually before re-running if you need to overwrite a previous transfer."

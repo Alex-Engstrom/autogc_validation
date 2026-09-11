@@ -20,40 +20,31 @@ logger = logging.getLogger(__name__)
 _FORMAT = "%Y%m%d %H:%M"
 
 
-def _aqs_timestamp(aqs_df: pd.DataFrame) -> pd.DataFrame:
+def _aqs_timestamp(aqs_df: pd.DataFrame, date_col: str = "Sample Date", time_col: str = "Sample Begin Time") -> pd.DataFrame:
     aqs_df_ts = aqs_df.copy()
-    aqs_df_ts["date_time"] = aqs_df_ts["Sample Date"] + " " + aqs_df_ts["Sample Begin Time"]
+    aqs_df_ts["date_time"] = aqs_df_ts[date_col] + " " + aqs_df_ts[time_col]
     aqs_df_ts["date_time"] = pd.to_datetime(aqs_df_ts["date_time"], format=_FORMAT)
     aqs_df_ts.set_index("date_time", inplace=True)
     return aqs_df_ts
 
 
-def compare_aqs_to_dataset(aqs_upload_file: str, dataset: pd.DataFrame) -> pd.DataFrame:
-    """Compare an AQS upload file against the dataset to find value discrepancies.
-
-    Args:
-        aqs_upload_file: Path to the AQS RD transaction upload file.
-        dataset: Ambient-only DataFrame (e.g. ds.ambient) with integer AQS code
-            columns, a sample_hour DatetimeIndex, and date_time / sample_type /
-            filename columns. Pass through resolve_duplicate_sample_hours() first
-            if the month contains any duplicate sample hours.
-
-    Returns:
-        DataFrame of rows where |dataset - AQS| > 0.001, with columns:
-        date_time, Parameter, AQS, dataset, diff.
-
-    Raises:
-        FileNotFoundError: If aqs_upload_file does not exist.
-    """
+def _compare_aqs_to_dataset(
+    aqs_upload_file: str,
+    dataset: pd.DataFrame,
+    transaction_type: str,
+    date_col: str,
+    time_col: str,
+    value_col: str,
+) -> pd.DataFrame:
     if not Path(aqs_upload_file).is_file():
         raise FileNotFoundError(f"AQS upload file not found: {aqs_upload_file}")
 
     dataset = dataset.copy()
 
-    aqs_df = generate_aqs_df(aqs_upload_file, transaction_type="RD")
-    aqs_df = _aqs_timestamp(aqs_df)
-    aqs_df = aqs_df[["Parameter", "Reported Sample Value"]].apply(pd.to_numeric, errors="coerce")
-    aqs_df.rename(columns={"Reported Sample Value": "AQS"}, inplace=True)
+    aqs_df = generate_aqs_df(aqs_upload_file, transaction_type=transaction_type)
+    aqs_df = _aqs_timestamp(aqs_df, date_col=date_col, time_col=time_col)
+    aqs_df = aqs_df[["Parameter", value_col]].apply(pd.to_numeric, errors="coerce")
+    aqs_df.rename(columns={value_col: "AQS"}, inplace=True)
     aqs_df.dropna(how="any", inplace=True)
     aqs_df = aqs_df.reset_index()
 
@@ -74,6 +65,60 @@ def compare_aqs_to_dataset(aqs_upload_file: str, dataset: pd.DataFrame) -> pd.Da
     threshold = 0.001
     mask = combined["diff"].abs().round(3) > threshold
     return combined[mask]
+
+
+def compare_aqs_to_dataset(aqs_upload_file: str, dataset: pd.DataFrame) -> pd.DataFrame:
+    """Compare an AQS upload file against the dataset to find value discrepancies.
+
+    Args:
+        aqs_upload_file: Path to the AQS RD transaction upload file.
+        dataset: Ambient-only DataFrame (e.g. ds.ambient) with integer AQS code
+            columns, a sample_hour DatetimeIndex, and date_time / sample_type /
+            filename columns. Pass through resolve_duplicate_sample_hours() first
+            if the month contains any duplicate sample hours.
+
+    Returns:
+        DataFrame of rows where |dataset - AQS| > 0.001, with columns:
+        date_time, Parameter, AQS, dataset, diff.
+
+    Raises:
+        FileNotFoundError: If aqs_upload_file does not exist.
+    """
+    return _compare_aqs_to_dataset(
+        aqs_upload_file,
+        dataset,
+        transaction_type="RD",
+        date_col="Sample Date",
+        time_col="Sample Begin Time",
+        value_col="Reported Sample Value",
+    )
+
+
+def compare_aqs_blanks_to_dataset(aqs_blank_file: str, dataset: pd.DataFrame) -> pd.DataFrame:
+    """Compare an AQS field-blank upload file against the dataset to find value discrepancies.
+
+    Args:
+        aqs_blank_file: Path to the AQS RB (field blank) transaction upload file.
+        dataset: Blank-only DataFrame (e.g. ds.blanks) with integer AQS code
+            columns, a sample_hour DatetimeIndex, and date_time / sample_type /
+            filename columns. Pass through resolve_duplicate_sample_hours() first
+            if the month contains any duplicate sample hours.
+
+    Returns:
+        DataFrame of rows where |dataset - AQS| > 0.001, with columns:
+        date_time, Parameter, AQS, dataset, diff.
+
+    Raises:
+        FileNotFoundError: If aqs_blank_file does not exist.
+    """
+    return _compare_aqs_to_dataset(
+        aqs_blank_file,
+        dataset,
+        transaction_type="RB",
+        date_col="Blank Date",
+        time_col="Blank Time",
+        value_col="Blank Value",
+    )
 
 TIME_FMT = '%Y%m%d%H:%M'
 

@@ -22,7 +22,6 @@ from typing import Optional, Union
 
 from autogc_validation.workspace.folders import generate_monthly_folder_structure
 from autogc_validation.workspace.notebook import _generate_notebook
-from autogc_validation.workspace.checklist import _generate_checklist
 from autogc_validation.workspace.case_narrative import _generate_case_narrative
 from autogc_validation.workspace.files import (
     unzip_files,
@@ -307,10 +306,9 @@ def start_month(
         if result.base_dir is not None:
             result.save()
 
-        # Generate notebook, checklist, case narrative, and copy MDVR template
+        # Generate notebook, case narrative, and copy MDVR template
         if result.base_dir is not None:
             _generate_notebook(result, site, year, month)
-            _generate_checklist(result, site, year, month)
             _generate_case_narrative(result, site, year, month)
             _copy_mdvr_template(result, site, year, month, project_dir)
 

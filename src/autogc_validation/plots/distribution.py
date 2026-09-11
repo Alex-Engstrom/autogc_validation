@@ -33,11 +33,16 @@ def plot_ambient_boxplot(
     sitename: str,
     year: int,
     month: int,
-    ) -> None:
+    ) -> go.Figure:
+    """Boxplot of ambient concentrations for all compounds.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
+    """
     if ambient_df.empty:
         print("No samples to plot.")
-        return
-    
+        return go.Figure()
+
     compound_cols = set(get_compound_cols(ambient_df))
     ordered = get_ordered_codes(compound_cols)
 
@@ -77,7 +82,7 @@ def plot_ambient_boxplot(
         tickangle=90,
     )
     fig.update_yaxes(**_AXIS_STYLE)
-    fig.show()
+    return fig
 
 
 def plot_lognormal_boxplot(
@@ -88,7 +93,7 @@ def plot_lognormal_boxplot(
     label: str = "",
     mdls=None,
     floor: float = 0.25,
-) -> None:
+) -> go.Figure:
     """Boxplot of log-transformed concentrations for all compounds.
 
     Values are clipped to a per-compound floor before log-transformation so
@@ -107,10 +112,13 @@ def plot_lognormal_boxplot(
             period-indexed MDL DataFrame (first period used). Optional.
         floor: Fallback floor applied when mdls is None or a compound's
             MDL is missing or zero. Defaults to 0.25.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     if ambient_df.empty:
         print("No samples to plot.")
-        return
+        return go.Figure()
 
     if mdls is not None:
         mdl_series = to_aqs_indexed_series(mdls)
@@ -167,4 +175,4 @@ def plot_lognormal_boxplot(
     )
     fig.update_yaxes(**_AXIS_STYLE)
     fig.add_hline(y=np.log(0.5), line_dash="dash", line_color="red", line_width=1)
-    fig.show()
+    return fig

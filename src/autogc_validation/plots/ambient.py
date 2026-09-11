@@ -50,10 +50,15 @@ def _cat_sum(ambient_df: pd.DataFrame, category: VOCCategory) -> pd.Series:
 def plot_vs_totals(ambient_df: pd.DataFrame,
         sitename: str,
         year: int,
-        month: int) -> None:
+        month: int) -> go.Figure:
+    """Plot each compound vs TNMTC with a linear fit, one subplot per compound.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no ambient data to plot.
+    """
     if ambient_df.empty:
         logger.warning("No ambient data to plot.")
-        return
+        return go.Figure()
     label = 'VOCs vs TNMTC'
     title_base = f"{sitename} {year}-{month:02d} — {label}"
     timestamps = ambient_df.index.strftime("%Y-%m-%d %H:%M")
@@ -131,8 +136,8 @@ def plot_vs_totals(ambient_df: pd.DataFrame,
         width=1200,
         showlegend=False,
     )
-    fig1.show()
-        
+    return fig1
+
 
 def plot_ambient_comparisons(
     ambient_df: pd.DataFrame,
@@ -141,17 +146,15 @@ def plot_ambient_comparisons(
     month: int,
     label: str = "Full Month",
     comparisons: list[tuple[str, ...]] | None = None,
-) -> None:
-    """Plot compound comparison scatter plots and VOC category sum scatter plots.
+) -> go.Figure:
+    """Plot a grid of compound comparison scatter plots.
 
-    Produces two figures:
+    The first compound in each tuple is the x-axis; the remainder are each
+    plotted against it as separate series.  Groups where fewer than two
+    compounds are present in *ambient_df* are silently skipped.
 
-    1. A grid of scatter plots for the specified compound pairs/groups.  The
-       first compound in each tuple is the x-axis; the remainder are each
-       plotted against it as separate series.  Groups where fewer than two
-       compounds are present in *ambient_df* are silently skipped.
-
-    2. Three scatter plots of alkane sum vs alkene, aromatic, and terpene sums.
+    See also :func:`plot_voc_category_sums` for the companion VOC-category
+    scatter plots.
 
     Args:
         ambient_df: Ambient concentration DataFrame — DatetimeIndex, integer
@@ -165,10 +168,14 @@ def plot_ambient_comparisons(
         comparisons: List of compound name tuples.  Defaults to
             ``_DEFAULT_COMPARISONS``.  Compound names are matched
             case-insensitively via ``name_to_aqs``.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no ambient
+        data, or no comparison group had at least two compounds present.
     """
     if ambient_df.empty:
         logger.warning(f"No ambient data to plot ({label}).")
-        return
+        return go.Figure()
 
     if comparisons is None:
         comparisons = _DEFAULT_COMPARISONS
@@ -187,60 +194,90 @@ def plot_ambient_comparisons(
         if len(codes) >= 2:
             valid_groups.append(codes)
 
+    if not valid_groups:
+        return go.Figure()
+
     title_base = f"{sitename} {year}-{month:02d} — {label}"
     timestamps = ambient_df.index.strftime("%Y-%m-%d %H:%M")
     hover_text = ambient_df["filename"] + "<br>" + timestamps
-    # ------------------------------------------------------------------
-    # Figure 1: compound comparison scatter plots
-    # ------------------------------------------------------------------
-    if valid_groups:
-        ncols = 3
-        nrows = -(-len(valid_groups) // ncols)
-        subplot_titles = [group[0][1] for group in valid_groups] + [""] * (nrows * ncols - len(valid_groups))
 
-        fig1 = make_subplots(
-            rows=nrows, cols=ncols,
-            subplot_titles=subplot_titles,
-            horizontal_spacing=0.08,
-            vertical_spacing=0.1,
-        )
+    ncols = 3
+    nrows = -(-len(valid_groups) // ncols)
+    subplot_titles = [group[0][1] for group in valid_groups] + [""] * (nrows * ncols - len(valid_groups))
 
-        for i, group in enumerate(valid_groups):
-            row = i // ncols + 1
-            col = i % ncols + 1
-            x_code, x_name = group[0]
-            for y_code, y_name in group[1:]:
-                fig1.add_trace(
-                    go.Scatter(
-                        x=ambient_df[x_code],
-                        y=ambient_df[y_code],
-                        mode="markers",
-                        marker=dict(size=5, opacity=0.5),
-                        name=f"{x_name} vs {y_name}",
-                        text=hover_text,
-                        hovertemplate=(
-                            "%{text}<br>"
-                            f"{x_name}: %{{x:.2f}}<br>"
-                            f"{y_name}: %{{y:.2f}}<br>"
-                            "<extra></extra>"
-                        ),
+    fig1 = make_subplots(
+        rows=nrows, cols=ncols,
+        subplot_titles=subplot_titles,
+        horizontal_spacing=0.08,
+        vertical_spacing=0.1,
+    )
+
+    for i, group in enumerate(valid_groups):
+        row = i // ncols + 1
+        col = i % ncols + 1
+        x_code, x_name = group[0]
+        for y_code, y_name in group[1:]:
+            fig1.add_trace(
+                go.Scatter(
+                    x=ambient_df[x_code],
+                    y=ambient_df[y_code],
+                    mode="markers",
+                    marker=dict(size=5, opacity=0.5),
+                    name=f"{x_name} vs {y_name}",
+                    text=hover_text,
+                    hovertemplate=(
+                        "%{text}<br>"
+                        f"{x_name}: %{{x:.2f}}<br>"
+                        f"{y_name}: %{{y:.2f}}<br>"
+                        "<extra></extra>"
                     ),
-                    row=row, col=col,
-                )
-            fig1.update_xaxes(title_text=x_name, row=row, col=col)
-            fig1.update_yaxes(title_text=y_name, row=row, col=col)
+                ),
+                row=row, col=col,
+            )
+        fig1.update_xaxes(title_text=x_name, row=row, col=col)
+        fig1.update_yaxes(title_text=y_name, row=row, col=col)
 
-        fig1.update_layout(
-            title=f"{title_base} — Compound Comparisons",
-            height=350 * nrows,
-            width=1200,
-            showlegend=False,
-        )
-        fig1.show()
+    fig1.update_layout(
+        title=f"{title_base} — Compound Comparisons",
+        height=350 * nrows,
+        width=1200,
+        showlegend=False,
+    )
+    return fig1
 
-    # ------------------------------------------------------------------
-    # Figure 2: VOC category sums
-    # ------------------------------------------------------------------
+
+def plot_voc_category_sums(
+    ambient_df: pd.DataFrame,
+    sitename: str,
+    year: int,
+    month: int,
+    label: str = "Full Month",
+) -> go.Figure:
+    """Plot alkane sum vs alkene, aromatic, and terpene sums as scatter plots.
+
+    Companion figure to :func:`plot_ambient_comparisons` — split out as its
+    own function because it is a conceptually distinct plot, not a variant
+    of the compound-comparison grid.
+
+    Args:
+        ambient_df: Ambient concentration DataFrame — DatetimeIndex, integer
+            AQS code columns.  Pass ``Dataset.ambient`` for the full month or
+            a datetime-sliced subset for a single week.
+        sitename: Site name string for the plot title (e.g. ``'EQ'``).
+        year: Year for the plot title.
+        month: Month number (1-12) for the plot title.
+        label: Period label appended to the figure title, e.g. ``'Week 1'``
+            or ``'Full Month'``.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no ambient data to plot.
+    """
+    if ambient_df.empty:
+        logger.warning(f"No ambient data to plot ({label}).")
+        return go.Figure()
+
+    title_base = f"{sitename} {year}-{month:02d} — {label}"
+    timestamps = ambient_df.index.strftime("%Y-%m-%d %H:%M")
     alkane_sum = _cat_sum(ambient_df, VOCCategory.ALKANE)
 
     fig2 = make_subplots(
@@ -276,4 +313,4 @@ def plot_ambient_comparisons(
         width=1200,
         showlegend=False,
     )
-    fig2.show()
+    return fig2

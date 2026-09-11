@@ -61,7 +61,7 @@ def plot_monthly_hours_summary(
     month: int,
     nulled_hours: int = 0,
     overrides: dict[str, int] | None = None,
-) -> None:
+) -> go.Figure:
     """Plot a donut chart breaking down sample hours by type for the month.
 
     Shows valid ambient, QC standards, PT/experimental, and nulled ambient
@@ -78,6 +78,9 @@ def plot_monthly_hours_summary(
         overrides: Optional dict mapping sample-type label strings to integer
             counts, replacing the values derived from *ds*.  Labels must match
             keys in _SAMPLE_TYPE_META, e.g. ``{"CVS": 4, "Blanks": 2}``.
+
+    Returns:
+        The Plotly Figure.
     """
     raw_counts: dict = ds.data["sample_type"].value_counts().to_dict()
 
@@ -143,7 +146,6 @@ def plot_monthly_hours_summary(
         height=480,
         paper_bgcolor="white",
     )
-    fig.show()
 
     completeness_raw = n_valid_ambient / total_hours_in_month * 100
     denominator_qc_excl = total_hours_in_month - qc_hours
@@ -151,13 +153,15 @@ def plot_monthly_hours_summary(
     print(f"Raw Data Completeness (QC included):  {completeness_raw:.1f}%")
     print(f"Data Completeness (QC excluded):       {completeness_qc_excl:.1f}%")
 
+    return fig
+
 
 def plot_qual_summary(
     all_quals: pd.DataFrame,
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot a horizontal bar chart of data qualification by qualifier code.
 
     Each bar represents one qualifier code and shows the total number of
@@ -171,10 +175,13 @@ def plot_qual_summary(
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     if all_quals.empty:
         print("No qualifiers to summarise.")
-        return
+        return go.Figure()
 
     code_counts = all_quals["CODE"].value_counts().sort_values()
 
@@ -194,7 +201,7 @@ def plot_qual_summary(
     )
     fig.update_xaxes(**_AXIS_STYLE)
     fig.update_yaxes(**_AXIS_STYLE)
-    fig.show()
+    return fig
 
 
 def plot_null_summary(
@@ -203,7 +210,7 @@ def plot_null_summary(
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot a bar chart of nulled ambient hours by nullification reason.
 
     Expands each null qualifier interval (AS/AE) to individual hours,
@@ -216,12 +223,15 @@ def plot_null_summary(
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     null_df = all_quals[all_quals["CODE"].isin(NULL_CODES)] if not all_quals.empty else pd.DataFrame()
 
     if null_df.empty:
         print("No null qualifiers found — no nulled hours to summarise.")
-        return
+        return go.Figure()
 
     ambient_ts = set(ds.ambient.index)
     rows = []
@@ -263,7 +273,7 @@ def plot_null_summary(
     )
     fig.update_xaxes(**_AXIS_STYLE)
     fig.update_yaxes(**_AXIS_STYLE)
-    fig.show()
+    return fig
 
 
 def plot_null_donut(
@@ -271,7 +281,7 @@ def plot_null_donut(
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot a donut chart of nulled ambient hours by null qualifier code.
 
     Each slice represents one qualifier code (e.g. AS, AE) and its associated
@@ -284,6 +294,9 @@ def plot_null_donut(
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     labels, values = [], []
     for code, hrs in nulled_by_code.items():
@@ -293,7 +306,7 @@ def plot_null_donut(
 
     if not labels:
         print("No nulled hours to plot.")
-        return
+        return go.Figure()
 
     total = sum(values)
 
@@ -317,7 +330,7 @@ def plot_null_donut(
         height=420,
         paper_bgcolor="white",
     )
-    fig.show()
+    return fig
 
 
 def plot_blank_totals(
@@ -325,7 +338,7 @@ def plot_blank_totals(
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot blank TNMTC and TNMHC concentrations over the month.
 
     Both total columns are shown on the same axis. If neither column is
@@ -337,11 +350,14 @@ def plot_blank_totals(
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     blank_df = ds.blanks
     if blank_df.empty:
         print("No blank samples to plot.")
-        return
+        return go.Figure()
 
     series_to_plot = []
     for code, color, dash in [
@@ -354,7 +370,7 @@ def plot_blank_totals(
 
     if not series_to_plot:
         print("Neither TNMTC nor TNMHC found in blank samples.")
-        return
+        return go.Figure()
 
     timestamps = list(blank_df.index)
     fig = go.Figure()
@@ -383,4 +399,4 @@ def plot_blank_totals(
     )
     fig.update_xaxes(**_AXIS_STYLE)
     fig.update_yaxes(**_AXIS_STYLE)
-    fig.show()
+    return fig

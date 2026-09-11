@@ -80,7 +80,7 @@ def plot_recovery_timeseries(
     month: int,
     plot_highlight_names: tuple[str, str, str] | None = None,
     bp_highlight_names: tuple[str, str, str] | None = None,
-) -> None:
+) -> go.Figure:
     """Plot a two-panel recovery time-series for selected PLOT and BP compounds.
 
     The top panel shows PLOT-column recovery (calibrant + lightest + heaviest
@@ -99,10 +99,13 @@ def plot_recovery_timeseries(
         plot_highlight_names: Override the default PLOT highlight triple
             (calibrant, lightest, heaviest) as compound name strings.
         bp_highlight_names: Override the default BP highlight triple.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     if qc_df.empty:
         print(f"No {qc_type} samples to plot.")
-        return
+        return go.Figure()
 
     recovery_df = compute_recovery(qc_df, canister_periods)
     compound_cols = set(get_compound_cols(recovery_df))
@@ -121,7 +124,7 @@ def plot_recovery_timeseries(
 
     if not panels:
         print(f"No highlight compounds found in {qc_type} data.")
-        return
+        return go.Figure()
 
     timestamps = list(recovery_df.index)
     n_panels = len(panels)
@@ -173,7 +176,7 @@ def plot_recovery_timeseries(
         hovermode="closest",
     )
     _apply_theme(fig)
-    fig.show()
+    return fig
 
 
 def plot_combined_calibrant_timeseries(
@@ -181,7 +184,7 @@ def plot_combined_calibrant_timeseries(
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot PLOT and BP calibrant recovery for CVS, LCS, and RTS on one figure.
 
     Produces a two-panel figure (PLOT column / BP column).  Within each panel,
@@ -195,6 +198,10 @@ def plot_combined_calibrant_timeseries(
         sitename: Site name string (unused in title, kept for API consistency).
         year: Year (unused in title, kept for API consistency).
         month: Month number (unused in title, kept for API consistency).
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if the calibrant AQS
+        codes could not be resolved.
     """
     _PLOT_CALIBRANT_NAME = "Propane"
     _BP_CALIBRANT_NAME   = "Toluene"
@@ -205,7 +212,7 @@ def plot_combined_calibrant_timeseries(
         bp_cal_code   = name_to_aqs(_BP_CALIBRANT_NAME)
     except (KeyError, ValueError) as exc:
         print(f"Could not resolve calibrant AQS codes: {exc}")
-        return
+        return go.Figure()
 
     fig = make_subplots(
         rows=2, cols=1,
@@ -262,7 +269,7 @@ def plot_combined_calibrant_timeseries(
         hovermode="closest",
     )
     _apply_theme(fig)
-    fig.show()
+    return fig
 
 
 def plot_recovery_boxplot(
@@ -272,7 +279,7 @@ def plot_recovery_boxplot(
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot a box-and-whisker distribution of recovery for all QC compounds.
 
     One box per compound, in PLOT-then-BP elution order.  Compounds with
@@ -286,10 +293,13 @@ def plot_recovery_boxplot(
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     if qc_df.empty:
         print(f"No {qc_type} samples to plot.")
-        return
+        return go.Figure()
 
     recovery_df = compute_recovery(qc_df, canister_periods)
     compound_cols = set(get_compound_cols(recovery_df))
@@ -297,7 +307,7 @@ def plot_recovery_boxplot(
 
     if not ordered:
         print(f"No compounds to plot for {qc_type}.")
-        return
+        return go.Figure()
 
     plot_set = set(get_codes_by_column(ColumnType.PLOT))
     fig = go.Figure()
@@ -340,4 +350,4 @@ def plot_recovery_boxplot(
         tickangle=90,
     )
     fig.update_yaxes(**_AXIS_STYLE)
-    fig.show()
+    return fig

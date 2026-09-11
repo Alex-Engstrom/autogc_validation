@@ -23,7 +23,7 @@ from .reprocess_plan import fill_reprocess_plan
 
 from .populate_MDVR import add_month_to_mdvr, populate_mdvr, add_qc_to_mdvr
 
-from .aqs import compare_aqs_to_dataset, check_eh, check_md, check_nd, check_sq
+from .aqs import compare_aqs_to_dataset, compare_aqs_blanks_to_dataset, check_eh, check_md, check_nd, check_sq
 
 __all__ = [
     "generate_monthly_report",
@@ -38,6 +38,7 @@ __all__ = [
     "write_mdvr_to_excel",
     "fill_reprocess_plan",
     "compare_aqs_to_dataset",
+    "compare_aqs_blanks_to_dataset",
     "make_col_row",
     "add_month_to_mdvr",
     "populate_mdvr",

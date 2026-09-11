@@ -69,7 +69,7 @@ def plot_qc_recovery(
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot recovery percentages over time for a QC standard (CVS, LCS, or RTS).
 
     Produces an interactive Plotly figure with PLOT-column compounds in the top
@@ -87,10 +87,13 @@ def plot_qc_recovery(
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     if qc_df.empty:
         print(f"No {qc_type} samples to plot.")
-        return
+        return go.Figure()
 
     canister_codes = {
         c for c in canister_periods.columns
@@ -101,7 +104,7 @@ def plot_qc_recovery(
 
     if not plot_codes:
         print(f"No compounds in common between {qc_type} data and canister standard.")
-        return
+        return go.Figure()
 
     period_indices = align_period_index(qc_df, canister_periods)
     timestamps = list(qc_df.index)
@@ -167,7 +170,7 @@ def plot_qc_recovery(
         legend=dict(tracegroupgap=0),
     )
     _apply_theme(fig)
-    fig.show()
+    return fig
 
 
 def plot_blank_concentrations(
@@ -176,7 +179,7 @@ def plot_blank_concentrations(
     sitename: str,
     year: int,
     month: int,
-) -> None:
+) -> go.Figure:
     """Plot blank sample concentrations over time for compounds with MDL exceedances.
 
     Compounds with at least one MDL exceedance are plotted as time series on
@@ -191,10 +194,13 @@ def plot_blank_concentrations(
         sitename: Site name string for the plot title.
         year: Year for the plot title.
         month: Month number for the plot title.
+
+    Returns:
+        The Plotly Figure, or an empty ``go.Figure()`` if there was no data to plot.
     """
     if blank_df.empty:
         print("No blank samples to plot.")
-        return
+        return go.Figure()
 
     fail_codes = {
         c for c in mdl_failures.columns
@@ -202,7 +208,7 @@ def plot_blank_concentrations(
     }
     if not fail_codes:
         print("No MDL exceedances found — nothing to plot.")
-        return
+        return go.Figure()
 
     plot_codes = get_ordered_codes(fail_codes & set(blank_df.columns))
     has_tnmhc = _TNMHC_CODE in blank_df.columns
@@ -264,4 +270,4 @@ def plot_blank_concentrations(
     )
     )
     _apply_theme(fig)
-    fig.show()
+    return fig
