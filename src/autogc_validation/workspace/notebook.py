@@ -223,16 +223,20 @@ def _generate_notebook(
             "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
             f"plot_ambient_comparisons(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
             f"plot_voc_category_sums(ambient_w1, '{site}', {year}, {month}, label='Week 1')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
             f"plot_vs_totals(ambient_w1, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
             f"plot_lognormal_boxplot(ambient_w1, '{site}', {year}, {month}, label='Week 1', mdls=mdl_periods)"
         ),
         nbformat.v4.new_markdown_cell("#### RT Checks"),
@@ -254,6 +258,7 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "ambient_w1 = ds.ambient.loc[weeks[1][0]:weeks[1][1]]\n"
             "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w1[name_to_aqs('n-pentane')] < 0.005) | (ambient_w1[name_to_aqs('propane')] < 0.005) | (ambient_w1[name_to_aqs('toluene')] < 0.005) | (ambient_w1[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w1[reference][mask]\n"
@@ -324,16 +329,20 @@ def _generate_notebook(
             "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
             f"plot_ambient_comparisons(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
             f"plot_voc_category_sums(ambient_w2, '{site}', {year}, {month}, label='Week 2')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
             f"plot_vs_totals(ambient_w2, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
             f"plot_lognormal_boxplot(ambient_w2, '{site}', {year}, {month}, label='Week 2', mdls=mdl_periods)"
         ),
         nbformat.v4.new_markdown_cell("#### RT Checks"),
@@ -355,6 +364,7 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "ambient_w2 = ds.ambient.loc[weeks[2][0]:weeks[2][1]]\n"
             "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w2[name_to_aqs('n-pentane')] < 0.005) | (ambient_w2[name_to_aqs('propane')] < 0.005) | (ambient_w2[name_to_aqs('toluene')] < 0.005) | (ambient_w2[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w2[reference][mask]\n"
@@ -425,16 +435,20 @@ def _generate_notebook(
             "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
             f"plot_ambient_comparisons(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
             f"plot_voc_category_sums(ambient_w3, '{site}', {year}, {month}, label='Week 3')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
             f"plot_vs_totals(ambient_w3, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
             f"plot_lognormal_boxplot(ambient_w3, '{site}', {year}, {month}, label='Week 3', mdls=mdl_periods)"
         ),
         nbformat.v4.new_markdown_cell("#### RT Checks"),
@@ -456,6 +470,7 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "ambient_w3 = ds.ambient.loc[weeks[3][0]:weeks[3][1]]\n"
             "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w3[name_to_aqs('n-pentane')] < 0.005) | (ambient_w3[name_to_aqs('propane')] < 0.005) | (ambient_w3[name_to_aqs('toluene')] < 0.005) | (ambient_w3[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w3[reference][mask]\n"
@@ -526,16 +541,20 @@ def _generate_notebook(
             "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
             f"plot_ambient_comparisons(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
             f"plot_voc_category_sums(ambient_w4, '{site}', {year}, {month}, label='Week 4')"
         ),
         nbformat.v4.new_code_cell(
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
             f"plot_vs_totals(ambient_w4, '{site}', {year}, {month})"
         ),
         nbformat.v4.new_code_cell(
             "from autogc_validation.plots.distribution import plot_lognormal_boxplot\n\n"
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
             f"plot_lognormal_boxplot(ambient_w4, '{site}', {year}, {month}, label='Week 4', mdls=mdl_periods)"
         ),
         nbformat.v4.new_markdown_cell("#### RT Checks"),
@@ -557,6 +576,7 @@ def _generate_notebook(
         ),
         nbformat.v4.new_markdown_cell("#### Check Mis-IDed Reference Peaks"),
         nbformat.v4.new_code_cell(
+            "ambient_w4 = ds.ambient.loc[weeks[4][0]:weeks[4][1]]\n"
             "reference = ['filename', name_to_aqs('n-pentane'), name_to_aqs('propane'), name_to_aqs('toluene'), name_to_aqs('benzene')]\n"
             "mask = (ambient_w4[name_to_aqs('n-pentane')] < 0.005) | (ambient_w4[name_to_aqs('propane')] < 0.005) | (ambient_w4[name_to_aqs('toluene')] < 0.005) | (ambient_w4[name_to_aqs('benzene')] < 0.005)\n"
             "misided = ambient_w4[reference][mask]\n"
@@ -667,7 +687,9 @@ def _generate_notebook(
         ),
 
         nbformat.v4.new_code_cell(
-            "from autogc_validation.plots.qc import plot_blank_concentrations\n\n"
+            "from autogc_validation.plots.qc import plot_blank_concentrations\n"
+            "from autogc_validation.qc.blanks import compounds_above_mdl\n\n"
+            "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n"
             f"plot_blank_concentrations(ds.blanks, mdl_failures, '{site}', {year}, {month})"
         ),
 
@@ -730,6 +752,8 @@ def _generate_notebook(
             "`rts_start_row` to match the merged-cell row ranges in your MDVR template."
         ),
         nbformat.v4.new_code_cell(
+            "from autogc_validation.qc.blanks import compounds_above_mdl\n\n"
+            "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n\n"
             "from autogc_validation.qc.recovery import check_qc_recovery\n\n"
             "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
             "lcs_failures = check_qc_recovery(ds.lcs, lcs_periods)\n"
@@ -830,7 +854,12 @@ def _generate_notebook(
         # --- Reprocess Plan ---
         nbformat.v4.new_markdown_cell("## 12. Reprocess Plan"),
         nbformat.v4.new_code_cell(
-            "from autogc_validation.reports import fill_reprocess_plan\n\n"
+            "from autogc_validation.reports import fill_reprocess_plan\n"
+            "from autogc_validation.qc.screening import check_overrange_values, check_daily_max_tnmhc\n\n"
+            "# Recompute from ds fresh — don't rely on section 11 having been rerun.\n"
+            "overrange = check_overrange_values(ds.data, upper_cal_point_plot, upper_cal_point_bp)\n"
+            "daily_tnmhc_front = check_daily_max_tnmhc(ds.totals, \"tnmhc_front\")\n"
+            "daily_tnmhc_back  = check_daily_max_tnmhc(ds.totals, \"tnmhc_back\")\n\n"
             "fill_reprocess_plan(\n"
             "    ds.data, mdvr_path, mdvr_path, year, month,\n"
             "    overrange=overrange, daily_tnmhc_front=daily_tnmhc_front, daily_tnmhc_back=daily_tnmhc_back,\n"
@@ -854,7 +883,15 @@ def _generate_notebook(
             "    build_precision_qualifier_lines,\n"
             "    build_qc_qualifier_lines,\n"
             "    write_mdvr_to_excel,\n"
-            ")\n\n"
+            ")\n"
+            "from autogc_validation.qc.blanks import compounds_above_mdl\n"
+            "from autogc_validation.qc.recovery import check_qc_recovery\n"
+            "from autogc_validation.qc.precision import check_cvs_precision\n\n"
+            "# Recompute from ds fresh — don't rely on earlier cells having been rerun.\n"
+            "mdl_failures, threshold_failures = compounds_above_mdl(ds.blanks, mdl_periods)\n"
+            "cvs_failures = check_qc_recovery(ds.cvs, cvs_periods)\n"
+            "lcs_failures = check_qc_recovery(ds.lcs, lcs_periods)\n"
+            "precision_failures, cvs_precision_pairs = check_cvs_precision(ds.cvs, cvs_periods, nulled_filenames=nulled_cvs)\n\n"
             "# Optional: timestamps of the nearest blank/QC sample from adjacent months.\n"
             "# Set these when the first or last sample of the month fails its check so\n"
             "# that the flagged interval extends to the correct boundary rather than the\n"
