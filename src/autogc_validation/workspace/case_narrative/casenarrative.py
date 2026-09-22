@@ -106,7 +106,7 @@ AQS_TXTFILE = Path(r"___")  # TODO: fill in path to this month's AQS RD upload .
 sample_summary = flags.SampleSummary(AQS_TXTFILE)
 ```
 
-# General Monthly Summary
+# General Monthly Summary {#sec-month-summary}
 
 ::::: {layout="[1,1]"}
 ::: {#text-col}
@@ -136,7 +136,7 @@ flags.plot_monthly_hours_summary(sample_summary)
 
 _Describe this month's events here: instrument issues, QC recovery trends, calibrant failures, and any other notable occurrences._
 
-# Data Null Summary
+# Data Null Summary {#sec-null-summary}
 
 ::::: {layout="[1,1]"}
 ::: {null-bullets}
@@ -172,9 +172,9 @@ LJ (Estimated Value): _List compounds qualified LJ this month and why._
 
 QX (Does not Meet QC Criteria): _List compounds qualified QX this month and why. See MDVR spreadsheet for greater detail._
 
-# QA Summary
+# QA Summary {#sec-qa-summary}
 
-## Blank Response
+## Blank Response {#sec-blanks}
 
 ```{python}
 #| output: asis
@@ -187,7 +187,7 @@ print(plots.exceedance_summary_text(blank, mdl_periods))
 plots.plot_tnmhc(blank)
 ```
 
-## CVS
+## CVS {#sec-cvs}
 
 ```{python}
 cvs_stats = plots.recovery_stats(cvs, cvs_periods)
@@ -208,7 +208,7 @@ plots.recovery_plot(cvs, cvs_periods)
 
 ```
 
-## LCS
+## LCS {#sec-lcs}
 
 ```{python}
 lcs_stats = plots.recovery_stats(lcs, lcs_periods)
@@ -229,7 +229,7 @@ plots.recovery_plot(lcs, lcs_periods)
 
 ```
 
-## RTS
+## RTS {#sec-rts}
 
 ```{python}
 rts_stats = plots.recovery_stats(rts, rts_periods)
@@ -245,7 +245,7 @@ plots.recovery_plot(rts, rts_periods)
 
 ```
 
-# Calibrations
+# Calibrations {#sec-cal}
 
 | Date run   | PLOT RF | BP RF |
 |------------|---------|-------|
@@ -253,19 +253,19 @@ plots.recovery_plot(rts, rts_periods)
 
 Table 1. Calibrations over time
 
-# Method Detection Limit (MDL)
+# Method Detection Limit (MDL) {#sec-mdl}
 
 None performed this month.
 
-# Proficiency Testing (PT)
+# Proficiency Testing (PT) {#sec-pt}
 
 None performed this month.
 
-# Ambient Air Spikes
+# Ambient Air Spikes {#sec-as}
 
 None performed this month.
 
-# Nonconformances
+# Nonconformances {#sec-nc}
 
 None.
 """
