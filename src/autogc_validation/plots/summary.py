@@ -100,7 +100,7 @@ def plot_monthly_hours_summary(
     colors.append("#2196F3")
 
     if nulled_hours > 0:
-        labels.append("Nulled Ambient")
+        labels.append("Nulled Non-QC")
         values.append(nulled_hours)
         colors.append("#F44336")
 
