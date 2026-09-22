@@ -168,7 +168,7 @@ Only BP column compounds were nulled for total of **___** hours with the followi
 
 # Data Qualification Summary {#sec-data-qualification}
 
-LJ (Estimated Value): _List compounds qualified LJ this month and why._
+LJ (Estimated Value): n­Dodecane,  1­hexene,  and  isoprene  were  qualified  with  LJ  for  the  entire month due to inaccuracy at the end of the columns. 2­Methyl­1­pentene, alpha­pinene, and beta­ pinene  were  qualified  with  LJ  for  the  entire  month  because  no  reference  gas  was  available.  m­Diethylbenzene  and  p­diethylbenzene  were  both  qualified  with  LJ  for  the  entire  month  due  to uncertainty at low concentrations.
 
 QX (Does not Meet QC Criteria): _List compounds qualified QX this month and why. See MDVR spreadsheet for greater detail._
 
