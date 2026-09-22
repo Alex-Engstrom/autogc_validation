@@ -149,7 +149,7 @@ A total of **___** full ambient hours were nulled with the following codes:
 ::: {null-plot}
 ```{python}
 #| label: null-summary
-#| fig-cap: Nulled Full Ambient Hours by Null Code
+#| fig-cap: Nulled Full Non-QC Hours by Null Code
 flags.plot_null_summary(sample_summary)
 ```
 

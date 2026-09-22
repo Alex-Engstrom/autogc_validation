@@ -89,7 +89,7 @@ def plot_monthly_hours_summary(ss: SampleSummary) -> plt.Figure:
     counts = {
         "Valid Ambient": valid_ambient_hours,
         "QC": qc_hours,
-        "Nulled Ambient": nulled_ambient_hours,
+        "Nulled Non-QC Hours": nulled_ambient_hours,
         "PT/Experimental": experimental_hours,
     }
     counts = {label: hrs for label, hrs in counts.items() if hrs > 0}
