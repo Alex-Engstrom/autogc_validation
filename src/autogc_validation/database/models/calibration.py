@@ -17,12 +17,19 @@ from autogc_validation.database.models.base import BaseModel
 @dataclass
 class Calibration(BaseModel):
     """
-    Calibration with PLOT and BP RFs.
+    Raw multipoint calibration data (levels 1-4) for the PLOT and BP columns.
+
+    Stores each level's peak area and nominal concentration; response factors
+    (area / concentration) are computed separately by evaluate_calibration(),
+    not stored on this model.
 
     Attributes:
         primary_canister_id: Unique canister identifier
-        date_run
-        
+        date_run: Date/time the calibration was run (primary key)
+        site_id: Integer site ID referencing the sites table
+        dr1-dr4: Dilution ratios applied at each calibration level
+        l1_area_PLOT..l4_conc_BP: Peak area and nominal concentration for
+            each level (1-4), separately for the PLOT and BP columns
     """
     primary_canister_id: str
     date_run: str

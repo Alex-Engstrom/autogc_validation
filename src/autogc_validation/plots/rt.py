@@ -21,9 +21,9 @@ def plot_rt(
     """Plot retention time distributions for each sample type.
 
     For each sample type (or a single type if samp_type is given), produces
-    a violin + strip plot with one violin per compound. Strip points are
-    coloured by their concentration percentile within the sample type group,
-    so shifts correlated with high or low concentration are immediately visible.
+    a jittered strip plot with one column per compound. Points are coloured
+    by their concentration percentile within the sample type group, so
+    shifts correlated with high or low concentration are immediately visible.
 
     The number of figures produced depends on how many sample types are
     present, so this returns a list rather than a fixed number of figures —
@@ -65,7 +65,7 @@ def plot_rt(
         .transform(lambda x: (x.rank(pct=True) - 1 / len(x)) / (1 - 1 / len(x)))
     )
 
-    # Subtract per-group median so each violin is centred on zero.
+    # Subtract per-group median so each compound's strip is centred on zero.
     normalized = rt_display.copy()
     normalized[all_names] = (
         rt_display

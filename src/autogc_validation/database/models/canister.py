@@ -79,7 +79,7 @@ class CanisterConcentration(BaseModel):
     Attributes:
         primary_canister_id: Canister identifier
         aqs_code: Compound AQS code
-        concentration: Concentration in ppbv (stored in database)
+        concentration: Concentration value, in the unit given by `units`
         units: Concentration units
         canister_type: Type of canister
     """

@@ -526,7 +526,7 @@ def write_mdvr_to_excel(
         output_path: Path for the output file. May equal template_path to
             edit in place.
         null_start_row: First data row of the Null section. Default 10.
-        qualifier_start_row: First data row of the Qualifiers section. Default 29.
+        qualifier_start_row: First data row of the Qualifiers section. Default 30.
     """
     output_path = Path(output_path)
     if not output_path.parent.is_dir():

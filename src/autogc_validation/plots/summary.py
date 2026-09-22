@@ -73,7 +73,7 @@ def plot_monthly_hours_summary(
         year: Year for the plot title.
         month: Month number for the plot title.
         nulled_hours: Number of ambient hours nulled this month. Subtracted
-            from the ambient count and shown as a separate "Nulled Ambient"
+            from the ambient count and shown as a separate "Nulled Non-QC"
             slice. Default 0.
         overrides: Optional dict mapping sample-type label strings to integer
             counts, replacing the values derived from *ds*.  Labels must match
@@ -213,9 +213,9 @@ def plot_null_summary(
 ) -> go.Figure:
     """Plot a bar chart of nulled ambient hours by nullification reason.
 
-    Expands each null qualifier interval (AS/AE) to individual hours,
-    intersects with ambient sample timestamps, and reports totals grouped
-    by qualifier code and reason.
+    Expands each null qualifier interval (any code in NULL_CODES, e.g.
+    AS/AE) to individual hours, intersects with ambient sample timestamps,
+    and reports totals grouped by qualifier code and reason.
 
     Args:
         all_quals: Combined qualifier DataFrame.

@@ -44,9 +44,11 @@ def summarize_nulls_by_hour_qmd(
 class SampleSummary:
     """Sample counts and null-code hour breakdown for one AQS upload file.
 
-    Ambient/QC/nulled-ambient/special sample counts are populated
-    separately (from the Dataset); this first pass only wires up the
-    null-code breakdown via summarize_nulls_by_hour_qmd.
+    All counts are derived in __post_init__ from the per-code hour
+    breakdown returned by summarize_nulls_by_hour_qmd: total_qc_hours
+    sums the QC_NULL_CODES-tagged hours, nulled_ambient is the
+    remaining nulled hours, and ambient is total_hours minus all
+    nulled hours.
     """
     aqs_txtfile: os.PathLike
     transaction_type: TransactionType = TransactionType.RD
@@ -75,7 +77,7 @@ class SampleSummary:
 _DONUT_COLORS = {
     "Valid Ambient": "#2196F3",
     "QC": "#FF9800",
-    "Nulled Ambient": "#F44336",
+    "Nulled Non-QC Hours": "#F44336",
     "PT/Experimental": "#795548",
 }
 

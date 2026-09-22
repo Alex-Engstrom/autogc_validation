@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Excel report generation for MDVR QC Review sheet.
+MDVR Excel report generation: QC Review table, qualifier/null lines,
+reprocess plan, header/reference info, and AQS/ORSAT verification.
 """
 
 from .qc_table import (

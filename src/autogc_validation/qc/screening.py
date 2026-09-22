@@ -169,7 +169,10 @@ def check_overrange_values(
 
     Args:
         data: Dataset.data DataFrame.
-        upper_cal_point: Upper calibration concentration (ppbC).
+        upper_cal_point_plot: Upper calibration concentration (ppbC) for
+            PLOT-column compounds.
+        upper_cal_point_bp: Upper calibration concentration (ppbC) for
+            BP-column compounds.
         exclude_compounds: Compound identifiers to exclude — either AQS code
             integers or compound name strings. Defaults to TNMHC and TNMTC
             total codes.

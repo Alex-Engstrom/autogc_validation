@@ -335,7 +335,8 @@ def rename_dattxt_files_to_txt(
         destination_directory: Where renamed files go (defaults to source).
 
     Returns:
-        Number of files renamed.
+        Dict with keys 'written' (count renamed) and 'overwritten'
+        (count of existing destination files replaced).
     """
     src = Path(source_directory)
     dest = Path(destination_directory) if destination_directory else src

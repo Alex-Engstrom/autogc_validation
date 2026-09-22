@@ -118,7 +118,7 @@ def exceedance_summary_text(qc_df: pd.DataFrame, qc_periods: pd.DataFrame, inden
 
     Returns:
         Markdown text: an intro sentence plus one bullet per compound.
-        For blanks: compounds that exceeded their MDL in at least 1 sample.
+        For blanks: compounds that exceeded their MDL in at least 2 samples.
         For CVS/LCS/RTS: high (>130%) exceedances, then low (<70%)
         exceedances. The bullets are wrapped in a raw Typst ``#pad`` block
         so they render indented without affecting other lists in the

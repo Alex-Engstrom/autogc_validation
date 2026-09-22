@@ -91,10 +91,13 @@ def process_workspace(
       - ``move_dat_files`` — move .dat files from temp/ to Original/
       - ``move_tx1_files`` — move .tx1 files from temp/ to Original/
       - ``sort_by_week`` — sort .dat files into FINAL/week N/ folders
+      - ``convert_documents`` — convert documents in temp/ to PDF in MDVR/
 
     Args:
         workspace_dir: Path to the monthly validation folder created
             by :func:`create_workspace` (e.g. ``RB202601v1/``).
+        force: If True, re-run all steps even if already recorded as
+            completed in the saved state.
 
     Returns:
         Updated WorkspaceResult with processing steps recorded.
@@ -240,7 +243,7 @@ def _copy_mdvr_template(
 ) -> None:
     """Copy the site MDVR template into the workspace MDVR folder.
 
-    Looks for ``templates/mdvr/{site}_MDVR_template.xlsx`` in the project
+    Looks for ``templates/mdvr/MDVR_template.xlsx`` in the project
     root and copies it to the MDVR folder. Logs a warning if the
     template does not exist rather than raising.
     """
@@ -274,7 +277,7 @@ def start_month(
       - Calls :func:`create_workspace` to build the folder structure
       - Generates a pre-filled Jupyter notebook in the workspace
       - Generates a pre-filled Quarto case-narrative (.qmd) in the workspace
-      - Copies ``templates/mdvr/{site}_MDVR_template.xlsx`` to the workspace
+      - Copies ``templates/mdvr/MDVR_template.xlsx`` to the workspace
 
     Args:
         sites: List of site name codes (e.g. ``["RB", "HW", "LP"]``).
